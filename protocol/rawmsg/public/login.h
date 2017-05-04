@@ -27,7 +27,7 @@ struct LoginRetRoleList
 {
     LoginRetRoleList()
     {
-        std::memset(roleList, sizeof(roleList), 0);
+        std::memset(roleList, 0, sizeof(roleList));
     }
 
     ArraySize listSize = 0;
@@ -48,7 +48,7 @@ struct CreateRole
 {
     CreateRole()
     {
-        std::memset(&basicInfo, sizeof(basicInfo), 0);
+        std::memset(&basicInfo, 0, sizeof(basicInfo));
     }
 
     RoleBasicData basicInfo;

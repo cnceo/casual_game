@@ -68,11 +68,11 @@ $(protodef_objects): %.pb.o: %.pb.cc
 
 #proto文件翻译成c++源文件
 public/%.pb.cc: public/%.proto
-	$(PROTOBUF_COMPILER) --proto_path=$(PUBLIC_PROTOCOL_DEFINITION_DIR) $< --cpp_out=$(PUBLIC_PROTOCOL_DEFINITION_DIR)
+	$(PROTOBUF_COMPILER) --proto_path=$(PUBLIC_PROTOCOL_DEFINITION_DIR) --cpp_out=$(PUBLIC_PROTOCOL_DEFINITION_DIR) $(PROTO_ROOT_DIR)/$<
 #	$(PROTOBUF_COMPILER)  $< --proto_path=. --cpp_out=.
 
 private/%.pb.cc: private/%.proto
-	$(PROTOBUF_COMPILER) --proto_path=$(PRIVATE_PROTOCOL_DEFINITION_DIR) $< --cpp_out=$(PRIVATE_PROTOCOL_DEFINITION_DIR)
+	$(PROTOBUF_COMPILER) --proto_path=$(PRIVATE_PROTOCOL_DEFINITION_DIR) --cpp_out=$(PRIVATE_PROTOCOL_DEFINITION_DIR) $(PROTO_ROOT_DIR)/$<
 #	$(PROTOBUF_COMPILER)  $< --proto_path=. --cpp_out=.
 
 #从proto生成 消息号定义的 .h文件

@@ -47,4 +47,4 @@ distcleanlibs:
 	cd $(LIBS_DIR) && $(MAKE) distclean;
 
 ctags:
-	ctags --exclude=libs -R
+	@ctags --exclude=libs --exclude=log --exclude=script --c++-kinds=+p --fields=+iaS --extras=+q --language-force=C++ -R && echo OK!

@@ -19,6 +19,7 @@ objects = \
     spinlock.o\
     timer.o\
 	coord.o\
+    signal_handler.o\
 
 
 CC = g++

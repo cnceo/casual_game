@@ -24,13 +24,13 @@ LoginProcessor& LoginProcessor::me()
 }
 
 LoginProcessor::LoginProcessor()
-: m_lastLoginId(0)
+: m_loginCounter(0)
 {
 }
 
 LoginId LoginProcessor::getLoginId()
 {
-    LoginId ret = ++m_lastLoginId;
+    LoginId ret = ++m_loginCounter;
     return (ret << 16u) + Gateway::me().getId().value();
 }
 

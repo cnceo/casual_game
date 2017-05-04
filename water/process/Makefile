@@ -14,7 +14,6 @@ objects = \
     process.o\
 	http_packet.o\
 	http_connection_manager.o\
-    signal_handler.o\
 	flash_sanbox_handler.o\
 
 

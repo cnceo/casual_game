@@ -71,7 +71,7 @@ private:
     void servermsg_RetRandName(const uint8_t* msgData, uint32_t msgSize);
 
 private:
-    uint32_t m_lastLoginId;
+    LoginId m_loginCounter;
 
     componet::Spinlock m_disconnectedClientsLock;
     std::list<LoginId> m_disconnectedClients;
