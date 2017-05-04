@@ -1,25 +1,24 @@
 objects = \
-    \
-	xmlparse/xml_parse.o\
-	xmlparse/xml_parse_doc.o\
-	xmlparse/tinyxml.o\
-	xmlparse/tinystr.o\
-	xmlparse/tinyxmlerror.o\
-	xmlparse/tinyxmlparser.o\
-    string_kit.o\
-    exception.o\
-    scope_guard.o\
-    datetime.o\
-    raw_buffer.o\
-    logger/file_writer.o\
-	logger/stdout_writer.o\
-    logger/writer_file.o\
-    logger/logger.o\
-    logger.o\
-    spinlock.o\
-    timer.o\
-	coord.o\
-    signal_handler.o\
+	  xmlparse/xml_parse.o\
+	  xmlparse/xml_parse_doc.o\
+	  xmlparse/tinyxml.o\
+	  xmlparse/tinystr.o\
+	  xmlparse/tinyxmlerror.o\
+	  xmlparse/tinyxmlparser.o\
+	  string_kit.o\
+	  exception.o\
+	  scope_guard.o\
+	  datetime.o\
+	  raw_buffer.o\
+	  logger/file_writer.o\
+	  logger/stdout_writer.o\
+	  logger/writer_file.o\
+	  logger/logger.o\
+	  logger.o\
+	  spinlock.o\
+	  timer.o\
+	  coord.o\
+	  signal_handler.o\
 
 
 CC = g++

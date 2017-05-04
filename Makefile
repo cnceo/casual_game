@@ -26,7 +26,7 @@ SUBDIR =  \
 all: targets
 
 targets:
-	for subdir in $(SUBDIR); do  \
+	@for subdir in $(SUBDIR); do  \
 		$(MAKE) -C $$subdir SHELL=$(SHELL) || exit 1;\
 		done
 
