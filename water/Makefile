@@ -1,8 +1,8 @@
 SUBDIR =  \
 		  componet\
 		  net\
-		  process\
 		  dbadaptcher\
+#		  process\
 
 all: targets
 

@@ -9,7 +9,7 @@
  */
 
 #include "role.h"
-#include "water/process/tcp_message.h"
+#include "base/tcp_message.h"
 
 #include <atomic>
 #include <list>

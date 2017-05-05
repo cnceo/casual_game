@@ -10,7 +10,7 @@
 #define PROCESS_GATEWAY_GATEWAY_H
 
 
-#include "water/process/process.h"
+#include "base/process.h"
 #include "protocol/protobuf/proto_manager.h"
 #include "client_connection_checker.h"
 #include "def.h"

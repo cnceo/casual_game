@@ -16,8 +16,8 @@
 #include "water/componet/spinlock.h"
 #include "water/componet/datetime.h"
 #include "water/componet/event.h"
-#include "water/process/process_thread.h"
-#include "water/process/connection_checker.h"
+#include "base/process_thread.h"
+#include "base/connection_checker.h"
 
 #include <list>
 

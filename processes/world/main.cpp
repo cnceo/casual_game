@@ -7,7 +7,7 @@
  */
 
 #include "world.h"
-#include "water/process/shell_arg_parser.h"
+#include "base/shell_arg_parser.h"
 #include "protocol/protobuf/proto_manager.h"
 
 #include <csignal>

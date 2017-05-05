@@ -41,7 +41,7 @@ private:
 
 private:
     std::set<net::Endpoint> m_localEndpoints;
-    std::unordered_map<int32_t, net::TcpListener::Ptr> m_listeners;
+    std::unordered_map<int32_t, net::TcpListener::Ptr> m_listeners; //{socketFD, listener}
     net::Epoller m_epoller;
 };
 

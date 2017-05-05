@@ -2,24 +2,23 @@ export GOOGLE_PROTOBUF_INSTALLED_DIR = $(LIBS_DIR)/google_protobuf/installed
 export google_protobuf_cc_flag       = -I$(GOOGLE_PROTOBUF_INSTALLED_DIR)/include
 export google_protobuf_ln_flag       = -L$(GOOGLE_PROTOBUF_INSTALLED_DIR)/lib -lprotobuf
 
-export MYSQL_BIN_DIR	 = /usr/local/mysql/bin
 export MYSQLCPPCONN_INSTALLED_DIR = $(LIBS_DIR)/mysql++/installed
-export mysqlcppconn_cc_flag       = $(shell $(MYSQL_BIN_DIR)/mysql_config --include)\
+export mysqlcppconn_cc_flag       = $(shell $(MYSQL_CONFIG_CMD) --include)\
 									-I$(MYSQLCPPCONN_INSTALLED_DIR)/include
-export mysqlcppconn_ln_flag       = $(shell $(MYSQL_BIN_DIR)/mysql_config --libs_r)\
+export mysqlcppconn_ln_flag       = $(shell $(MYSQL_CONFIG_CMD) --libs_r)\
 									-L$(MYSQLCPPCONN_INSTALLED_DIR)/lib -lmysqlpp -Wl,-rpath=$(MYSQLCPPCONN_INSTALLED_DIR)/lib
 
 export PROTOCOL_DIR     = $(ROOT_DIR)/protocol
 
 export base_cc_flag = -I$(ROOT_DIR) -I$(BASE_DIR) -I$(ROOT_DIR)/processes
 export base_ln_flag = \
-	-L$(ROOT_DIR)/water/process -lprocess\
+	-L$(ROOT_DIR)/base -lbase\
 	-L$(ROOT_DIR)/water/net -lnet\
 	-L$(ROOT_DIR)/water/componet -lcomponet\
 	-L$(ROOT_DIR)/water/dbadaptcher -ldbadaptcher
 
-export dependent_water_files =\
-	$(ROOT_DIR)/water/process/libprocess.a\
+export dependent_moudles =\
+	$(ROOT_DIR)/base/libbase.a\
 	$(ROOT_DIR)/water/net/libnet.a\
 	$(ROOT_DIR)/water/componet/libcomponet.a\
 	$(ROOT_DIR)/water/dbadaptcher/libdbadaptcher.a

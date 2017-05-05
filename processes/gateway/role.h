@@ -14,8 +14,8 @@
 #include "def.h"
 #include "role_container.h"
 
-#include "water/process/process_id.h"
-#include "water/process/tcp_message.h"
+#include "base/process_id.h"
+#include "base/tcp_message.h"
 #include "water/net/packet_connection.h"
 #include "water/componet/datetime.h"
 #include "water/componet/spinlock.h"

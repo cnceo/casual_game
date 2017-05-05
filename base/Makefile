@@ -29,7 +29,7 @@ cc_flags = -std=c++11 -ggdb -Wall -Werror $(optimization_flag) \
 ln_flags = -lpthread 
 #-Lnet -lnet -Lcomponet -lcomponet
 
-target = libprocess.a
+target = libbase.a
 
 .PHONY:
 all: $(target)
