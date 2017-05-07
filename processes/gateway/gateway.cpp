@@ -42,14 +42,19 @@ void Gateway::init()
     if(m_publicNetServer == nullptr)
         EXCEPTION(componet::ExceptionBase, "无公网监听，请检查配置")
 
-    //create checker 和 conn manager
+    //create checker
     m_clientChecker = ClientConnectionChecker::create();
     //新的链接加入checker
     m_publicNetServer->e_newConn.reg(std::bind(&ClientConnectionChecker::addUncheckedConnection,
                                                m_clientChecker, std::placeholders::_1));
-    //checker初步处理过的连接加入TcpConnManager
+    //checker初步处理过的连接交给loginProcessor做进一步处理
     m_clientChecker->e_clientConfirmed.reg(std::bind(&TcpConnectionManager::addPublicConnection, &m_conns, _1, _2));
     m_timer.regEventHandler(std::chrono::milliseconds(50), std::bind(&ClientConnectionChecker::timerExec, m_clientChecker, std::placeholders::_1));
+
+
+    //cretae loginProcessor  //TODO
+//    m_loginProcessor = LoginProcessor::create();
+//    m_loginProcessor->e_clientConnectReady.reg(std::bind(&TcpConnectionManager::addPublicConnection, &m_conns, _1, _2));
 
     //客户端连接断开时的处理
     m_conns.e_afterErasePublicConn.reg(std::bind(&LoginProcessor::delClient, &LoginProcessor::me(), _1));

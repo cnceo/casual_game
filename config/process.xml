@@ -1,29 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
-    <!--本区的platform和zoneId  opentime:开服时间  mergeflag:合服标识-->
-    <common platform="1" zone="10002" opentime="20151201-12:00:00" mergeflag="false"/>
+
     <mysql dbName="test" host ="127.0.0.1" userName="water" pwd="111111" port="3306"/>
 
-    <allProcesses typeList="super router func dbcached gateway world session">
-        <zone id="1">
-            <processType name="super">
-                <process num="1">
-                    <private listen="0.0.0.0:7000" connectProcess=""/>
-                </process>
-            </processType>
-
-        </zone>
-        <zone id="default">
+    <allProcesses allType="super router func dbcached gateway world session">
+        <zone id="self">
             <!--路由服务器-->
             <processType name="router">
                 <process num="1">
-                    <private listen="127.0.0.1:6000" connectProcess="1:super:1"/>
+                    <private listen="127.0.0.1:6000" connectTo="1:super:1"/>
                 </process>
             </processType>
+
             <!--通用功能服务器-->
             <processType name="func">
                 <process num="1">
-                    <private listen="" acceptProcess="" connectProcess="router:1"/>
+                    <private listen="" connectTo="router:1"/>
                 </process>
             </processType>
 
@@ -31,7 +23,7 @@
             <!--数据库服务器-->
             <processType name="dbcached">
                 <process num="1">
-                    <private listen="" acceptProcess="" connectProcess="router:1"/>
+                    <private listen="" connectTo="router:1"/>
                 </process>
             </processType>
 
@@ -39,9 +31,9 @@
             <!--网关服务器-->
             <processType name="gateway">
                 <process num="1">
-                    <private listen="" acceptProcess="" connectProcess="router:1"/>
+                    <private listen="" connectTo="router:1"/>
                     <public  listen="0.0.0.0:2000"/>
-                    <flashSandbox   listen="0.0.0.0:1843"/>
+                    <!-- <flashSandbox   listen="0.0.0.0:1843"/>-->
                     <http    listen=""/>
                 </process>
             </processType>
@@ -49,18 +41,9 @@
             <!--场景逻辑服务器-->
             <processType name="world">
                 <process num="1">
-                    <private listen="" acceptProcess="" connectProcess="router:1"/>
+                    <private listen="" connectTo="router:1"/>
                 </process>
             </processType>
-
-
-            <!--session 做场景和角色的总体管理-->
-            <processType name="session">
-                <process num="1">
-                    <private listen="" acceptProcess="" connectProcess="router:1"/>
-                </process>
-            </processType>
-        </processType>
-    </zone>
-</allProcesses>
+        </zone>
+    </allProcesses>
 </root>

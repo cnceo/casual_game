@@ -10,10 +10,13 @@
 #define PROCESS_GATEWAY_GATEWAY_H
 
 
-#include "base/process.h"
 #include "protocol/protobuf/proto_manager.h"
+#include "base/process.h"
+//#include "base/def.h"
+
 #include "client_connection_checker.h"
-#include "def.h"
+#include "login_processor.h"
+
 
 namespace gateway{
 
@@ -56,6 +59,7 @@ private:
 
 private:
     ClientConnectionChecker::Ptr m_clientChecker;
+    LoginProcessor::Ptr m_loginProcessor;
 
 public:
     static void init(int32_t num, const std::string& configDir, const std::string& logDir);

@@ -11,7 +11,6 @@
 #ifndef GATE_ROLE_H
 #define GATE_ROLE_H
 
-#include "def.h"
 #include "role_container.h"
 
 #include "base/process_id.h"

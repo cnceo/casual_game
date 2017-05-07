@@ -21,10 +21,11 @@ class Router : public Process
 private:
     Router(int32_t num, const std::string& configDir, const std::string& logDir);
 
+    void init() override;
+
     void tcpPacketHandle(TcpPacket::Ptr packet,
                          TcpConnectionManager::ConnectionHolder::Ptr conn,
                          const componet::TimePoint& now) override;
-    void init() override;
 
 public:
     static void init(int32_t num, const std::string& configDir, const std::string& logDir);

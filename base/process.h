@@ -40,9 +40,7 @@ public:
     std::string getFullName() const;
     ProcessIdentity getId() const;
 
-    Platform platform() const;
     const std::string& cfgDir() const;
-    ZoneId zoneId() const;
     componet::TimePoint opentime() const;
     bool mergeFlag() const;
     void regTimer(std::chrono::milliseconds interval, const ProcessTimer::EventHandler& handler);

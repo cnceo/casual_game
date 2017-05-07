@@ -44,7 +44,7 @@ void TcpPacket::addCursor(SizeType add)
 {
     m_cursor += add;
     //当收到一个SizeType长度的数据时, 即得知了这个包的实际总长度，
-    //把包大小预留为实际大小，以便继续接收
+    //把需要收取的长度改写为包的实际长度，以便继续接收
     if(m_type == Packet::BuffType::recv && m_cursor == sizeof(SizeType))
     {
         SizeType packetSize = *reinterpret_cast<const SizeType*>(data());

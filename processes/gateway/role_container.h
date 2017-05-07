@@ -11,7 +11,6 @@
 #ifndef COMMON_ROLE_CONTAINER_H
 #define COMMON_ROLE_CONTAINER_H
 
-#include "def.h"
 
 #include <string>
 #include <vector>

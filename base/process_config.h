@@ -63,10 +63,7 @@ public:
     const ProcessInfo& getInfo();
     ProcessIdentity getProcessId() const;
 
-    ZoneId getZoneId() const;
-    Platform getPlatform() const;
     componet::TimePoint opentime() const;
-    bool mergeFlag() const;
 
 private:
     bool parsePrivateEndpoint(std::set<net::Endpoint>* ret, const std::string& str);
@@ -74,17 +71,14 @@ private:
     void parseEndpointList(std::set<net::Endpoint>* ret, const std::string& str);
 
 private:
-    Platform m_platform;
-    ZoneId m_zoneId;
     componet::TimePoint m_opentime;
-    bool m_mergeFlag;
 
     const std::string m_processName;
     const uint16_t m_processNum;
     ProcessIdentity m_processId;
 
     std::map<ProcessIdentity, net::Endpoint> m_processIdPrivateListenEps;
-    ProcessInfo m_processInfo; //下标表示num
+    ProcessInfo m_processInfo; //所有进程的信息
 
 };
 

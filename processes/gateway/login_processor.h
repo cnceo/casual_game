@@ -11,7 +11,7 @@
 #ifndef PROCESS_GATEWAY_LOGIN_PROCESSER_H
 #define PROCESS_GATEWAY_LOGIN_PROCESSER_H
 
-#include "def.h"
+//#include "def.h"
 
 #include "water/componet/spinlock.h"
 #include "water/componet/datetime.h"
@@ -39,10 +39,13 @@ class LoginProcessor
     };
     using LockGuard = std::lock_guard<componet::Spinlock>;
 
-    LoginProcessor();
 public:
+    TYPEDEF_PTR(LoginProcessor)
+    CREATE_FUN_MAKE(LoginProcessor)
+
     NON_COPYABLE(LoginProcessor)
 
+    LoginProcessor();
     ~LoginProcessor() = default;
 
     void newClient(LoginId loginId, const std::string& account);
@@ -52,7 +55,10 @@ public:
 
     void timerExec(const componet::TimePoint& now);
     void regMsgHandler();
-void test();
+
+public:
+    componet::Event<void (water::net::PacketConnection::Ptr, LoginId)> e_clientConnectReady;
+
 private:
     LoginId getLoginId();
 
@@ -61,14 +67,8 @@ private:
     ClientInfo::Ptr getClientByLoginId(LoginId loginId);
 
     //处理client消息
-    void clientmsg_CreateRole(const uint8_t* msgData, uint32_t msgSize, LoginId loginId);
-    void clientmsg_SelectRole(const uint8_t* msgData, uint32_t msgSize, LoginId loginId);
-    void clientmsg_GetRandName(const uint8_t* msgData, uint32_t msgSize, LoginId loginId);
 
     //处理db的消息
-    void servermsg_RetRoleList(const uint8_t* msgData, uint32_t msgSize);
-    void servermsg_RetCreateRole(const uint8_t* msgData, uint32_t msgSize);
-    void servermsg_RetRandName(const uint8_t* msgData, uint32_t msgSize);
 
 private:
     LoginId m_loginCounter;
@@ -78,9 +78,10 @@ private:
 
     componet::Spinlock m_clientsLock;
     std::map<LoginId, ClientInfo::Ptr> m_clients; //<loginId, clientInfo>, 消息驱动
-
+/*
 public:
     static LoginProcessor& me();
+    */
 };
 
 }

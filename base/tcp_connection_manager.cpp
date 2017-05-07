@@ -11,10 +11,6 @@
 namespace water{
 namespace process{
 
-void TcpConnectionManager::setSelfZoneId(ZoneId zoneId)
-{
-    m_selfZoneId = zoneId;
-}
 
 void TcpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn, 
                                                    ProcessIdentity processId)
@@ -35,7 +31,7 @@ void TcpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn,
         return;
     }
 
-    auto& privateProcessByType = m_privateConns[processId.zoneAndType()];
+    auto& privateProcessByType = m_privateConns[processId.type()];
 
     auto insertPrivateRet = privateProcessByType.insert({processId.num(), item});
     if(insertPrivateRet.second == false)
@@ -141,7 +137,7 @@ void TcpConnectionManager::eraseConnection(net::PacketConnection::Ptr conn)
     else
     {
         ProcessIdentity pid(it->second->id);
-        auto iter = m_privateConns.find(pid.zoneAndType());
+        auto iter = m_privateConns.find(pid.type());
         if(iter != m_privateConns.end() && iter->second.find(pid.num()) != iter->second.end())
         {
             LOG_TRACE("ConnectionManager, erase privateConn, id={}, fd={}", pid, conn->getFD());
@@ -272,7 +268,7 @@ bool TcpConnectionManager::getPacket(ConnectionHolder::Ptr* conn, net::Packet::P
 bool TcpConnectionManager::sendPacketToPrivate(ProcessIdentity processId, net::Packet::Ptr packet)
 {
     std::lock_guard<componet::Spinlock> lock(m_lock);
-    auto typeIter = m_privateConns.find(processId.zoneAndType());
+    auto typeIter = m_privateConns.find(processId.type());
     if(typeIter == m_privateConns.end())
     {
         LOG_ERROR("send private packet, 目标进程未连接, processId={}", processId);
@@ -299,19 +295,14 @@ bool TcpConnectionManager::sendPacketToPrivate(ProcessIdentity processId, net::P
     return true;
 }
 
-void TcpConnectionManager::broadcastPacketToPrivate(ZoneId zoneId, ProcessType processType, net::Packet::Ptr packet)
+void TcpConnectionManager::broadcastPacketToPrivate(ProcessType processType, net::Packet::Ptr packet)
 {
-    if(zoneId == INVALID_ZONE_ID)
-        return;
-
-    uint64_t zoneAndType = ProcessIdentity::makeZoneAndType(zoneId, processType);
-
     std::lock_guard<componet::Spinlock> lock(m_lock);
-    auto iter = m_privateConns.find(zoneAndType);
+    auto iter = m_privateConns.find(processType);
     if(iter == m_privateConns.end())
     {
-        LOG_ERROR("broadcast private packet, 目标进程类型未连接, zoneId={}, processType={}",
-                  zoneId, processType);
+        LOG_ERROR("broadcast private packet, 目标进程类型未连接, processType={}",
+                  processType);
         return;
     }
 
@@ -327,11 +318,6 @@ void TcpConnectionManager::broadcastPacketToPrivate(ZoneId zoneId, ProcessType p
                       ex.what(), ProcessIdentity(item.second->id));
         }
     }
-}
-
-void TcpConnectionManager::broadcastPacketToPrivate(ProcessType processType, net::Packet::Ptr packet)
-{
-    broadcastPacketToPrivate(m_selfZoneId, processType, packet);
 }
 
 bool TcpConnectionManager::sendPacketToPublic(ClinetIdentity clientId, net::Packet::Ptr packet)

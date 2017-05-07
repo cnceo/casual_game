@@ -11,19 +11,9 @@
 
 #include "protocol/rawmsg/private/login.codedef.private.h"
 #include "protocol/rawmsg/private/login.h"
+
+
 //#include "protocol/rawmsg/rawmsg_manager.h"
-
-
-//token验证消息的结构
-#pragma pack(1)
-struct TokenAndAccountMsg
-{
-    water::process::Platform platform;
-    char account[ACCOUNT_BUFF_SZIE];
-    uint8_t token[0];
-};
-#pragma pack()
-
 
 
 namespace gateway{
@@ -89,22 +79,18 @@ void ClientConnectionChecker::timerExec(const componet::TimePoint& now)
             }
 
             auto recvMsg = reinterpret_cast<const TokenAndAccountMsg*>(tcpPacket->content());
-            if(Gateway::me().platform() != Platform::dev && Gateway::me().platform() != recvMsg->platform)  //测试平台不验证平台类型
-            {
-                LOG_TRACE("客户端连接验证, 失败, 非法平台{}, ep={}", recvMsg->platform, it->conn->getRemoteEndpoint());
-                it = m_clients.erase(it);
-                continue;
-            }
 
             //依据实际平台来处理各自的登录验证
             switch(recvMsg->platform)
             {
+            case Platform::guest:
             case Platform::dev:
             default:
                 {//内网测试平台, 不验证, 直接通过
                     LOG_TRACE("客户端连接验证, 通过, platform={}, ep={}, account={}, token={}", recvMsg->platform, it->conn->getRemoteEndpoint(), recvMsg->account, recvMsg->token);
                     const LoginId loginId = getLoginId();
                     //以下3行, 顺序不能变
+
                     LoginProcessor::me().newClient(loginId, recvMsg->account);
                     e_clientConfirmed(it->conn, loginId);
                     LoginProcessor::me().clientConnReady(loginId);
@@ -116,16 +102,22 @@ void ClientConnectionChecker::timerExec(const componet::TimePoint& now)
         }
         catch (const net::ReadClosedConnection& ex) 
         {
-            LOG_TRACE("客户端连接验证, 失败, 对方提前断开了连接, ep={}", it->conn->getRemoteEndpoint());
+            LOG_TRACE("客户端连接验证失败, 对方提前断开了连接, ep={}", it->conn->getRemoteEndpoint());
             it = m_clients.erase(it);
             continue;
         } 
         catch (const net::NetException& ex)
         {
-            LOG_ERROR("客户端连接验证, 出错, ep={}, {}", it->conn->getRemoteEndpoint(), ex);
+            LOG_ERROR("客户端连接验证失败, ep={}, {}", it->conn->getRemoteEndpoint(), ex);
             it = m_clients.erase(it);
             continue;
 
+        }
+        catch (...)
+        {
+            LOG_ERROR("客户端连接验证失败, 未知错误, ep={}", it->conn->getRemoteEndpoint());
+            it = m_clients.erase(it);
+            continue;
         }
         ++it;
     }

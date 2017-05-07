@@ -5,8 +5,9 @@ objects = \
 		  register_timer_handler.o\
 		  client_connection_checker.o\
 		  register_role_msg_relay.o\
-		  role.o\
-		  role_manager.o\
+
+#		  role.o\
+#		  role_manager.o\
 		  login_processor.o\
 
 

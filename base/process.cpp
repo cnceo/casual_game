@@ -200,19 +200,9 @@ ProcessIdentity Process::getId() const
     return m_cfg.getProcessId();
 }
 
-Platform Process::platform() const
-{
-    return m_cfg.getPlatform();
-}
-
 const std::string& Process::cfgDir() const
 {
     return m_cfgDir;
-}
-
-ZoneId Process::zoneId() const
-{
-    return m_cfg.getZoneId();
 }
 
 componet::TimePoint Process::opentime() const
@@ -222,7 +212,8 @@ componet::TimePoint Process::opentime() const
 
 bool Process::mergeFlag() const
 {
-    return m_cfg.mergeFlag();
+    return false;
+//    return m_cfg.mergeFlag();
 }
 
 void Process::regTimer(std::chrono::milliseconds interval, const ProcessTimer::EventHandler& handler)
@@ -239,7 +230,6 @@ void Process::init()
 
     //配置解析
     m_cfg.load(m_cfgDir);
-    m_conns.setSelfZoneId(m_cfg.getZoneId());
 
     //指定日志文件
     LOG_ADD_FILE(m_logDir + "/" + getFullName() + ".log");

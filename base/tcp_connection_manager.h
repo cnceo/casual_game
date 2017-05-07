@@ -54,7 +54,6 @@ public:
     TcpConnectionManager() = default;
     ~TcpConnectionManager() = default;
 
-    void setSelfZoneId(ZoneId zoneId);
 
     bool exec() override;
 
@@ -70,7 +69,6 @@ public:
     bool getPacket(ConnectionHolder::Ptr* conn, net::Packet::Ptr* packet);
 
     bool sendPacketToPrivate(ProcessIdentity processId, net::Packet::Ptr packet);
-    void broadcastPacketToPrivate(ZoneId zoneId, ProcessType processType, net::Packet::Ptr packet);
     void broadcastPacketToPrivate(ProcessType processType, net::Packet::Ptr packet);
 
     bool sendPacketToPublic(ClinetIdentity clientId, net::Packet::Ptr packet);
@@ -91,9 +89,6 @@ private:
     void eraseConnection(net::PacketConnection::Ptr conn);
 
 private:
-    //本进程所属的zoneId
-    ZoneId m_selfZoneId = INVALID_ZONE_ID;
-
     net::Epoller m_epoller;
 
     componet::Spinlock m_lock;
@@ -101,8 +96,8 @@ private:
     //所有的连接, 以socketFd为索引 {socketFd, conn}
     std::unordered_map<int32_t, ConnectionHolder::Ptr> m_allConns;
 
-    //私网连接, 二层索引, {zoneAndType, {num, conn}}
-    std::unordered_map<uint64_t, std::unordered_map<ProcessNum, ConnectionHolder::Ptr>> m_privateConns;
+    //私网连接, 二层索引, {type, {num, conn}}
+    std::unordered_map<ProcessType, std::unordered_map<ProcessNum, ConnectionHolder::Ptr>> m_privateConns;
     //公网连接
     std::unordered_map<ClinetIdentity, ConnectionHolder::Ptr> m_publicConns;
 

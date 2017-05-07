@@ -12,7 +12,6 @@
 #define PROCESS_GATEWAY_CLIENT_CONNECTION_CHECKER_H
 
 
-#include "def.h"
 
 #include "water/componet/spinlock.h"
 #include "water/componet/datetime.h"
@@ -56,7 +55,7 @@ public:
     void timerExec(const componet::TimePoint& now);
 
 public:
-    componet::Event<void (water::net::PacketConnection::Ptr, RoleId)> e_clientConfirmed;
+    componet::Event<void (water::net::PacketConnection::Ptr, LoginId)> e_clientConfirmed;
 
 private:
     LoginId getLoginId();
