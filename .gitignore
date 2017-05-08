@@ -6,6 +6,7 @@
 *.a
 *.so
 *.swp
+*.pyc
 core
 core.*
 tmp
