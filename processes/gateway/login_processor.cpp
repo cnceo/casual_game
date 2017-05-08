@@ -65,10 +65,12 @@ void LoginProcessor::clientConnReady(LoginId loginId)
 void LoginProcessor::delClient(LoginId loginId)
 {
     LockGuard lock(m_disconnectedClientsLock);
+    //在定时器中延迟删除
     m_disconnectedClients.push_back(loginId);
     LOG_DEBUG("登录, 下线, loginId={}", loginId);
 }
 
+//此函数订阅主定时器，在主定时线程中执行
 void LoginProcessor::timerExec(const componet::TimePoint& now)
 {
     //删掉已经断开的clients

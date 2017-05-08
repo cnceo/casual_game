@@ -32,7 +32,7 @@ LoginId ClientConnectionChecker::getLoginId()
     return (ret << 32u) + Gateway::me().getId().value();
 }
 
-void ClientConnectionChecker::addUncheckedConnection(net::PacketConnection::Ptr conn)
+void ClientConnectionChecker::addNewClientConnection(net::PacketConnection::Ptr conn)
 {
     if(conn == nullptr)
         return;
@@ -46,6 +46,7 @@ void ClientConnectionChecker::addUncheckedConnection(net::PacketConnection::Ptr 
         client.state   = ClientState::recvingToken;
         client.conn    = conn;
 
+        //lock
         LockGuard lock(m_clientsLock);
         m_clients.push_back(client);
     }

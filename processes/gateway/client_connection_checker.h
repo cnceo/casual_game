@@ -50,7 +50,7 @@ public:
     ~ClientConnectionChecker() = default;
 
     //添加一个链接
-    void addUncheckedConnection(water::net::PacketConnection::Ptr conn);
+    void addNewClientConnection(water::net::PacketConnection::Ptr conn);
 
     void timerExec(const componet::TimePoint& now);
 

@@ -10,5 +10,5 @@ message testmsg
 
 message AccountAndTokenToServer
 {
-    required string       account = 1;
+    required string             openid = 1;
 }
