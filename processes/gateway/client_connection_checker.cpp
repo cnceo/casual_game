@@ -13,7 +13,7 @@
 #include "protocol/rawmsg/private/login.h"
 
 
-//#include "protocol/rawmsg/rawmsg_manager.h"
+#include "protocol/protobuf/proto_manager.h"
 
 
 namespace gateway{

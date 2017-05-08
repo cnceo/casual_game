@@ -23,4 +23,4 @@ tags
 water/libs/mysql++/mysql++-*/
 water/libs/mysql++/installed/
 water/libs/google_protobuf/installed/
-water/libs/google_protobuf/protobuf-3.0.0-alpha-1/
+water/libs/google_protobuf/protobuf-3.0.0*/

@@ -1,31 +1,12 @@
 
 
-#游戏区
-CREATE TABLE IF NOT EXISTS zone
-(
-    id         BIGINT  NOT NULL PRIMARY KEY,       #区id
-    opentime   INTEGER NOT NULL                   #unix_time
-);
-
-
 #角色
 CREATE TABLE IF NOT EXISTS roleRarelyUp #很少或不更新的角色属性
 (
     id						BIGINT      NOT NULL PRIMARY KEY,   #角色id
-    name					VARCHAR(32) UNIQUE NOT NULL,		#角色名
-    turnLife				TINYINT     NOT NULL DEFAULT 0,		#转生(1转、2转...)
-    account					VARCHAR(32) NOT NULL,
-    sex						TINYINT     DEFAULT 1, 
-    job						TINYINT     DEFAULT 1,
-	unlockCellNumOfRole		SMALLINT	NOT NULL DEFAULT 42,
-    unlockCellNumOfHero		SMALLINT	NOT NULL DEFAULT 42,
-	unlockCellNumOfStorage	SMALLINT	NOT NULL DEFAULT 70,
-    defaultCallHero         TINYINT     NOT NULL DEFAULT 0,		#默认召唤的英雄
-	guanzhiLevel			TINYINT     NOT NULL DEFAULT 0,		#官职等级
-	buffer					Blob	    NOT NULL			#角色的缓存数据(供客户端使用)
-
-	#zone					TINYINT     NOT NULL
-    #platform				TINYINT		NOT NULL
+    name
+    openid
+    token
 ) CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS roleOftenUp  #经常更新的角色属性

@@ -130,7 +130,11 @@ if "cpp" == cpp_or_xml:
     cpp_namespace_start_str="namespace " + namespace_str + "\n" + "{" + "\n"
     cpp_namespace_end_str="}"
 
-    codedef_file_name = out_put_dir + '/codedef.cpp'
+    access_type_str = "public"
+    if public_or_private == "PRIVATE":
+        access_type_str = "private"
+
+    codedef_file_name = out_put_dir + "/codedef." + access_type_str + ".cpp"
     cpp_start_str = getCppHeaderStr()
     write_cpp_handler = open(codedef_file_name, 'w')
     write_cpp_handler.write(cpp_start_str)

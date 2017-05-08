@@ -6,7 +6,6 @@ objects = \
     process_config.o\
     process_id.o\
     process_thread.o\
-	connection_checker.o\
 	private_connection_checker.o\
     tcp_packet.o\
     tcp_connection_manager.o\

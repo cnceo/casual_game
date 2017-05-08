@@ -4,11 +4,12 @@ package PublicProto;
 
 message testmsg 
 { 
-	required int32     a = 1;  // ID 
-	required int32     b = 2;  // str 
+	required int32     a = 1;
+	required int32     b = 2;
 }
 
-message AccountAndTokenToServer
+message LoginWithAccountInfo
 {
     required string             openid = 1;
 }
+

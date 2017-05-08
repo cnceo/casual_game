@@ -14,8 +14,8 @@ PROTOBUF_COMPILER = $(PROTOBUF_INSTALLED_DIR)/bin/protoc
 
 objects = \
 	proto_manager.o \
-	public/codedef.o \
-	private/codedef.o \
+	public/codedef.public.o \
+	private/codedef.private.o \
 
 public_protodef_objects = \
 	public/client.pb.o\
@@ -88,14 +88,14 @@ $(private_protobuf_codedef_list): %.codedef.h: %.proto
 #argc[3]: 生成外部消息号 或 内部消息号 (public 或 private)
 
 #外部的*.codedef.h文件生成消息号文件codedef.cpp
-public/codedef.cpp : $(public_protobuf_codedef_list)
+public/codedef.public.cpp : $(public_protobuf_codedef_list)
 	@curdir=$$(pwd);\
 	cd $(PROTO_ROOT_DIR); \
 	python protobuf_codedef.py $(PUBLIC_PROTOCOL_DEFINITION_DIR) cpp public || exit 1; \
 
 
 #内部的*.codedef.private.h文件生成消息号文件codedef.private.cpp
-private/codedef.cpp : $(private_protobuf_codedef_list)
+private/codedef.private.cpp : $(private_protobuf_codedef_list)
 	@curdir=$$(pwd);\
 	cd $(PROTO_ROOT_DIR);\
 	python protobuf_codedef.py $(PRIVATE_PROTOCOL_DEFINITION_DIR) cpp private || exit 1; \
