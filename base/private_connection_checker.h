@@ -10,8 +10,12 @@
 #ifndef WATER_PROCESS_PRIVATE_CONNECTION_CHECKET_H 
 #define WATER_PROCESS_PRIVATE_CONNECTION_CHECKET_H 
 
-#include "connection_checker.h"
+#include "componet/event.h"
+
+#include "net/packet_connection.h"
+
 #include "process_id.h"
+#include "process_thread.h"
 
 #include <mutex>
 #include <list>
@@ -21,8 +25,7 @@
 namespace water{
 namespace process{
 
-
-class PrivateConnectionChecker : public ConnectionChecker
+class PrivateConnectionChecker : public ProcessThread
 {
 public:
     TYPEDEF_PTR(PrivateConnectionChecker)
@@ -31,10 +34,15 @@ public:
     PrivateConnectionChecker(ProcessIdentity processId);
     ~PrivateConnectionChecker() = default;
 
-    void addUncheckedConnection(net::PacketConnection::Ptr conn, ConnType type) override;
+    enum class ConnType {in, out};
+    void addUncheckedConnection(net::PacketConnection::Ptr conn, ConnType type);
+
+public:
+    componet::Event<void (net::PacketConnection::Ptr, ProcessIdentity processId)> e_connConfirmed;
 
 private:
-    void checkConn() override;
+    void checkConn();
+    bool exec() override;
 
 private:
     std::mutex m_mutex;

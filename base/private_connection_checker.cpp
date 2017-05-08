@@ -5,6 +5,7 @@
 namespace water{
 namespace process{
 
+
 PrivateConnectionChecker::PrivateConnectionChecker(ProcessIdentity processId)
 : m_processId(processId)
 {
@@ -73,9 +74,8 @@ void PrivateConnectionChecker::checkConn()
                         }
                         it->state = ConnState::sendRet;
                     }
-                    //这里故意不要break
+                    //no break
                 case ConnState::sendRet:
-         
                     {
                         if( !it->conn->trySend() )
                             break;
@@ -105,7 +105,7 @@ void PrivateConnectionChecker::checkConn()
                         it->conn->setRecvPacket(net::Packet::create(sizeof(ProcessIdentity)));
                         it->state = ConnState::recvRet;
                     }
-                    //这里故意不要break
+                    //no break
                 case ConnState::recvRet:
                     {
                         if( !it->conn->tryRecv() )
@@ -149,6 +149,12 @@ void PrivateConnectionChecker::checkConn()
         m_mutex.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
+}
+
+bool PrivateConnectionChecker::exec()
+{
+    checkConn();
+    return true; //正常退出
 }
 
 }}

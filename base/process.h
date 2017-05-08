@@ -77,7 +77,7 @@ protected:
     FlashSandboxHandler::Ptr m_flashSandboxHandler;
 
     //连接检查器
-    ConnectionChecker::Ptr m_privateConnChecker;
+    PrivateConnectionChecker::Ptr m_privateConnChecker;
 
     //连接管理器，提供消息接收和发送的epoll事件
     TcpConnectionManager m_conns;

@@ -293,18 +293,18 @@ void Process::init()
         //私网的新连接, 放入连接检查器
         if(m_privateNetServer)
         {
-            auto checker = std::bind(&ConnectionChecker::addUncheckedConnection
+            auto checker = std::bind(&PrivateConnectionChecker::addUncheckedConnection
                                      , m_privateConnChecker
                                      , _1
-                                     , ConnectionChecker::ConnType::in);
+                                     , PrivateConnectionChecker::ConnType::in);
             m_privateNetServer->e_newConn.reg(checker);
         }
         if(m_privateNetClient)
         {
-            auto checker = std::bind(&ConnectionChecker::addUncheckedConnection
+            auto checker = std::bind(&PrivateConnectionChecker::addUncheckedConnection
                                      , m_privateConnChecker
                                      , _1
-                                     , ConnectionChecker::ConnType::out);
+                                     , PrivateConnectionChecker::ConnType::out);
             m_privateNetClient->e_newConn.reg(checker);
         }
 

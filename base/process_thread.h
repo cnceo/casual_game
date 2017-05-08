@@ -42,6 +42,7 @@ public:
     WaitRet wait(bool* returnValue, std::chrono::milliseconds timeout);
 
 public:
+    //本线程退出事件
     componet::Event<void (ProcessThread*)> e_close;
 
 protected:
