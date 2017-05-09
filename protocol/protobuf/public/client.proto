@@ -3,19 +3,35 @@ syntax = "proto2";
 package PublicProto; 
 
 
+enum LoginType
+{
+}
+
 //step 1,  client -> gw
 message C_Login
 {
-    required bool guest     = 1;
-    optional string openid  = 2;
-    required string token   = 3;
+    required bool loginType = 1;
+    required string openid  = 2;
+    optional string token   = 3;
 }
 
+
 //step 2, gw -> client
-message S_PlayerInfo
+message S_LoginRet
 {
-    required int32 loginId  = 1;
-    optional int32 loginId  = 2;
+    enum RetCode
+    {
+        failed      = 0,
+        successful  = 1,
+    }
+    required RetCode retCode      = 1;
+
+    message PlayInfo
+    {
+    }
+
+    required PlayInfo
 }
+
 
 
