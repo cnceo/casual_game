@@ -312,7 +312,7 @@ void Process::init()
         {
             //当有外部连接接入时的处理，这里级直接把新conn加入了connManager，
             //应该要改，给这里加一个checker，像privaterConnectionChecker一样，
-            //checker会和clinet做通信，确认client的合法性，并确定client的id
+            //checker会和client做通信，确认client的合法性，并确定client的id
             //然后checker再把验证过的conn加入connManager
         }
 

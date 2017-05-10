@@ -60,7 +60,7 @@ void TcpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn,
               conn->getFD(), processId, conn->getRemoteEndpoint());
 }
 
-bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, ClinetIdentity clientId)
+bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, ClientIdendity clientId)
 {
     conn->setNonBlocking();
     auto item = std::make_shared<ConnectionHolder>();
@@ -103,7 +103,7 @@ bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, 
     return true;
 }
 
-net::PacketConnection::Ptr TcpConnectionManager::erasePublicConnection(ClinetIdentity clientId)
+net::PacketConnection::Ptr TcpConnectionManager::erasePublicConnection(ClientIdendity clientId)
 {
     net::PacketConnection::Ptr ret;
 
@@ -320,7 +320,7 @@ void TcpConnectionManager::broadcastPacketToPrivate(ProcessType processType, net
     }
 }
 
-bool TcpConnectionManager::sendPacketToPublic(ClinetIdentity clientId, net::Packet::Ptr packet)
+bool TcpConnectionManager::sendPacketToPublic(ClientIdendity clientId, net::Packet::Ptr packet)
 {
     std::lock_guard<componet::Spinlock> lock(m_lock);
     auto it = m_publicConns.find(clientId);

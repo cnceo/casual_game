@@ -2,6 +2,8 @@
 
 #include "water/componet/logger.h"
 
+//#include "base/tcp_connection_manager.h"
+
 #include "gateway.h"
 #include "role_manager.h"
 #include "protocol/rawmsg/public/login.codedef.public.h"
@@ -36,7 +38,7 @@ LoginId LoginProcessor::getLoginId()
     return (ret << 16u) + Gateway::me().getId().value();
 }
 
-void LoginProcessor::newClient(LoginId loginId, const std::string& account)
+void LoginProcessor::newClient(net::PacketConnection::Ptr conn)
 {
     auto client = ClientInfo::Ptr(new ClientInfo);
     client->loginId = loginId;
@@ -48,14 +50,6 @@ void LoginProcessor::newClient(LoginId loginId, const std::string& account)
 
 void LoginProcessor::clientConnReady(LoginId loginId)
 {
-    ClientInfo::Ptr client = getClientByLoginId(loginId);
-    if(client == nullptr)
-        return;
-
-    PrivateRaw::QuestRoleList send;
-    send.loginId = client->loginId;
-    client->account.copy(send.account, sizeof(send.account));
-    send.account[sizeof(send.account) - 1] = 0;
 
     ProcessIdentity receiver("dbcached", 1); 
     Gateway::me().sendToPrivate(receiver, RAWMSG_CODE_PRIVATE(QuestRoleList), &send, sizeof(send));

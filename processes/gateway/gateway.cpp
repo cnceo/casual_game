@@ -48,7 +48,7 @@ void Gateway::init()
     m_publicNetServer->e_newConn.reg(std::bind(&ClientConnectionChecker::addnewClientConnection,
                                                m_clientChecker, std::placeholders::_1));
     //checker初步处理过的连接交给loginProcessor做进一步处理
-    m_clientChecker->e_clientConfirmed.reg(std::bind(&TcpConnectionManager::addPublicConnection, &m_conns, _1, _2));
+    m_clientChecker->e_clientConnectionReady.reg(std::bind(&TcpConnectionManager::addPublicConnection, &m_conns, _1, _2));
     m_timer.regEventHandler(std::chrono::milliseconds(100), std::bind(&ClientConnectionChecker::timerExec, m_clientChecker, std::placeholders::_1));
 
 
@@ -172,6 +172,30 @@ net::PacketConnection::Ptr Gateway::eraseClientConn(LoginId loginId)
 
 void Gateway::loadConfig()
 {
+}
+
+void Gateway::newClientConnection(net::PacketConnection::Ptr conn)
+{
+    if(conn == nullptr)
+        return;
+    try
+    {
+        conn->setNonBlocking();
+        conn->setRecvPacket(process::TcpPacket::create());
+
+        ClientIdendity clientId = m_clientManager.newClientConnection(conn);
+        if (clientId == INVALID_CLIENT_IDENDITY_VALUE)
+            return;
+
+        if (!m_conns.addPublicConnection(conn, clientId))
+        {
+            m_clientManager.
+        }
+    }
+    catch (const net::NetException& ex)
+    {
+        LOG_ERROR("客户端连接验证, conn加入检查失败, {}, {}", conn->getRemoteEndpoint(), ex);
+    }
 }
 
 void Gateway::tcpPacketHandle(TcpPacket::Ptr packet, 

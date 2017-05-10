@@ -38,6 +38,7 @@ void PrivateConnectionChecker::addUncheckedConnection(net::PacketConnection::Ptr
         const char* typeStr = (type == ConnType::in) ? "in" : "out";
         LOG_ERROR("检查新建私网{}连接出错, remoteEp={}, {}", 
                   typeStr, conn->getRemoteEndpoint(), ex);
+        conn->close();
     }
 }
 

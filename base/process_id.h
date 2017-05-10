@@ -19,11 +19,9 @@
 namespace water{
 namespace process{
 
-enum class Platform : uint8_t
-{
-    guest = 1,
-};
-
+//客户端ID
+typedef uint64_t ClientIdentity;
+const ClientIdentity INVALID_CLIENT_IDENDITY_VALUE = 0;
 
 // ProcessType, 实际仅使用低8bits
 typedef uint32_t ProcessType;
@@ -35,6 +33,7 @@ typedef uint32_t ProcessNum;
 typedef uint32_t ProcessIdentityValue;
 const ProcessIdentityValue INVALID_PROCESS_IDENDITY_VALUE = 0;
 
+//服务器ID
 class ProcessIdentity
 {
 public:
@@ -42,6 +41,10 @@ public:
 
     ProcessIdentity(const std::string& typeStr, int8_t num);
     ProcessIdentity(ProcessIdentityValue value_ = INVALID_PROCESS_IDENDITY_VALUE);
+
+    //copy & assign
+    ProcessIdentity(const ProcessIdentity& other) = default;
+    ProcessIdentity& operator=(const ProcessIdentity& other) = default;
 
     void clear();
     bool isValid() const;

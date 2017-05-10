@@ -13,8 +13,7 @@
 
 #include <cstdint>
 
-typedef uint64_t RoleId;
-typedef uint64_t LoginId;
+typedef uint64_t ClientIdendity;
 
 
 #endif

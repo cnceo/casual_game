@@ -5,12 +5,14 @@ package PublicProto;
 
 enum LoginType
 {
+    guest   = 0;
+    wechat  = 1;
 }
 
 //step 1,  client -> gw
 message C_Login
 {
-    required bool loginType = 1;
+    required bool login_type = 1;
     required string openid  = 2;
     optional string token   = 3;
 }
@@ -21,16 +23,18 @@ message S_LoginRet
 {
     enum RetCode
     {
-        failed      = 0,
-        successful  = 1,
+        failed      = 0;
+        successful  = 1;
     }
-    required RetCode retCode      = 1;
 
-    message PlayInfo
+    message PlayerInfo
     {
+        required bool is_guest   = 1;
+        required int32 unique_id = 2;
     }
 
-    required PlayInfo
+    required RetCode ret_code       = 1;
+    required PlayerInfo playerInfo  = 2;
 }
 
 

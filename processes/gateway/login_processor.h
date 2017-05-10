@@ -15,10 +15,9 @@
 
 #include "water/componet/spinlock.h"
 #include "water/componet/datetime.h"
-#include "water/componet/event.h"
-#include "base/process_thread.h"
 
 #include <list>
+#include <map>
 
 namespace gateway{
 
@@ -55,9 +54,6 @@ public:
     void timerExec(const componet::TimePoint& now);
     void regMsgHandler();
 
-public:
-    componet::Event<void (water::net::PacketConnection::Ptr, LoginId)> e_clientConnectReady;
-
 private:
     LoginId getLoginId();
 
@@ -77,10 +73,8 @@ private:
 
     componet::Spinlock m_clientsLock;
     std::map<LoginId, ClientInfo::Ptr> m_clients; //<loginId, clientInfo>, 消息驱动
-/*
-public:
-    static LoginProcessor& me();
-    */
+
+    using LockGuard = std::lock_guard<componet::Spinlock> LockGuard;
 };
 
 }

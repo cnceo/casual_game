@@ -54,6 +54,10 @@ private:
     void lanchThreads() override;
 
     void loadConfig();
+
+    //处理新接入的客户端连接
+    void newClientConnection(net::PacketConnection::Ptr conn);
+
     void registerTcpMsgHandler();
     void registerTimerHandler();
 

@@ -34,7 +34,7 @@ public:
     CREATE_FUN_MAKE(TcpConnectionManager)
 
     //临时
-    using ClinetIdentity = int64_t;
+    using ClientIdendity = int64_t;
     enum class ConnType {privateType, publicType};
 
     struct ConnectionHolder
@@ -58,9 +58,9 @@ public:
     bool exec() override;
 
     void addPrivateConnection(net::PacketConnection::Ptr conn, ProcessIdentity processId);
-    bool addPublicConnection(net::PacketConnection::Ptr conn, ClinetIdentity clientId);
+    bool addPublicConnection(net::PacketConnection::Ptr conn, ClientIdendity clientId);
 
-    net::PacketConnection::Ptr erasePublicConnection(ClinetIdentity clientId);
+    net::PacketConnection::Ptr erasePublicConnection(ClientIdendity clientId);
 
     //当前的
     uint32_t totalPrivateConnNum() const;
@@ -71,7 +71,7 @@ public:
     bool sendPacketToPrivate(ProcessIdentity processId, net::Packet::Ptr packet);
     void broadcastPacketToPrivate(ProcessType processType, net::Packet::Ptr packet);
 
-    bool sendPacketToPublic(ClinetIdentity clientId, net::Packet::Ptr packet);
+    bool sendPacketToPublic(ClientIdendity clientId, net::Packet::Ptr packet);
     void broadcastPacketToPublic(net::Packet::Ptr packet);
 
 
@@ -81,7 +81,7 @@ public:
 
     //删除conn成功的事件
     componet::Event<void (ProcessIdentity id)> e_afterErasePrivateConn;
-    componet::Event<void (ClinetIdentity  id)> e_afterErasePublicConn;
+    componet::Event<void (ClientIdendity  id)> e_afterErasePublicConn;
 
 private:
     void epollerEventHandler(int32_t socketFD, net::Epoller::Event event);
@@ -99,7 +99,7 @@ private:
     //私网连接, 二层索引, {type, {num, conn}}
     std::unordered_map<ProcessType, std::unordered_map<ProcessNum, ConnectionHolder::Ptr>> m_privateConns;
     //公网连接
-    std::unordered_map<ClinetIdentity, ConnectionHolder::Ptr> m_publicConns;
+    std::unordered_map<ClientIdendity, ConnectionHolder::Ptr> m_publicConns;
 
     componet::LockFreeCircularQueueSPSC<std::pair<ConnectionHolder::Ptr, net::Packet::Ptr>> m_recvQueue;
 };
