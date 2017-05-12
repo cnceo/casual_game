@@ -6,6 +6,8 @@
 namespace water{
 namespace componet{
 
+using LockGuard = std::lock_guard<componet::Spinlock>;
+
 Timer::Timer()
 //:m_wakeUp(EPOCH)
 {
@@ -14,25 +16,28 @@ Timer::Timer()
 void Timer::tick()
 {
 
-    TimePoint nearestWakeUp = EPOCH;
-    m_lock.lock();
-    for(auto& pair : m_eventHandlers)
-    {
-        TimePoint now = TheClock::now();
-        TheClock::time_point wakeUp = pair.second.lastEmitTime + pair.first;
-
-        if(now >= wakeUp) //执行一次定时事件
-        {
-            pair.second.lastEmitTime = now;
-            pair.second.event(now);
-            wakeUp = now + pair.first;
-        }
-        if(nearestWakeUp == EPOCH || wakeUp < nearestWakeUp)
-            nearestWakeUp = wakeUp;
-    }
-    m_lock.unlock();
-
     TimePoint now = TheClock::now();
+    TimePoint nearestWakeUp = EPOCH;
+    {
+        LockGuard lock(m_lock);
+        if(!m_eventHandlers.empty())
+        {
+            for(auto& pair : m_eventHandlers)
+            {
+                TheClock::time_point wakeUp = pair.second.lastEmitTime + pair.first;
+
+                if(now >= wakeUp) //执行一次定时事件
+                {
+                    pair.second.lastEmitTime = now;
+                    pair.second.event(now);
+                    wakeUp = pair.second.lastEmitTime + pair.first;
+                    now = TheClock::now(); //触发了定时事件, 可能耗时较长, 需要重新获取当前时间
+                }
+                if(nearestWakeUp == EPOCH || wakeUp < nearestWakeUp)
+                    nearestWakeUp = wakeUp;
+            }
+        }
+    }
     if(nearestWakeUp > now)
         std::this_thread::sleep_until(nearestWakeUp);
 }
