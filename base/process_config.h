@@ -61,13 +61,13 @@ public:
     void load(const std::string& cfgDir);
 
     const ProcessInfo& getInfo();
-    ProcessIdentity getProcessId() const;
+    ProcessId getProcessId() const;
 
     componet::TimePoint opentime() const;
 
 private:
     bool parsePrivateEndpoint(std::set<net::Endpoint>* ret, const std::string& str);
-    bool parseProcessList(std::set<ProcessIdentity>* ret, const std::string& str);
+    bool parseProcessList(std::set<ProcessId>* ret, const std::string& str);
     void parseEndpointList(std::set<net::Endpoint>* ret, const std::string& str);
 
 private:
@@ -75,9 +75,9 @@ private:
 
     const std::string m_processName;
     const uint16_t m_processNum;
-    ProcessIdentity m_processId;
+    ProcessId m_processId;
 
-    std::map<ProcessIdentity, net::Endpoint> m_processIdPrivateListenEps;
+    std::map<ProcessId, net::Endpoint> m_processIdPrivateListenEps;
     ProcessInfo m_processInfo; //所有进程的信息
 
 };

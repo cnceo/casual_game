@@ -12,8 +12,7 @@
 
 #include "water/componet/logger.h"
 
-#include "login_processor.h"
-#include "role_manager.h"
+#include "client_manager.h"
 
 namespace gateway{
 
@@ -21,8 +20,8 @@ void Gateway::registerTcpMsgHandler()
 {
     using namespace std::placeholders;
  
-    LoginProcessor::me().regMsgHandler();
-    RoleManager::me().regMsgHandler();
+    //clientManager
+    m_clientManager->regMsgHandler();
 }
 
 

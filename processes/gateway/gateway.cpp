@@ -1,7 +1,5 @@
 #include "gateway.h"
 
-#include "login_processor.h"
-
 #include "water/componet/logger.h"
 #include "water/componet/scope_guard.h"
 #include "water/net/endpoint.h"
@@ -43,22 +41,15 @@ void Gateway::init()
         EXCEPTION(componet::ExceptionBase, "无公网监听，请检查配置")
 
     //create checker
-    m_clientChecker = ClientConnectionChecker::create();
-    //新的链接加入checker
-    m_publicNetServer->e_newConn.reg(std::bind(&ClientConnectionChecker::addnewClientConnection,
-                                               m_clientChecker, std::placeholders::_1));
-    //checker初步处理过的连接交给loginProcessor做进一步处理
-    m_clientChecker->e_clientConnectionReady.reg(std::bind(&TcpConnectionManager::addPublicConnection, &m_conns, _1, _2));
-    m_timer.regEventHandler(std::chrono::milliseconds(100), std::bind(&ClientConnectionChecker::timerExec, m_clientChecker, std::placeholders::_1));
+    m_clientManager = ClientManager::create(getId());
 
+    //处理新建立的客户连接
+    m_publicNetServer->e_newConn.reg(std::bind(&Gateway::newClientConnection, this, _1));
 
-    //cretae loginProcessor  //TODO
-//    m_loginProcessor = LoginProcessor::create();
-//    m_loginProcessor->e_clientConnectReady.reg(std::bind(&TcpConnectionManager::addPublicConnection, &m_conns, _1, _2));
+    //已加入connectionManager的连接被断开时的处理
+    m_conns.e_afterErasePublicConn.reg(std::bind(&ClientManager::clientOffline, m_clientManager, _1));
 
-    //客户端连接断开时的处理
-    m_conns.e_afterErasePublicConn.reg(std::bind(&LoginProcessor::delClient, &LoginProcessor::me(), _1));
-    m_timer.regEventHandler(std::chrono::milliseconds(100), std::bind(&LoginProcessor::timerExec, &LoginProcessor::me(), std::placeholders::_1));
+    //m_timer.regEventHandler(std::chrono::milliseconds(100), std::bind(&LoginProcessor::timerExec, &LoginProcessor::me(), std::placeholders::_1));
 
     //注册消息处理事件和主定时器事件
     registerTcpMsgHandler();
@@ -70,22 +61,22 @@ void Gateway::lanchThreads()
     Process::lanchThreads();
 }
 
-bool Gateway::sendToPrivate(ProcessIdentity pid, TcpMsgCode code)
+bool Gateway::sendToPrivate(ProcessId pid, TcpMsgCode code)
 {
     return sendToPrivate(pid, code, nullptr, 0);
 }
 
-bool Gateway::sendToPrivate(ProcessIdentity pid, TcpMsgCode code, const ProtoMsg& proto)
+bool Gateway::sendToPrivate(ProcessId pid, TcpMsgCode code, const ProtoMsg& proto)
 {
     return relayToPrivate(getId().value(), pid, code, proto);
 }
 
-bool Gateway::sendToPrivate(ProcessIdentity pid, TcpMsgCode code, const void* raw, uint32_t size)
+bool Gateway::sendToPrivate(ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size)
 {
     return relayToPrivate(getId().value(), pid, code, raw, size);
 }
 
-bool Gateway::relayToPrivate(uint64_t sourceId, ProcessIdentity pid, TcpMsgCode code, const ProtoMsg& proto)
+bool Gateway::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const ProtoMsg& proto)
 {
     const uint32_t protoBinSize = proto.ByteSize();
     const uint32_t bufSize = sizeof(Envelope) + protoBinSize;
@@ -105,11 +96,11 @@ bool Gateway::relayToPrivate(uint64_t sourceId, ProcessIdentity pid, TcpMsgCode 
     TcpPacket::Ptr packet = TcpPacket::create();
     packet->setContent(buf, bufSize);
 
-    const ProcessIdentity routerId("router", 1);
+    const ProcessId routerId("router", 1);
     return m_conns.sendPacketToPrivate(routerId, packet);
 }
 
-bool Gateway::relayToPrivate(uint64_t sourceId, ProcessIdentity pid, TcpMsgCode code, const void* raw, uint32_t size)
+bool Gateway::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size)
 {
     const uint32_t bufSize = sizeof(Envelope) + size;
     uint8_t* buf = new uint8_t[bufSize];
@@ -126,11 +117,11 @@ bool Gateway::relayToPrivate(uint64_t sourceId, ProcessIdentity pid, TcpMsgCode 
     LOG_DEBUG("sendToPrivate, code={}, rawSize={}, tcpMsgSize={}, packetSize={}, contentSize={}", 
               code, size, bufSize, packet->size(), *(uint32_t*)(packet->data()));
 
-    const ProcessIdentity routerId("router", 1);
+    const ProcessId routerId("router", 1);
     return m_conns.sendPacketToPrivate(routerId, packet);
 }
 
-bool Gateway::sendToClient(LoginId loginId, TcpMsgCode code, const void* raw, uint32_t size)
+bool Gateway::sendToClient(ClientConnectionId ccid, TcpMsgCode code, const void* raw, uint32_t size)
 {
     const uint32_t bufSize = sizeof(TcpMsg) + size;
     uint8_t* buf = new uint8_t[bufSize];
@@ -142,10 +133,10 @@ bool Gateway::sendToClient(LoginId loginId, TcpMsgCode code, const void* raw, ui
     TcpPacket::Ptr packet = TcpPacket::create();
     packet->setContent(buf, bufSize);
 
-    return m_conns.sendPacketToPublic(loginId, packet);
+    return m_conns.sendPacketToPublic(ccid, packet);
 }
 
-bool Gateway::sendToClient(LoginId loginId, TcpMsgCode code, const ProtoMsg& proto)
+bool Gateway::sendToClient(ClientConnectionId ccid, TcpMsgCode code, const ProtoMsg& proto)
 {
     const uint32_t protoBinSize = proto.ByteSize();
     const uint32_t bufSize = sizeof(TcpMsg) + protoBinSize;
@@ -162,12 +153,12 @@ bool Gateway::sendToClient(LoginId loginId, TcpMsgCode code, const ProtoMsg& pro
     TcpPacket::Ptr packet = TcpPacket::create();
     packet->setContent(buf, bufSize);
 
-    return m_conns.sendPacketToPublic(loginId, packet);
+    return m_conns.sendPacketToPublic(ccid, packet);
 }
 
-net::PacketConnection::Ptr Gateway::eraseClientConn(LoginId loginId)
+net::PacketConnection::Ptr Gateway::eraseClientConn(ClientConnectionId ccid)
 {
-    return m_conns.erasePublicConnection(loginId);
+    return m_conns.erasePublicConnection(ccid);
 }
 
 void Gateway::loadConfig()
@@ -178,23 +169,26 @@ void Gateway::newClientConnection(net::PacketConnection::Ptr conn)
 {
     if(conn == nullptr)
         return;
+
     try
     {
         conn->setNonBlocking();
         conn->setRecvPacket(process::TcpPacket::create());
 
-        ClientIdendity clientId = m_clientManager.newClientConnection(conn);
-        if (clientId == INVALID_CLIENT_IDENDITY_VALUE)
-            return;
-
-        if (!m_conns.addPublicConnection(conn, clientId))
+        ClientConnectionId ccid = m_clientManager->clientOnline();
+        if (ccid == INVALID_CCID_VALUE)
         {
-            m_clientManager.
+            LOG_ERROR("Gateway::newClientConnection failed, 加入ClientManager失败, {}", conn->getRemoteEndpoint());
+            return;
+        }
+        if (!m_conns.addPublicConnection(conn, ccid))
+        {
+            m_clientManager->clientOffline(ccid);
         }
     }
     catch (const net::NetException& ex)
     {
-        LOG_ERROR("客户端连接验证, conn加入检查失败, {}, {}", conn->getRemoteEndpoint(), ex);
+        LOG_ERROR("Gateway::newClientConnection failed, {}, {}", conn->getRemoteEndpoint(), ex);
     }
 }
 

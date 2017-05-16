@@ -25,10 +25,9 @@ export dependent_moudles =\
 
 
 SUBDIR =  \
-		  router\
 		  gateway\
-		  world\
 
+#		  router\
 #		  http\
 
 

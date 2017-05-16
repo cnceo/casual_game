@@ -14,8 +14,7 @@
 #include "base/process.h"
 //#include "base/def.h"
 
-#include "client_connection_checker.h"
-#include "login_processor.h"
+#include "client_manager.h"
 
 
 namespace gateway{
@@ -24,25 +23,20 @@ namespace gateway{
 using namespace water;
 using namespace process;
 
-using protocol::protobuf::ProtoMsg;
-using protocol::protobuf::ProtoMsgPtr;
-using protocol::protobuf::ProtoManager;
-using protocol::protobuf::ProtoMsgHandler;
-
 class Gateway : public process::Process
 {
 public:
-    bool sendToPrivate(ProcessIdentity pid, TcpMsgCode code);
-    bool sendToPrivate(ProcessIdentity pid, TcpMsgCode code, const ProtoMsg& proto);
-    bool sendToPrivate(ProcessIdentity pid, TcpMsgCode code, const void* raw, uint32_t size);
+    bool sendToPrivate(ProcessId pid, TcpMsgCode code);
+    bool sendToPrivate(ProcessId pid, TcpMsgCode code, const ProtoMsg& proto);
+    bool sendToPrivate(ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size);
 
-    bool relayToPrivate(uint64_t sourceId, ProcessIdentity pid, TcpMsgCode code, const ProtoMsg& proto);
-    bool relayToPrivate(uint64_t sourceId, ProcessIdentity pid, TcpMsgCode code, const void* raw, uint32_t size);
+    bool relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const ProtoMsg& proto);
+    bool relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size);
 
-    bool sendToClient(LoginId loginId, TcpMsgCode code, const void* raw, uint32_t size);
-    bool sendToClient(LoginId loginId, TcpMsgCode code, const ProtoMsg& proto);
+    bool sendToClient(ClientConnectionId ccid, TcpMsgCode code, const void* raw, uint32_t size);
+    bool sendToClient(ClientConnectionId ccid, TcpMsgCode code, const ProtoMsg& proto);
 
-    net::PacketConnection::Ptr eraseClientConn(LoginId loginId);
+    net::PacketConnection::Ptr eraseClientConn(ClientConnectionId ccid);
 private:
     Gateway(int32_t num, const std::string& configDir, const std::string& logDir);
 
@@ -62,8 +56,7 @@ private:
     void registerTimerHandler();
 
 private:
-    ClientConnectionChecker::Ptr m_clientChecker;
-    LoginProcessor::Ptr m_loginProcessor;
+    ClientManager::Ptr m_clientManager;
 
 public:
     static void init(int32_t num, const std::string& configDir, const std::string& logDir);

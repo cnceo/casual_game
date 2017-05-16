@@ -13,7 +13,7 @@ namespace process{
 
 
 void TcpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn, 
-                                                   ProcessIdentity processId)
+                                                   ProcessId processId)
 {
     conn->setNonBlocking();
 
@@ -60,8 +60,11 @@ void TcpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn,
               conn->getFD(), processId, conn->getRemoteEndpoint());
 }
 
-bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, ClientIdendity clientId)
+bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, ClientSessionId clientId)
 {
+    if (conn == nullptr)
+        return false;
+
     conn->setNonBlocking();
     auto item = std::make_shared<ConnectionHolder>();
     item->type = ConnType::publicType;
@@ -73,14 +76,14 @@ bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, 
     auto insertAllRet = m_allConns.insert({conn->getFD(), item});
     if(insertAllRet.second == false)
     {
-        LOG_ERROR("ConnectionManager, insert publicConn to m_allConns failed, id={}", clientId);
+        LOG_ERROR("ConnectionManager::addPublicConnection failed, clientId={}, ep={}", clientId, conn->getRemoteEndpoint());
         return false;
     }
    
     auto insertPublicRet = m_publicConns.insert({clientId, item});
     if(insertPublicRet.second == false)
     {
-        LOG_ERROR("ConnectionManager, insert publicConn tm_publicConns failed, id={}", clientId);
+        LOG_ERROR("ConnectionManager::addPublicConnection failed, clientId={}, ep={}", clientId, conn->getRemoteEndpoint());
         m_allConns.erase(insertAllRet.first);
         return false;
     }
@@ -92,8 +95,8 @@ bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, 
     }
     catch (const componet::ExceptionBase& ex)
     {
-        LOG_ERROR("ConnectionManager, insert publicConn to m_publicConns failed, id={}", 
-                  ex.what(), clientId);
+        LOG_ERROR("ConnectionManager::addPublicConnection failed, {}, clientId={}, ep={}", 
+                  ex, clientId, conn->getRemoteEndpoint());
 
         m_allConns.erase(insertAllRet.first);
         m_publicConns.erase(insertPublicRet.first);
@@ -103,7 +106,7 @@ bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, 
     return true;
 }
 
-net::PacketConnection::Ptr TcpConnectionManager::erasePublicConnection(ClientIdendity clientId)
+net::PacketConnection::Ptr TcpConnectionManager::erasePublicConnection(ClientSessionId clientId)
 {
     net::PacketConnection::Ptr ret;
 
@@ -136,7 +139,7 @@ void TcpConnectionManager::eraseConnection(net::PacketConnection::Ptr conn)
     }
     else
     {
-        ProcessIdentity pid(it->second->id);
+        ProcessId pid(it->second->id);
         auto iter = m_privateConns.find(pid.type());
         if(iter != m_privateConns.end() && iter->second.find(pid.num()) != iter->second.end())
         {
@@ -167,7 +170,7 @@ bool TcpConnectionManager::exec()
 
         while(checkSwitch())
         {
-            m_epoller.wait(std::chrono::milliseconds(100)); //10 milliseconds 一轮
+            m_epoller.wait(std::chrono::milliseconds(10)); //10 milliseconds 一轮
         }
     }
     catch (const net::NetException& ex)
@@ -265,7 +268,7 @@ bool TcpConnectionManager::getPacket(ConnectionHolder::Ptr* conn, net::Packet::P
     return true;
 }
 
-bool TcpConnectionManager::sendPacketToPrivate(ProcessIdentity processId, net::Packet::Ptr packet)
+bool TcpConnectionManager::sendPacketToPrivate(ProcessId processId, net::Packet::Ptr packet)
 {
     std::lock_guard<componet::Spinlock> lock(m_lock);
     auto typeIter = m_privateConns.find(processId.type());
@@ -315,12 +318,12 @@ void TcpConnectionManager::broadcastPacketToPrivate(ProcessType processType, net
         catch (const componet::ExceptionBase& ex)
         {
             LOG_ERROR("broadcast private packet, socket异常, {}, remoteProcessId={}", 
-                      ex.what(), ProcessIdentity(item.second->id));
+                      ex.what(), ProcessId(item.second->id));
         }
     }
 }
 
-bool TcpConnectionManager::sendPacketToPublic(ClientIdendity clientId, net::Packet::Ptr packet)
+bool TcpConnectionManager::sendPacketToPublic(ClientSessionId clientId, net::Packet::Ptr packet)
 {
     std::lock_guard<componet::Spinlock> lock(m_lock);
     auto it = m_publicConns.find(clientId);

@@ -8,10 +8,10 @@
 namespace water{
 namespace process{
 
-std::vector<std::string> ProcessIdentity::s_type2Name = {"none"};
-std::map<std::string, ProcessType> ProcessIdentity::s_name2Type;
+std::vector<std::string> ProcessId::s_type2Name = {"none"};
+std::map<std::string, ProcessType> ProcessId::s_name2Type;
 
-std::string ProcessIdentity::typeToString(ProcessType type)
+std::string ProcessId::typeToString(ProcessType type)
 {
     uint32_t index = static_cast<uint32_t>(type);
     if(index >= s_type2Name.size())
@@ -20,7 +20,7 @@ std::string ProcessIdentity::typeToString(ProcessType type)
     return s_type2Name[index];
 }
 
-ProcessType ProcessIdentity::stringToType(const std::string& str)
+ProcessType ProcessId::stringToType(const std::string& str)
 {
     auto it = s_name2Type.find(str);
     if(it == s_name2Type.end())
@@ -29,9 +29,9 @@ ProcessType ProcessIdentity::stringToType(const std::string& str)
     return it->second;
 }
 
-ProcessIdentity::ProcessIdentity(const std::string& typeStr, int8_t num)
+ProcessId::ProcessId(const std::string& typeStr, int8_t num)
 {
-    ProcessType type = ProcessIdentity::stringToType(typeStr);
+    ProcessType type = ProcessId::stringToType(typeStr);
     if(type == INVALID_PROCESS_TYPE)
     {
         m_type = 0;
@@ -43,72 +43,72 @@ ProcessIdentity::ProcessIdentity(const std::string& typeStr, int8_t num)
     m_num    = num;
 }
 
-ProcessIdentity::ProcessIdentity(ProcessIdentityValue value)
+ProcessId::ProcessId(ProcessIdValue value)
 {
     setValue(value);
 }
 
-std::string ProcessIdentity::toString() const
+std::string ProcessId::toString() const
 {
     std::string ret = typeToString(m_type);
     componet::formatAndAppend(&ret, "-{}", m_num);
     return ret;
 }
 
-void ProcessIdentity::clear()
+void ProcessId::clear()
 {
     m_type = 0;
     m_num = 0;
 }
 
-bool ProcessIdentity::isValid() const
+bool ProcessId::isValid() const
 {
     return typeToString(m_type) != "none" && m_num != 0;
 }
 
-ProcessIdentityValue ProcessIdentity::value() const
+ProcessIdValue ProcessId::value() const
 {
-    return (ProcessIdentityValue(0) << 16u) | (m_type << 8u) | m_num;
+    return (ProcessIdValue(0) << 16u) | (m_type << 8u) | m_num;
 }
 
-void ProcessIdentity::setValue(ProcessIdentityValue value)
+void ProcessId::setValue(ProcessIdValue value)
 {
     m_type   = (value & 0xff00) >> 8u;
     m_num    = value & 0xff;
 }
 
-void ProcessIdentity::type(ProcessType type) 
+void ProcessId::type(ProcessType type) 
 {
     m_type = type;
 }
 
-ProcessType ProcessIdentity::type() const
+ProcessType ProcessId::type() const
 {
     return m_type;
 }
 
-void ProcessIdentity::num(ProcessNum num)
+void ProcessId::num(ProcessNum num)
 {
     m_num = num;
 }
 
-ProcessNum ProcessIdentity::num() const
+ProcessNum ProcessId::num() const
 {
     return m_num;
 }
 
 /////////////////////////////////////////////////////////////////////
-bool operator==(const ProcessIdentity& pid1, const ProcessIdentity& pid2)
+bool operator==(const ProcessId& pid1, const ProcessId& pid2)
 {
     return pid1.value() == pid2.value();
 }
 
-bool operator!=(const ProcessIdentity& pid1, const ProcessIdentity& pid2)
+bool operator!=(const ProcessId& pid1, const ProcessId& pid2)
 {
     return pid1.value() != pid2.value();
 }
 
-bool operator<(const ProcessIdentity& pid1, const ProcessIdentity& pid2)
+bool operator<(const ProcessId& pid1, const ProcessId& pid2)
 {
     return pid1.value() < pid2.value();
 }

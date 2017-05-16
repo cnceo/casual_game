@@ -28,6 +28,7 @@
 #include <memory>
 #include <unordered_map>
 
+
 namespace protocol{
 namespace protobuf{
 
@@ -84,6 +85,16 @@ private:
 
 };
 
+
+
+}} //end namespace
+
+using protocol::protobuf::ProtoMsg;
+using protocol::protobuf::ProtoMsgPtr;
+using protocol::protobuf::ProtoManager;
+using protocol::protobuf::ProtoMsgHandler;
+
+
 #ifndef PROTO_CODE_PUBLIC
 #define PROTO_CODE_PUBLIC(protoName) (PublicProto::code##protoName)
 #endif
@@ -99,8 +110,5 @@ protocol::protobuf::ProtoManager::me().regHandler(PROTO_CODE_PUBLIC(proto), hand
 
 #define REG_PROTO_PRIVATE(proto, handler) \
 protocol::protobuf::ProtoManager::me().regHandler(PROTO_CODE_PRIVATE(proto), handler);
-
-
-}}
 
 #endif

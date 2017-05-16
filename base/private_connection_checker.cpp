@@ -6,7 +6,7 @@ namespace water{
 namespace process{
 
 
-PrivateConnectionChecker::PrivateConnectionChecker(ProcessIdentity processId)
+PrivateConnectionChecker::PrivateConnectionChecker(ProcessId processId)
 : m_processId(processId)
 {
 }
@@ -21,7 +21,7 @@ void PrivateConnectionChecker::addUncheckedConnection(net::PacketConnection::Ptr
         if(type == ConnType::in)
         {
             connInfo.state = ConnState::recvId;
-            conn->setRecvPacket(net::Packet::create(sizeof(ProcessIdentity)));
+            conn->setRecvPacket(net::Packet::create(sizeof(ProcessId)));
         }
         else
         {
@@ -60,7 +60,7 @@ void PrivateConnectionChecker::checkConn()
 
                         //记下接入者id
                         auto packet = it->conn->getRecvPacket();
-                        it->remoteId = *reinterpret_cast<const ProcessIdentity*>(packet->data());
+                        it->remoteId = *reinterpret_cast<const ProcessId*>(packet->data());
                         //检查接入者id是否为有效Id
                         if(it->remoteId.isValid())
                         {
@@ -103,7 +103,7 @@ void PrivateConnectionChecker::checkConn()
                             break;
 
                         //发完自己的id，进入等待对方回复的状体
-                        it->conn->setRecvPacket(net::Packet::create(sizeof(ProcessIdentity)));
+                        it->conn->setRecvPacket(net::Packet::create(sizeof(ProcessId)));
                         it->state = ConnState::recvRet;
                     }
                     //no break
@@ -114,7 +114,7 @@ void PrivateConnectionChecker::checkConn()
 
                         //记下对方回复的id
                         auto packet = it->conn->getRecvPacket();
-                        it->remoteId = *reinterpret_cast<const ProcessIdentity*>(packet->data());
+                        it->remoteId = *reinterpret_cast<const ProcessId*>(packet->data());
                         //检查回复内容
                         if(it->remoteId.isValid())
                         {

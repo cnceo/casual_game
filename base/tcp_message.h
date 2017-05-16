@@ -100,7 +100,7 @@ struct Envelope : public TcpMsg
             std::memcpy(data, buf, size);
     }
 
-    ProcessIdentityValue    targetPid;   //直接目标进程Id
+    ProcessIdValue    targetPid;   //直接目标进程Id
     uint64_t   sourceId;                 //实际的msg来源Id
     TcpMsg     msg;
 };

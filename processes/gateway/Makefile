@@ -3,12 +3,8 @@ objects = \
 		  main.o\
 		  register_tcp_msg_handler.o\
 		  register_timer_handler.o\
-		  client_connection_checker.o\
-		  register_role_msg_relay.o\
-
-#		  role.o\
-#		  role_manager.o\
-		  login_processor.o\
+		  register_client_msg_relay.o\
+		  client_manager.o\
 
 
 

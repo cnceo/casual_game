@@ -19,9 +19,12 @@
 namespace water{
 namespace process{
 
-//客户端ID
-typedef uint64_t ClientIdentity;
-const ClientIdentity INVALID_CLIENT_IDENDITY_VALUE = 0;
+//客户连接ID
+typedef uint64_t ClientConnectionId; // |-32bits unixtime-|-8bits gatewayNum-|-24bits counter-|
+const ClientConnectionId INVALID_CCID_VALUE = 0;
+//客户唯一ID
+typedef uint64_t ClientUniqueId; // |-32bits unixtime-|-32bits counter-|
+const ClientUniqueId INVALID_CUID_VALUE = 0;
 
 // ProcessType, 实际仅使用低8bits
 typedef uint32_t ProcessType;
@@ -29,30 +32,30 @@ const ProcessType INVALID_PROCESS_TYPE = 0;
 
 // ProcessNum，实际仅使用低8bits
 typedef uint32_t ProcessNum;
-// ProcessIdentityValue =  |- 16bits reserve -|- 8bits ProcessType -|- 8bits ProcessNum -|
-typedef uint32_t ProcessIdentityValue;
-const ProcessIdentityValue INVALID_PROCESS_IDENDITY_VALUE = 0;
+// ProcessIdValue =  |- 16bits reserve -|- 8bits ProcessType -|- 8bits ProcessNum -|
+typedef uint32_t ProcessIdValue;
+const ProcessIdValue INVALID_PROCESS_IDENDITY_VALUE = 0;
 
 //服务器ID
-class ProcessIdentity
+class ProcessId
 {
 public:
 
 
-    ProcessIdentity(const std::string& typeStr, int8_t num);
-    ProcessIdentity(ProcessIdentityValue value_ = INVALID_PROCESS_IDENDITY_VALUE);
+    ProcessId(const std::string& typeStr, int8_t num);
+    ProcessId(ProcessIdValue value_ = INVALID_PROCESS_IDENDITY_VALUE);
 
     //copy & assign
-    ProcessIdentity(const ProcessIdentity& other) = default;
-    ProcessIdentity& operator=(const ProcessIdentity& other) = default;
+    ProcessId(const ProcessId& other) = default;
+    ProcessId& operator=(const ProcessId& other) = default;
 
     void clear();
     bool isValid() const;
 
     std::string toString() const;
 
-    void setValue(ProcessIdentityValue value);
-    ProcessIdentityValue value() const;
+    void setValue(ProcessIdValue value);
+    ProcessIdValue value() const;
 
     void type(ProcessType type);
     ProcessType type() const;
@@ -75,9 +78,9 @@ private:
 
 };
 
-bool operator==(const ProcessIdentity& pid1, const ProcessIdentity& pid2);
-bool operator!=(const ProcessIdentity& pid1, const ProcessIdentity& pid2);
-bool operator<(const ProcessIdentity& pid1, const ProcessIdentity& pid2);
+bool operator==(const ProcessId& pid1, const ProcessId& pid2);
+bool operator!=(const ProcessId& pid1, const ProcessId& pid2);
+bool operator<(const ProcessId& pid1, const ProcessId& pid2);
 
 }}
 

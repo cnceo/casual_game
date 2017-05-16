@@ -31,14 +31,14 @@ public:
     TYPEDEF_PTR(PrivateConnectionChecker)
     CREATE_FUN_MAKE(PrivateConnectionChecker)
 
-    PrivateConnectionChecker(ProcessIdentity processId);
+    PrivateConnectionChecker(ProcessId processId);
     ~PrivateConnectionChecker() = default;
 
     enum class ConnType {in, out};
     void addUncheckedConnection(net::PacketConnection::Ptr conn, ConnType type);
 
 public:
-    componet::Event<void (net::PacketConnection::Ptr, ProcessIdentity processId)> e_connConfirmed;
+    componet::Event<void (net::PacketConnection::Ptr, ProcessId processId)> e_connConfirmed;
 
 private:
     void checkConn();
@@ -48,7 +48,7 @@ private:
     std::mutex m_mutex;
     using LockGuard = std::lock_guard<std::mutex>;
 
-    const ProcessIdentity m_processId;
+    const ProcessId m_processId;
 
     //链接状态, check函数是个状态机
     enum class ConnState 
@@ -62,7 +62,7 @@ private:
     {
         ConnState state;
         net::PacketConnection::Ptr conn;
-        ProcessIdentity remoteId;
+        ProcessId remoteId;
     };
 
     std::list<ConnInfo> m_conns;

@@ -41,13 +41,13 @@ void ProcessConfig::load(const std::string& cfgDir)
             for(auto& name : allTypeNames)
             {
                 //ProcessIdendity::type2Name
-                ProcessIdentity::s_type2Name.push_back(name);
+                ProcessId::s_type2Name.push_back(name);
 
                 //ProcessIdendity::name2Type
-                ProcessType type = ProcessIdentity::s_type2Name.size() - 1;
-                ProcessIdentity::s_name2Type[name] = type;
+                ProcessType type = ProcessId::s_type2Name.size() - 1;
+                ProcessId::s_name2Type[name] = type;
             }
-            ProcessIdentity::s_type2Name.shrink_to_fit();
+            ProcessId::s_type2Name.shrink_to_fit();
         }
 
         
@@ -60,7 +60,7 @@ void ProcessConfig::load(const std::string& cfgDir)
                 for(XmlParseNode processTypeNode = zoneNode.getChild("processType"); processTypeNode; ++processTypeNode)
                 {
                     auto name = processTypeNode.getAttr<std::string>("name");
-                    ProcessType type = ProcessIdentity::stringToType(name);
+                    ProcessType type = ProcessId::stringToType(name);
                     if(type == INVALID_PROCESS_TYPE)
                         EXCEPTION(ProcessCfgNotExisit, "{} is not exisit in allProcesses.allType", name);
 
@@ -68,7 +68,7 @@ void ProcessConfig::load(const std::string& cfgDir)
                     for(XmlParseNode processNode = processTypeNode.getChild("process"); processNode; ++processNode)
                     {
                         auto num = processNode.getAttr<int32_t>("num");
-                        ProcessIdentity processId(name, num);
+                        ProcessId processId(name, num);
                         XmlParseNode privateNode = processNode.getChild("private");
                         if(!privateNode)
                             EXCEPTION(ProcessCfgNotExisit, "process cfg {} do not has {} node", processId, "private");
@@ -132,7 +132,7 @@ bool ProcessConfig::parsePrivateEndpoint(std::set<net::Endpoint>* ret, const std
 {
     ret->clear();
 
-    std::set<ProcessIdentity> processIds;
+    std::set<ProcessId> processIds;
     if(!parseProcessList(&processIds, str))
         return false;
 
@@ -148,7 +148,7 @@ bool ProcessConfig::parsePrivateEndpoint(std::set<net::Endpoint>* ret, const std
     return true;
 }
 
-bool ProcessConfig::parseProcessList(std::set<ProcessIdentity>* ret, const std::string& str)
+bool ProcessConfig::parseProcessList(std::set<ProcessId>* ret, const std::string& str)
 {
     ret->clear();
     std::vector<std::string> items;
@@ -156,11 +156,11 @@ bool ProcessConfig::parseProcessList(std::set<ProcessIdentity>* ret, const std::
 
     for(const std::string& item : items)
     {
-        ProcessIdentity id;
+        ProcessId id;
         std::vector<std::string> processStr = componet::splitString(item, ":");
         if(processStr.size() ==  2)
         {
-            id.type(ProcessIdentity::stringToType(processStr[0]));
+            id.type(ProcessId::stringToType(processStr[0]));
             if(id.type() == INVALID_PROCESS_TYPE)
                 return false;
 
@@ -174,7 +174,7 @@ bool ProcessConfig::parseProcessList(std::set<ProcessIdentity>* ret, const std::
         }
         else if(processStr.size() == 3)
         {
-            id.type(ProcessIdentity::stringToType(processStr[1]) );
+            id.type(ProcessId::stringToType(processStr[1]) );
             if(id.type() == INVALID_PROCESS_TYPE)
                 continue;
             auto processNums = componet::fromString<std::vector<int16_t>>(processStr[2], ",");
@@ -210,7 +210,7 @@ const ProcessConfig::ProcessInfo& ProcessConfig::getInfo()
     return m_processInfo;
 }
 
-ProcessIdentity ProcessConfig::getProcessId() const
+ProcessId ProcessConfig::getProcessId() const
 {
     return m_processId;
 }

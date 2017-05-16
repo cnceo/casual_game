@@ -195,7 +195,7 @@ std::string Process::getFullName() const
     return componet::toString(getId());
 }
 
-ProcessIdentity Process::getId() const
+ProcessId Process::getId() const
 {
     return m_cfg.getProcessId();
 }

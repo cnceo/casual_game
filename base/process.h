@@ -38,7 +38,7 @@ public:
     virtual void stop();
     const std::string& getName() const;
     std::string getFullName() const;
-    ProcessIdentity getId() const;
+    ProcessId getId() const;
 
     const std::string& cfgDir() const;
     componet::TimePoint opentime() const;

@@ -5,16 +5,19 @@ package PublicProto;
 
 enum LoginType
 {
-    guest   = 0;
-    wechat  = 1;
+    guest       = 0;
+    wechat      = 1;
+    oldplayer   = 2;
 }
 
 //step 1,  client -> gw
 message C_Login
 {
-    required bool login_type = 1;
-    required string openid  = 2;
-    optional string token   = 3;
+    required bool login_type        = 1;
+    required int32 playerid         = 4;
+    optional string wechat_openid   = 2;
+    optional string wechat_token    = 3;
+    optional string session_token   = 5;
 }
 
 
