@@ -63,7 +63,7 @@ private:
     Client::Ptr createNewClient();
 
 private://消息处理
-    void pub_C_Login(const ProtoMsgPtr& proto, uint64_t connId);
+    void pub_C_Login(const ProtoMsgPtr& proto, ClientConnectionId connId);
 
 private:
     const ProcessId m_processId;

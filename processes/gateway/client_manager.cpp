@@ -64,8 +64,9 @@ void ClientManager::clientOffline(ClientConnectionId ccid)
         LOG_TRACE("ClientManager, 客户端离线, clientSessionId={}", ccid);
 }
 
-void ClientManager::pub_C_Login(const ProtoMsgPtr& proto, uint64_t connId)
+void ClientManager::pub_C_Login(const ProtoMsgPtr& proto, ClientConnectionId connId)
 {
+    
 }
 
 void ClientManager::regMsgHandler()
