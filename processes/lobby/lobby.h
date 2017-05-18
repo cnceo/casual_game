@@ -6,20 +6,20 @@
  * Description: 
  */
 
-#ifndef ROUTER_ROUTER_H
-#define ROUTER_ROUTER_H
+#ifndef LOBBY_LOBBY_H
+#define LOBBY_LOBBY_H
 
 #include "base/process.h"
 
-namespace router{
+namespace lobby{
 
 using namespace water;
 using namespace process;
 
-class Router : public Process
+class Lobby : public Process
 {
 private:
-    Router(int32_t num, const std::string& configDir, const std::string& logDir);
+    Lobby(int32_t num, const std::string& configDir, const std::string& logDir);
 
     void init() override;
 
@@ -29,9 +29,9 @@ private:
 
 public:
     static void init(int32_t num, const std::string& configDir, const std::string& logDir);
-    static Router& me();
+    static Lobby& me();
 private:
-    static Router* m_me;
+    static Lobby* m_me;
 };
 
 }

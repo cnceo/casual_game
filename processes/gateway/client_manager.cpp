@@ -66,7 +66,6 @@ void ClientManager::clientOffline(ClientConnectionId ccid)
 
 void ClientManager::pub_C_Login(const ProtoMsgPtr& proto, ClientConnectionId connId)
 {
-    
 }
 
 void ClientManager::regMsgHandler()

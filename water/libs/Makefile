@@ -1,6 +1,7 @@
 SUBDIR =\
 		 mysql++\
 		 google_protobuf \
+		 cpp_redis \
 		 
 		 
 		 

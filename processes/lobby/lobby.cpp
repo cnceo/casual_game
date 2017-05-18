@@ -34,7 +34,7 @@ void Lobby::tcpPacketHandle(TcpPacket::Ptr packet,
                      TcpConnectionManager::ConnectionHolder::Ptr conn,
                      const componet::TimePoint& now)
 {
-    ProcessIdentity senderId(conn->id);
+    ProcessId senderId(conn->id);
 
     auto envelope = reinterpret_cast<water::process::Envelope*>(packet->content());
     if(envelope == nullptr)
@@ -46,12 +46,12 @@ void Lobby::tcpPacketHandle(TcpPacket::Ptr packet,
 
 
     //目标进程Id
-    ProcessIdentity receiverId(envelope->targetPid);
+    ProcessId receiverId(envelope->targetPid);
     if(receiverId.num() == 0) //广播
     {
         m_conns.broadcastPacketToPrivate(receiverId.type(), packet);
         LOG_DEBUG("relay broadcast packet, {}->{}, code={}, length={},", 
-                  senderId, ProcessIdentity::typeToString(receiverId.type()), envelope->msg.code, packet->size() );
+                  senderId, ProcessId::typeToString(receiverId.type()), envelope->msg.code, packet->size() );
     }
     else
     {

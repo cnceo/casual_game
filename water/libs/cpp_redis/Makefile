@@ -1,8 +1,10 @@
+#SHELL = /bin/bash
+
 #当前目录
 CUR_DIR = $(shell pwd)
 
 #源文件名
-SOURCE_PACKGE_BASE_NAME = protobuf-3.0.0
+SOURCE_PACKGE_BASE_NAME = cpp_redis
 
 #安装目录
 INSTALL_DIR = $(CUR_DIR)/installed
@@ -15,8 +17,10 @@ $(INSTALL_DIR):
         tar -xf $(SOURCE_PACKGE_BASE_NAME).tar.gz; \
     fi;
 	cd $(SOURCE_PACKGE_BASE_NAME); \
-		./configure DIST_LANG=cpp --prefix=$(INSTALL_DIR) && \
-		make && make check && make install; \
+		mkdir -p build; \
+		cd build; \
+		cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(INSTALL_DIR); \
+		make && make install; \
 		cd $(CUR_DIR);
 
 clean:

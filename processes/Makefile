@@ -26,6 +26,8 @@ export dependent_moudles =\
 
 SUBDIR =  \
 		  gateway\
+		  lobby\
+
 
 #		  router\
 #		  http\
@@ -52,3 +54,4 @@ distclean:
 
 ctags:
 	ctags -R
+
