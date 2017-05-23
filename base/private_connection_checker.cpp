@@ -35,8 +35,8 @@ void PrivateConnectionChecker::addUncheckedConnection(net::PacketConnection::Ptr
     }
     catch(const componet::ExceptionBase& ex)
     {
-        const char* typeStr = (type == ConnType::in) ? "in" : "out";
-        LOG_ERROR("检查新建私网{}连接出错, remoteEp={}, {}", 
+        const char* typeStr = (type == ConnType::in) ? "incoming" : "outgoing";
+        LOG_ERROR("check {} private connection failed, remoteEp={}, {}", 
                   typeStr, conn->getRemoteEndpoint(), ex);
         conn->close();
     }
@@ -61,17 +61,23 @@ void PrivateConnectionChecker::checkConn()
                         //记下接入者id
                         auto packet = it->conn->getRecvPacket();
                         it->remoteId = *reinterpret_cast<const ProcessId*>(packet->data());
-                        //检查接入者id是否为有效Id
+                        //检查接入者id是否合法(当前只检查格式有效性)
+                        ConnCheckRetMsg checkRet;
+                        checkRet.pid = m_processId;
                         if(it->remoteId.isValid())
                         {
-                            //检查通过，回复本进程的id
-                            it->conn->setSendPacket(net::Packet::create(&m_processId, sizeof(m_processId)));
+
+                            //检查通过
+                            checkRet.result = true;
+                            it->checkResult = true;
+                            it->conn->setSendPacket(net::Packet::create(&checkRet, sizeof(checkRet)));
                         }
                         else
                         {
-                            //检查未通过，将对方的id置为无效值，并回复无效id表示拒绝
-                            it->remoteId.clear();
-                            it->conn->setSendPacket(net::Packet::create(&it->remoteId, sizeof(it->remoteId)));
+                            //检查未通过
+                            checkRet.result = false;
+                            it->checkResult = false;
+                            it->conn->setSendPacket(net::Packet::create(&checkRet, sizeof(checkRet)));
                         }
                         it->state = ConnState::sendRet;
                     }
@@ -81,15 +87,16 @@ void PrivateConnectionChecker::checkConn()
                         if( !it->conn->trySend() )
                             break;
 
-                        //发完验证结果，处理验证通过的连接
-                        if(it->remoteId.isValid())
+                        //发完验证结果，处理已经做过验证的连接
+                        if(it->checkResult)
                         {
                             e_connConfirmed(it->conn, it->remoteId);
-                            LOG_TRACE("来自 {} 的私网连接验证通过", it->remoteId);
+                            LOG_TRACE("incoming private conn from {} accepted", it->remoteId);
                         }
                         else
                         {
-                            LOG_TRACE("来自 {} 的私网连接验证失败", it->remoteId);
+                            LOG_TRACE("incoming private conn from {}  denied, remoteEp={}", 
+                                      it->remoteId, it->conn->getRemoteEndpoint());
                         }
 
                         it = m_conns.erase(it);
@@ -103,7 +110,7 @@ void PrivateConnectionChecker::checkConn()
                             break;
 
                         //发完自己的id，进入等待对方回复的状体
-                        it->conn->setRecvPacket(net::Packet::create(sizeof(ProcessId)));
+                        it->conn->setRecvPacket(net::Packet::create(sizeof(ConnCheckRetMsg)));
                         it->state = ConnState::recvRet;
                     }
                     //no break
@@ -114,17 +121,21 @@ void PrivateConnectionChecker::checkConn()
 
                         //记下对方回复的id
                         auto packet = it->conn->getRecvPacket();
-                        it->remoteId = *reinterpret_cast<const ProcessId*>(packet->data());
+                        const ConnCheckRetMsg* checkRet = reinterpret_cast<const ConnCheckRetMsg*>(packet->data());
+                        it->remoteId = checkRet->pid;
+                        it->checkResult = checkRet->result;
+
                         //检查回复内容
-                        if(it->remoteId.isValid())
+                        if(it->checkResult)
                         {
                             e_connConfirmed(it->conn, it->remoteId);
-                            LOG_TRACE("到 {} 的私网连接已被接受", 
+                            LOG_TRACE("outgoing private conn to {} accepted, remoteEp={}", 
                                       it->remoteId, it->conn->getRemoteEndpoint());
                         }
                         else
                         {
-                            LOG_TRACE("到 {} 的私网连接被拒绝{}", it->conn->getRemoteEndpoint());
+                            LOG_TRACE("outgonig private conn to {} denied, remoteEp={}", 
+                                      it->remoteId, it->conn->getRemoteEndpoint());
                         }
 
                         //done

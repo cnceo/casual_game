@@ -8,14 +8,14 @@
  * Description:  统一注册注册定时器事件
  */
 
-#include "world.h"
+#include "interior.h"
 
 #include "water/componet/logger.h"
 
-namespace world{
+namespace interior{
 
 
-void World::registerTimerHandler()
+void Interior::registerTimerHandler()
 {
 }
 

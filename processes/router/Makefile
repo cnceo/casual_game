@@ -18,7 +18,7 @@ ln_flags = -Wl,-dn\
 		   -Wl,-dy\
 		   -lpthread\
 
-target_ln_dependents = $(dependent_water_files)\
+target_ln_dependents = $(dependent_moudles)\
 				$(PROTOCOL_DIR)/protobuf/libprotobuf_message.a
 
 target = router_exec

@@ -1,6 +1,6 @@
 objects = \
 		  main.o\
-		  world.o\
+		  interior.o\
 		  load_cfg.o\
 		  register_tcp_msg_handler.o\
 		  register_timer_handler.o\
@@ -12,7 +12,6 @@ cc = g++
 
 cc_flags = -std=c++11 -ggdb -Wall -Werror\
 		   $(optimization_flag)\
-		   -I$(PROCESSES_DIR)/world\
 		   $(google_protobuf_cc_flag)\
 		   $(base_cc_flag)\
 
@@ -24,11 +23,11 @@ ln_flags = -Wl,-dn\
 		   -Wl,-dy\
 		   -lpthread\
 
-target_ln_dependents = $(dependent_water_files)\
+target_ln_dependents = $(dependent_moudles)\
 					   $(PROTOCOL_DIR)/protobuf/libprotobuf_message.a\
 					   $(PROTOCOL_DIR)/rawmsg/librawmsg.a
 
-target = world_exec
+target = interior_exec
 
 .PHONY:
 all: $(target)

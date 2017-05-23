@@ -94,6 +94,13 @@ using protocol::protobuf::ProtoMsgPtr;
 using protocol::protobuf::ProtoManager;
 using protocol::protobuf::ProtoMsgHandler;
 
+#ifndef PROTO_PTR_CAST_PUBLIC
+#define PROTO_PTR_CAST_PUBLIC(protoName, protoMsgPtr) (std::static_pointer_cast<PublicProto::protoName>(protoMsgPtr))
+#endif
+
+#ifndef PROTO_PTR_CAST_PRIVATE
+#define PROTO_PTR_CAST_PRIVATE(protoName, protoMsgPtr) (std::static_pointer_cast<PrivateProto::protoName>(protoMsgPtr))
+#endif
 
 #ifndef PROTO_CODE_PUBLIC
 #define PROTO_CODE_PUBLIC(protoName) (PublicProto::code##protoName)

@@ -31,7 +31,7 @@ Gateway::Gateway(int32_t num, const std::string& configDir, const std::string& l
 void Gateway::init()
 {
     //先执行基类初始化
-    process::Process::init();
+    Process::init();
 
     loadConfig();
 
@@ -48,8 +48,6 @@ void Gateway::init()
 
     //已加入connectionManager的连接被断开时的处理
     m_conns.e_afterErasePublicConn.reg(std::bind(&ClientManager::clientOffline, m_clientManager, _1));
-
-    //m_timer.regEventHandler(std::chrono::milliseconds(100), std::bind(&LoginProcessor::timerExec, &LoginProcessor::me(), std::placeholders::_1));
 
     //注册消息处理事件和主定时器事件
     registerTcpMsgHandler();
@@ -176,7 +174,7 @@ void Gateway::newClientConnection(net::PacketConnection::Ptr conn)
         conn->setRecvPacket(process::TcpPacket::create());
 
         ClientConnectionId ccid = m_clientManager->clientOnline();
-        if (ccid == INVALID_CCID_VALUE)
+        if (ccid == INVALID_CCID)
         {
             LOG_ERROR("Gateway::newClientConnection failed, 加入ClientManager失败, {}", conn->getRemoteEndpoint());
             return;

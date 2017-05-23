@@ -1,49 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
 
+    <!-- TODO, mysql的配置应该放到需要连mysql的进程的自有配置中-->
     <mysql dbName="test" host ="127.0.0.1" userName="water" pwd="111111" port="3306"/>
 
-    <allProcesses allType="super router func dbcached gateway world session">
-        <zone id="self">
-            <!--路由服务器-->
-            <processType name="router">
-                <process num="1">
-                    <private listen="127.0.0.1:6000" connectTo="1:super:1"/>
-                </process>
-            </processType>
+    <allProcesses allType="router gateway lobby interior">
+        <!--网关服务器-->
+        <processType name="gateway">
+            <process num="1">
+                <private listen="" connectTo="router:1"/>
+                <public  listen="0.0.0.0:7000"/>
+                <http    listen=""/>
+            </process>
+        </processType>
 
-            <!--通用功能服务器-->
-            <processType name="func">
-                <process num="1">
-                    <private listen="" connectTo="router:1"/>
-                </process>
-            </processType>
+        <!--大厅服务器-->
+        <processType name="lobby">
+            <process num="1">
+                <private listen="" connectTo="router:1"/>
+            </process>
+        </processType>
 
+        <!--房间服务器-->
+        <processType name="interior">
+            <process num="1">
+                <private listen="" connectTo="router:1"/>
+            </process>
+        </processType>
 
-            <!--数据库服务器-->
-            <processType name="dbcached">
-                <process num="1">
-                    <private listen="" connectTo="router:1"/>
-                </process>
-            </processType>
-
-
-            <!--网关服务器-->
-            <processType name="gateway">
-                <process num="1">
-                    <private listen="" connectTo="router:1"/>
-                    <public  listen="0.0.0.0:2000"/>
-                    <!-- <flashSandbox   listen="0.0.0.0:1843"/>-->
-                    <http    listen=""/>
-                </process>
-            </processType>
-
-            <!--场景逻辑服务器-->
-            <processType name="world">
-                <process num="1">
-                    <private listen="" connectTo="router:1"/>
-                </process>
-            </processType>
-        </zone>
+        <!--房间服务器-->
+        <processType name="router">
+            <process num="1">
+                <private listen="127.0.0.1:6000" connectTo=""/>
+            </process>
+        </processType>
     </allProcesses>
 </root>

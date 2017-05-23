@@ -34,9 +34,10 @@ public:
     Logger();
     ~Logger();
 public:
-    void setWriter(std::shared_ptr<Writer> writer);
+    void addWriter(std::shared_ptr<Writer> writer);
     std::shared_ptr<Writer> getWriter(const WriterType type) const;
-    void clearWriter(const WriterType type) ;
+    void eraseWriter(const WriterType type) ;
+    void stop();
 
     template<typename... Args>   
     void trace(const Args&... args)
@@ -66,9 +67,9 @@ private:
         std::string fullFormatStr = formatTime() + " " + getLevelStr(level) + ": " + formatStr + "\n";
         const std::string text = format(fullFormatStr, args...);
         m_writerMapLock.lock(); //锁m_writerMap，防止append的时候map更改
-        std::map<WriterType, std::shared_ptr<Writer>> tmp = m_writerMap;
+        std::map<WriterType, std::shared_ptr<Writer>>& writerMap = m_writerMap;
         m_writerMapLock.unlock();
-        for (const auto &item : tmp)
+        for (const auto &item : writerMap)
         {
             if (item.second != nullptr)
             {
@@ -76,6 +77,7 @@ private:
             }
         }
     }
+
 private:
     std::map<WriterType, std::shared_ptr<Writer>> m_writerMap; 
     Spinlock m_writerMapLock;

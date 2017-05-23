@@ -14,8 +14,8 @@ PROCESS_NOT_EXIST=1
 ulimit -c unlimited
 
 
-PROCESS_LIST=("router 1" "world 1" "gateway 1")
-#PROCESS_LIST=("router 1" "dbcached 1" "session 1" "func 1" "world 1" "world 2" "gateway 1")
+PROCESS_LIST=("router 1" "lobby 1" "interior 1" "gateway 1")
+#PROCESS_LIST=("router 1" "lobby 1")
 
 function checkProcessExist()
 {
@@ -35,9 +35,11 @@ for ((i=0; i<${#PROCESS_LIST[*]}; i++)); do
 	checkProcessExist $NAME $NUM
 	if [[ $? -eq "$PROCESS_NOT_EXIST" ]]
 	then
+        echo -e "\nstart "$NAME
 		$PROCESSES_DIR/$NAME/$NAME"_exec" $NUM $CONFIG_DIR $LOG_DIR || exit 1 &
 	else
 		echo "process $NAME-$NUM exist!"
+        sleep 1
 	fi
 done
 

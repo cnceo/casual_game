@@ -55,41 +55,38 @@ void ProcessConfig::load(const std::string& cfgDir)
             //做好processId 到privateListen的Endpoint映射
             //并找到当前进程类型对应的配置结点
             XmlParseNode thisProcessId = XmlParseNode::getInvalidNode();
-            for(XmlParseNode zoneNode = allProcessesNode.getChild("zone"); zoneNode; ++zoneNode)
+            for(XmlParseNode processTypeNode = allProcessesNode.getChild("processType"); processTypeNode; ++processTypeNode)
             {
-                for(XmlParseNode processTypeNode = zoneNode.getChild("processType"); processTypeNode; ++processTypeNode)
+                auto name = processTypeNode.getAttr<std::string>("name");
+                ProcessType type = ProcessId::stringToType(name);
+                if(type == INVALID_PROCESS_TYPE)
+                    EXCEPTION(ProcessCfgNotExisit, "{} is not exisit in allProcesses.allType", name);
+
+                //processType.process.private.listen
+                for(XmlParseNode processNode = processTypeNode.getChild("process"); processNode; ++processNode)
                 {
-                    auto name = processTypeNode.getAttr<std::string>("name");
-                    ProcessType type = ProcessId::stringToType(name);
-                    if(type == INVALID_PROCESS_TYPE)
-                        EXCEPTION(ProcessCfgNotExisit, "{} is not exisit in allProcesses.allType", name);
+                    auto num = processNode.getAttr<int32_t>("num");
+                    ProcessId processId(name, num);
+                    XmlParseNode privateNode = processNode.getChild("private");
+                    if(!privateNode)
+                        EXCEPTION(ProcessCfgNotExisit, "process cfg {} do not has {} node", processId, "private");
 
-                    //processType.process.private.listen
-                    for(XmlParseNode processNode = processTypeNode.getChild("process"); processNode; ++processNode)
+                    auto endPointStr = privateNode.getAttr<std::string>("listen");
+                    std::shared_ptr<net::Endpoint> privateListen;
+                    if(!endPointStr.empty())
                     {
-                        auto num = processNode.getAttr<int32_t>("num");
-                        ProcessId processId(name, num);
-                        XmlParseNode privateNode = processNode.getChild("private");
-                        if(!privateNode)
-                            EXCEPTION(ProcessCfgNotExisit, "process cfg {} do not has {} node", processId, "private");
+                        privateListen.reset(new net::Endpoint(endPointStr));
+                        m_processIdPrivateListenEps[processId] = *privateListen;
+                    }
 
-                        auto endPointStr = privateNode.getAttr<std::string>("listen");
-                        std::shared_ptr<net::Endpoint> privateListen;
-                        if(!endPointStr.empty())
-                        {
-                            privateListen.reset(new net::Endpoint(endPointStr));
-                            m_processIdPrivateListenEps[processId] = *privateListen;
-                        }
+                    //process self node
+                    if(name == m_processName && num == m_processNum)
+                    {
+                        m_processId.type(type);
+                        m_processId.num(m_processNum);
 
-                        //process self node
-                        if(name == m_processName && num == m_processNum)
-                        {
-                            m_processId.type(type);
-                            m_processId.num(m_processNum);
-
-                            thisProcessId = processNode;
-                            m_processInfo.privateNet.listen = privateListen;
-                        }
+                        thisProcessId = processNode;
+                        m_processInfo.privateNet.listen = privateListen;
                     }
                 }
             }

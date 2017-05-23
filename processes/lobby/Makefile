@@ -1,4 +1,8 @@
 objects = lobby.o\
+		  client_manager.o\
+		  redis_handler.o\
+		  register_timer_handler.o\
+		  register_tcp_msg_handler.o\
 		  main.o\
 
 
@@ -10,16 +14,21 @@ cc_flags = -std=c++11 -ggdb -Wall -Werror \
 		   $(optimization_flag)\
 		   $(google_protobuf_cc_flag)\
 		   $(base_cc_flag)\
+		   $(cpp_redis_cc_flag)\
 
 ln_flags = -Wl,-dn\
 		   -L$(PROTOCOL_DIR)/protobuf -lprotobuf_message\
+		   -L$(PROTOCOL_DIR)/rawmsg -lrawmsg\
 		   $(base_ln_flag)\
 		   $(google_protobuf_ln_flag)\
+		   $(cpp_redis_ln_flag)\
 		   -Wl,-dy\
 		   -lpthread\
 
-target_ln_dependents = $(dependent_water_files)\
-				$(PROTOCOL_DIR)/protobuf/libprotobuf_message.a
+target_ln_dependents = $(dependent_moudles)\
+				$(PROTOCOL_DIR)/protobuf/libprotobuf_message.a\
+				$(PROTOCOL_DIR)/rawmsg/librawmsg.a
+
 
 target = lobby_exec
 

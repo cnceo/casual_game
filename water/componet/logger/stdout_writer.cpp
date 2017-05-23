@@ -28,7 +28,8 @@ void StdoutWriter::append(const char* msg, const uint32_t len)
     if (msg == nullptr)
         return;
     m_writeLock.lock();
-    std::cout<<msg;
+    std::cout << msg;
+    std::cout.flush();
     m_writeLock.unlock();
     return;
 }

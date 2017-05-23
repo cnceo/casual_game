@@ -6,15 +6,15 @@
  * Description: 
  */
 
-#ifndef PROCESS_WORLD_WORLD_H
-#define PROCESS_WORLD_WORLD_H
+#ifndef PROCESS_INTERIOR_INTERIOR_H
+#define PROCESS_INTERIOR_INTERIOR_H
 
 
 #include "base/process.h"
 #include "protocol/rawmsg/commdef.h"
 #include "protocol/protobuf/proto_manager.h"
 
-namespace world{
+namespace interior{
 
 using namespace water;
 using namespace process;
@@ -23,18 +23,18 @@ using protocol::protobuf::ProtoMsgPtr;
 using protocol::protobuf::ProtoManager;
 
 
-class World : public process::Process
+class Interior : public process::Process
 {
 public:
-    bool sendToPrivate(ProcessIdentity pid, TcpMsgCode code);
-    bool sendToPrivate(ProcessIdentity pid, TcpMsgCode code, const ProtoMsg& proto);
-    bool sendToPrivate(ProcessIdentity pid, TcpMsgCode code, const void* raw, uint32_t size);
+    bool sendToPrivate(ProcessId pid, TcpMsgCode code);
+    bool sendToPrivate(ProcessId pid, TcpMsgCode code, const ProtoMsg& proto);
+    bool sendToPrivate(ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size);
 
-    bool relayToPrivate(uint64_t sourceId, ProcessIdentity pid, TcpMsgCode code, const ProtoMsg& proto);
-    bool relayToPrivate(uint64_t sourceId, ProcessIdentity pid, TcpMsgCode code, const void* raw, uint32_t size);
+    bool relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const ProtoMsg& proto);
+    bool relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size);
 
 private:
-    World(int32_t num, const std::string& configDir, const std::string& logDir);
+    Interior(int32_t num, const std::string& configDir, const std::string& logDir);
 
     void tcpPacketHandle(TcpPacket::Ptr packet, 
                          TcpConnectionManager::ConnectionHolder::Ptr conn,
@@ -51,9 +51,9 @@ private:
 
 public:
     static void init(int32_t num, const std::string& configDir, const std::string& logDir);
-    static World& me();
+    static Interior& me();
 private:
-    static World* m_me;
+    static Interior* m_me;
 };
 
 }

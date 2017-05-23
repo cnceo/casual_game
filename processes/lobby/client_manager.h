@@ -12,22 +12,42 @@
 
 namespace lobby{
 using namespace water;
+using namespace process;
 
-class Client
+struct Client
 {
+    TYPEDEF_PTR(Client)
+
+    ClientConnectionId ccid = INVALID_CCID;
+    ClientUniqueId cuid = INVALID_CUID;
+    ProcessId roomId;
 };
 
-class ClientManager : 
+class ClientManager
 {
+private:
+    NON_COPYABLE(ClientManager)
+    ClientManager() = default;
 public:
+    ~ClientManager() = default;
 
+    void recoveryFromRedis();
 
-    ClientManager() = default();
-    ~ClientManager() = default();
+    void timerExec();
 
 private:
-    componet::FastTravelUnorderedMap<ClientConnectionId, Client::Ptr>
-    componet::FastTravelUnorderedMap<ClientUniqueId, Client::Ptr>
+    //分配uniqueId
+    ClientUniqueId getClientUniqueId();
+
+private:
+    uint32_t m_uniqueIdCounter;
+    const std::string cuid2ClientsName = "cuid2Clients";
+    componet::FastTravelUnorderedMap<ClientUniqueId, Client::Ptr> cuid2Clients;
+
+private:
+    static ClientManager* s_me;
+public:
+    static ClientManager& getMe();
 };
 
 

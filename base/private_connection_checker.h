@@ -63,9 +63,16 @@ private:
         ConnState state;
         net::PacketConnection::Ptr conn;
         ProcessId remoteId;
+        bool checkResult;
     };
 
     std::list<ConnInfo> m_conns;
+
+    struct ConnCheckRetMsg
+    {
+        ProcessId pid;
+        bool result;
+    };
 };
 
 }}

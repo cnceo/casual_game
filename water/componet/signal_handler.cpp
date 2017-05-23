@@ -35,7 +35,7 @@ void SignalHandler::resetSignalHandle(std::initializer_list<int> signalList)
 
 void SignalHandler::handler(int signal)
 {
-    LOG_DEBUG("收到信号{}", signal);
+    LOG_TRACE("收到信号{}", signal);
     auto it = m_signalHandles.find(signal);
     if(it == m_signalHandles.end())
         return;

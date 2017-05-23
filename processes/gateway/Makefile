@@ -5,6 +5,7 @@ objects = \
 		  register_timer_handler.o\
 		  register_client_msg_relay.o\
 		  client_manager.o\
+		  gm.o\
 
 
 

@@ -30,7 +30,7 @@ ClientConnectionId ClientManager::clientOnline()
     if (!m_clients.insert({client->ccid, client}))
     {
         LOG_ERROR("ClientManager::clientOnline failed, 生成的ccid出现重复, ccid={}", client->ccid);
-        return INVALID_CCID_VALUE;
+        return INVALID_CCID;
     }
 
     LOG_TRACE("客户端接入，分配clientId为 {}", client->ccid);

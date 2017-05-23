@@ -108,10 +108,6 @@ void Process::joinThreads()
                 //启动成功，关掉标准输出日志
                 LOG_CLEAR_STD;
 
-                //touch启动好的进程
-               // std::string shell_cmd = "touch " + m_logDir + "/touchfile/" + getFullName();
-               // system(shell_cmd.c_str());
-
                 //主定时器恢复
                 m_timer.resume();
             }
@@ -148,10 +144,11 @@ void Process::start()
 {
     try
     {
+        m_mainThreadId = std::this_thread::get_id();
+
         //init()为虚函数， 不能在constructor中调用
         init();
 
-        ON_EXIT_SCOPE_DO(SignalHandler::resetSignalHandle({SIGINT, SIGTERM}));
 
         lanchThreads();
 
@@ -172,7 +169,9 @@ void Process::start()
         LOG_ERROR("process {} start, unkonw error", getFullName());
     }
     LOG_TRACE("{} exited", getFullName());
-    LOG_CLEAR_FILE;
+    LOG_STOP;
+    ON_EXIT_SCOPE_DO(SignalHandler::resetSignalHandle({SIGINT, SIGTERM}));
+//    LOG_CLEAR_FILE;
 }
 
 void Process::stop()
@@ -225,7 +224,13 @@ void Process::regTimer(std::chrono::milliseconds interval, const ProcessTimer::E
 void Process::init()
 {
     {//处理linux信号
-        SignalHandler::setSignalHandle({SIGINT, SIGTERM}, std::bind(&Process::stop, this));
+        auto killSigHandler = [this](void)->void
+        {
+            if(this->m_mainThreadId != std::this_thread::get_id())
+                return;
+            this->stop();
+        };
+        SignalHandler::setSignalHandle({SIGINT, SIGTERM}, killSigHandler);
     }
 
     //配置解析

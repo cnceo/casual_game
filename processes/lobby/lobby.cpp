@@ -1,10 +1,16 @@
 #include "lobby.h"
 
 #include "water/componet/logger.h"
-#include "water/componet/string_kit.h"
+#include "water/componet/scope_guard.h"
+#include "water/net/endpoint.h"
 #include "base/tcp_message.h"
+#include "protocol/rawmsg/rawmsg_manager.h"
+#include "protocol/protobuf/proto_manager.h"
 
 namespace lobby{
+
+using protocol::rawmsg::RawmsgManager;
+
 
 Lobby* Lobby::m_me = nullptr;
 
@@ -19,46 +25,117 @@ void Lobby::init(int32_t num, const std::string& configDir, const std::string& l
 }
 
 Lobby::Lobby(int32_t num, const std::string& configDir, const std::string& logDir)
-    : Process("lobby", num, configDir, logDir)
+: Process("lobby", num, configDir, logDir)
 {
 }
 
 void Lobby::init()
 {
-    Process::init();
+    //先执行基类初始化
+    process::Process::init();
 
-    //using namespace std::placeholders;
+    //加载配置
+    //loadConfig();
+
+    ProtoManager::me().loadConfig(m_cfgDir);
+    //注册消息处理事件和主定时器事件
+    registerTcpMsgHandler();
+    registerTimerHandler();
 }
 
-void Lobby::tcpPacketHandle(TcpPacket::Ptr packet,
-                     TcpConnectionManager::ConnectionHolder::Ptr conn,
-                     const componet::TimePoint& now)
+void Lobby::lanchThreads()
 {
-    ProcessId senderId(conn->id);
+    Process::lanchThreads();
+}
 
-    auto envelope = reinterpret_cast<water::process::Envelope*>(packet->content());
-    if(envelope == nullptr)
+void Lobby::stop()
+{
+    /*
+	for(Role::Ptr role : RoleManager::me())
+	{
+		if(role == nullptr)
+			continue;
+
+		role->beforeLeaveScene();
+	}
+*/
+	Process::stop();
+}
+
+bool Lobby::sendToPrivate(ProcessId pid, TcpMsgCode code)
+{
+    return sendToPrivate(pid, code, nullptr, 0);
+}
+
+bool Lobby::sendToPrivate(ProcessId pid, TcpMsgCode code, const ProtoMsg& proto)
+{
+    return relayToPrivate(getId().value(), pid, code, proto);
+}
+
+bool Lobby::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const ProtoMsg& proto)
+{
+    const uint32_t protoBinSize = proto.ByteSize();
+    const uint32_t bufSize = sizeof(Envelope) + protoBinSize;
+    uint8_t* buf = new uint8_t[bufSize];
+    ON_EXIT_SCOPE_DO(delete[] buf);
+
+    Envelope* envelope = new(buf) Envelope(code);
+    envelope->targetPid  = pid.value();
+    envelope->sourceId = sourceId;
+
+    if(!proto.SerializeToArray(envelope->msg.data, protoBinSize))
     {
-        LOG_DEBUG("relay packet failed, TcpPacket::content() == nullptr, from={}, packetSize={}",
-                  senderId, packet->size());
+        LOG_ERROR("proto serialize failed, msgCode = {}", code);
+        return false;
+    }
+
+    TcpPacket::Ptr packet = TcpPacket::create();
+    packet->setContent(buf, bufSize);
+
+    const ProcessId routerId("router", 1);
+    return m_conns.sendPacketToPrivate(routerId, packet);
+}
+
+bool Lobby::sendToPrivate(ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size)
+{
+    return relayToPrivate(getId().value(), pid, code, raw, size);
+}
+
+bool Lobby::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size)
+{
+    const uint32_t bufSize = sizeof(Envelope) + size;
+    uint8_t* buf = new uint8_t[bufSize];
+    ON_EXIT_SCOPE_DO(delete[] buf);
+
+    Envelope* envelope = new(buf) Envelope(code);
+    envelope->targetPid  = pid.value();
+    envelope->sourceId = sourceId;
+    std::memcpy(envelope->msg.data, raw, size);
+
+    TcpPacket::Ptr packet = TcpPacket::create();
+    packet->setContent(buf, bufSize);
+
+//    LOG_DEBUG("sendToPrivate, rawSize={}, tcpMsgSize={}, packetSize={}, contentSize={}", 
+//              size, bufSize, packet->size(), *(uint32_t*)(packet->data()));
+
+    const ProcessId routerId("router", 1);
+    return m_conns.sendPacketToPrivate(routerId, packet);
+}
+
+
+void Lobby::tcpPacketHandle(TcpPacket::Ptr packet, 
+                               TcpConnectionManager::ConnectionHolder::Ptr conn,
+                               const componet::TimePoint& now)
+{
+    if(packet == nullptr)
         return;
-    }
 
 
-    //目标进程Id
-    ProcessId receiverId(envelope->targetPid);
-    if(receiverId.num() == 0) //广播
-    {
-        m_conns.broadcastPacketToPrivate(receiverId.type(), packet);
-        LOG_DEBUG("relay broadcast packet, {}->{}, code={}, length={},", 
-                  senderId, ProcessId::typeToString(receiverId.type()), envelope->msg.code, packet->size() );
-    }
-    else
-    {
-        auto ret = m_conns.sendPacketToPrivate(receiverId, packet) ? "successed" : "failed";
-        LOG_DEBUG("relay packet {}, {}->{}, code={}, length={},", 
-                  ret, senderId, receiverId, envelope->msg.code, packet->size());
-    }
+    auto tcpMsg = reinterpret_cast<water::process::TcpMsg*>(packet->content());
+    if(water::process::isRawMsgCode(tcpMsg->code))
+        RawmsgManager::me().dealTcpMsg(tcpMsg, packet->contentSize(), conn->id, now);
+    else if(water::process::isProtobufMsgCode(tcpMsg->code))
+        ProtoManager::me().dealTcpMsg(tcpMsg, packet->contentSize(), conn->id, now);
 }
 
 }

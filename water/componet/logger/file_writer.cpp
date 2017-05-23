@@ -49,17 +49,12 @@ void FileWriter::run()
         {
             std::unique_lock<std::mutex> lock(m_mutex);
             if (!m_writeBuf->empty()) //读为空，写BUFFER有数据,switch the buffer
-            {	
-                BufferPtr temp;
-                temp = std::move(m_readBuf);
-                m_readBuf = std::move(m_writeBuf);
-                m_writeBuf = std::move(temp);
-            }
+                m_writeBuf.swap(m_readBuf);
             lock.unlock();
             std::unique_lock<std::mutex> lockWait(m_mutexWait);
-            cond.wait_for(lockWait, std::chrono::milliseconds(50));
+            cond.wait_for(lockWait, std::chrono::milliseconds(40));
         }
-        if (!m_readBuf->empty())
+        else
         {
             m_writeFile.append(m_readBuf->data(), m_readBuf->length());
             m_readBuf->reset(); //重置

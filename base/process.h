@@ -88,6 +88,10 @@ protected:
 
     //主定时器，处理一切业务处理
     ProcessTimer m_timer;
+
+private:
+    std::atomic<std::thread::id> m_mainThreadId;
+        
 };
 
 }}

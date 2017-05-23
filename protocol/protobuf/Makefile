@@ -23,7 +23,7 @@ public_protodef_objects = \
 
 private_protodef_objects =\
 	private/login.pb.o\
-	private/super.pb.o\
+	private/gm.pb.o\
 
 protodef_objects = $(private_protodef_objects) $(public_protodef_objects)
 
@@ -35,7 +35,7 @@ public_protobuf_codedef_list = \
 
 private_protobuf_codedef_list = \
 	private/login.codedef.h\
-	private/super.codedef.h\
+	private/gm.codedef.h\
 
 
 

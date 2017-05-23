@@ -43,7 +43,7 @@ private:
     struct EventHandlers
     {
         Event<void (const TimePoint&)> event;
-        TheClock::time_point lastEmitTime;
+        TheClock::time_point lastExecTime;
     };
 
     Spinlock m_lock;

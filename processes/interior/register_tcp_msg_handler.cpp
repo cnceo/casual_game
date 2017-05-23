@@ -8,15 +8,15 @@
  * Description:  统一注册注册消息处理
  */
 
-#include "world.h"
+#include "interior.h"
 
 #include "water/componet/logger.h"
 
 
-namespace world{
+namespace interior{
 
 
-void World::registerTcpMsgHandler()
+void Interior::registerTcpMsgHandler()
 {
 }
 

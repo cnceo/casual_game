@@ -5,7 +5,7 @@
 #include "water/componet/xmlparse.h"
 
 #include "private/login.codedef.h"
-#include "private/super.codedef.h"
+#include "private/gm.codedef.h"
 #include "public/account.codedef.h"
 #include "public/client.codedef.h"
 

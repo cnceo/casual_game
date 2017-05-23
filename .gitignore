@@ -19,6 +19,7 @@ test_*
 *.pb.*
 *.log.*
 *.log
+log/*
 tags
 water/libs/mysql++/mysql++-*/
 water/libs/mysql++/installed/

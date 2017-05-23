@@ -13,7 +13,7 @@ void doSth(const TimePoint& tp, int x)
     string ts = ctime(&t);                         // convert to calendar time
     ts.resize(ts.size()-1);                        // skip trailing newline
     std::cout << ts << " ";
-    cout << (std::chrono::time_point_cast<std::chrono::milliseconds>(tp) - std::chrono::time_point_cast<std::chrono::seconds>(tp)).count() << endl;
+    cout << (std::chrono::time_point_cast<std::chrono::milliseconds>(tp) - std::chrono::time_point_cast<std::chrono::milliseconds>(tp)).count() << endl;
     //std::this_thread::sleep_for(std::chrono::seconds(3));
 }
 
@@ -23,9 +23,10 @@ int main()
 /*    timer.regEventHandler(std::chrono::milliseconds(1000 * 2), std::bind(doSth, std::placeholders::_1, 2));
     timer.regEventHandler(std::chrono::milliseconds(1000 * 3), std::bind(doSth, std::placeholders::_1, 3));
 */
+    using namespace std::placeholders;
     cout << timer.precision() << endl;
-    auto callable = [&timer](const TimePoint& tp) {cout << "hellp" << endl;};
-    timer.regEventHandler(std::chrono::seconds(3), callable);
-    timer.run();
+    timer.regEventHandler(std::chrono::seconds(5), std::bind(doSth, _1, 0));
+    while(true)
+        timer.tick();
     return 0;
 }

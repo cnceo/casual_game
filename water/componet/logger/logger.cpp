@@ -13,17 +13,25 @@ namespace componet{
 
 Logger::Logger()
 {
-    this->setWriter(std::make_shared<StdoutWriter>());
+    this->addWriter(std::make_shared<StdoutWriter>());
 }
 
 Logger::~Logger()
 {
+    stop();
+
+}
+
+void Logger::stop()
+{
+    m_writerMapLock.lock();
     for (const auto &item : m_writerMap)
     {
         if (item.second != nullptr)
             item.second->stop();
     }
     m_writerMap.clear();
+    m_writerMapLock.unlock();
 }
 
 const char* Logger::getLevelStr(LogLevel l)
@@ -55,31 +63,31 @@ std::string Logger::formatTime()
     if (lastSecond != now)
     {
         lastSecond = now;
-        int len = snprintf(result, sizeof(result), "%4d%02d%02d %02d:%02d:%02d", vtm.tm_year + 1990, vtm.tm_mon + 1, vtm.tm_mday, vtm.tm_hour, vtm.tm_min, vtm.tm_sec);
+        int len = snprintf(result, sizeof(result), "%4d%02d%02d %02d:%02d:%02d", vtm.tm_year + 1900, vtm.tm_mon + 1, vtm.tm_mday, vtm.tm_hour, vtm.tm_min, vtm.tm_sec);
         assert(len == 17);
     }
     return result;
 }
 
 
-void Logger::setWriter(std::shared_ptr<Writer> writer)
+void Logger::addWriter(std::shared_ptr<Writer> writer)
 {
     if(writer->getWriteType() == WriterType::stdOut)
-        std::cout << "DEBUG:终端日志设置setWriter()" << std::endl;
+        std::cout << "DEBUG:终端日志设置addWriter()" << std::endl;
     if(writer->getWriteType() == WriterType::fileOut)
-        std::cout << "DEBUG:文件日志设置setWriter()"<<std::endl;
+        std::cout << "DEBUG:文件日志设置addWriter()"<<std::endl;
     if (writer == nullptr)
     {
-        std::cout << "ERROR:日志设置指针为空setWriter()"<<std::endl;
+        std::cout << "ERROR:日志设置指针为空addWriter()"<<std::endl;
         return;
     }
     m_writerMapLock.lock();
     if (this->getWriter(writer->getWriteType()) != nullptr)  //已经有一个文件写
     {
         if(writer->getWriteType() == WriterType::stdOut)
-            std::cout << "ERROR:已经存终端类型的日志setWriter()"<<std::endl;
+            std::cout << "ERROR:已经存终端类型的日志addWriter()"<<std::endl;
         if(writer->getWriteType() == WriterType::fileOut)
-            std::cout << "ERROR:已经存在文件类型的日志setWriter()"<<std::endl;
+            std::cout << "ERROR:已经存在文件类型的日志addWriter()"<<std::endl;
         return;
     }
     m_writerMap.insert({writer->getWriteType(), writer});
@@ -97,7 +105,7 @@ std::shared_ptr<Writer> Logger::getWriter(const WriterType type) const
     return nullptr;
 }
 
-void Logger::clearWriter(const WriterType type)
+void Logger::eraseWriter(const WriterType type)
 {
     m_writerMapLock.lock();
     auto iter = m_writerMap.find(type);

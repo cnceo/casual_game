@@ -21,10 +21,10 @@ namespace process{
 
 //客户连接ID
 typedef uint64_t ClientConnectionId; // |-32bits unixtime-|-8bits gatewayNum-|-24bits counter-|
-const ClientConnectionId INVALID_CCID_VALUE = 0;
+const ClientConnectionId INVALID_CCID = 0;
 //客户唯一ID
 typedef uint64_t ClientUniqueId; // |-32bits unixtime-|-32bits counter-|
-const ClientUniqueId INVALID_CUID_VALUE = 0;
+const ClientUniqueId INVALID_CUID = 0;
 
 // ProcessType, 实际仅使用低8bits
 typedef uint32_t ProcessType;

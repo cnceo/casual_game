@@ -2,7 +2,8 @@
 
 #include "water/componet/logger.h"
 #include "water/componet/string_kit.h"
-#include "water/process/tcp_message.h"
+
+#include "base/tcp_message.h"
 
 namespace router{
 
@@ -27,7 +28,7 @@ void Router::tcpPacketHandle(TcpPacket::Ptr packet,
                      TcpConnectionManager::ConnectionHolder::Ptr conn,
                      const componet::TimePoint& now)
 {
-    ProcessIdentity senderId(conn->id);
+    ProcessId senderId(conn->id);
 
     auto envelope = reinterpret_cast<water::process::Envelope*>(packet->content());
     if(envelope == nullptr)
@@ -39,24 +40,26 @@ void Router::tcpPacketHandle(TcpPacket::Ptr packet,
 
 
     //目标进程Id
-    ProcessIdentity receiverId(envelope->targetPid);
+    ProcessId receiverId(envelope->targetPid);
 
+    /*
     //如果是发到其它区的, 一律转给super
     if(receiverId.zoneId() != getId().zoneId())
     {
-        const auto superId = ProcessIdentity(1, "super", 1);
+        const auto superId = ProcessId(1, "super", 1);
         auto ret = m_conns.sendPacketToPrivate(superId, packet) ? "successed" : "failed";
         LOG_DEBUG("relay packet {}, {}->{}, code={}, length={},", 
                   ret, senderId, receiverId, envelope->msg.code, packet->size());
         return;
     }
+    */
 
     //剩下的都是发到本区的消息, 转到对应的进程
     if(receiverId.num() == 0) //广播
     {
-        m_conns.broadcastPacketToPrivate(receiverId.zoneId(), receiverId.type(), packet);
+        m_conns.broadcastPacketToPrivate(receiverId.type(), packet);
         LOG_DEBUG("relay broadcast packet, {}->{}, code={}, length={},", 
-                  senderId, ProcessIdentity::typeToString(receiverId.type()), envelope->msg.code, packet->size() );
+                  senderId, ProcessId::typeToString(receiverId.type()), envelope->msg.code, packet->size() );
     }
     else
     {

@@ -38,8 +38,8 @@ class ClientManager
         TYPEDEF_PTR(Client)
         CREATE_FUN_MAKE(Client)
     public:
-        ClientConnectionId ccid = INVALID_CCID_VALUE;
-        ClientUniqueId cuid = INVALID_CUID_VALUE;
+        ClientConnectionId ccid = INVALID_CCID;
+        ClientUniqueId cuid = INVALID_CUID;
         State state = State::logining;
     };
 

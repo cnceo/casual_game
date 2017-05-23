@@ -8,6 +8,10 @@ export mysqlcppconn_cc_flag       = $(shell $(MYSQL_CONFIG_CMD) --include)\
 export mysqlcppconn_ln_flag       = $(shell $(MYSQL_CONFIG_CMD) --libs_r)\
 									-L$(MYSQLCPPCONN_INSTALLED_DIR)/lib -lmysqlpp -Wl,-rpath=$(MYSQLCPPCONN_INSTALLED_DIR)/lib
 
+export CPP_REDIS_INSTALLED_DIR	= $(LIBS_DIR)/cpp_redis/installed
+export cpp_redis_cc_flag		= -I$(CPP_REDIS_INSTALLED_DIR)/include
+export cpp_redis_ln_flag		= -L$(CPP_REDIS_INSTALLED_DIR)/lib -lcpp_redis -ltacopie
+
 export PROTOCOL_DIR     = $(ROOT_DIR)/protocol
 
 export base_cc_flag = -I$(ROOT_DIR) -I$(BASE_DIR) -I$(ROOT_DIR)/processes
@@ -25,8 +29,10 @@ export dependent_moudles =\
 
 
 SUBDIR =  \
+		  router\
 		  gateway\
 		  lobby\
+		  interior\
 
 
 #		  router\

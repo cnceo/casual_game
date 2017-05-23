@@ -21,7 +21,7 @@ public:
     void stop();
 
 private:
-    bool m_running = true;
+    std::atomic<bool> m_running{true};
     Spinlock m_writeLock;
 };
 

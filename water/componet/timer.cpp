@@ -3,6 +3,9 @@
 #include <thread>
 //#include <mutex>
 
+#include <iostream>
+using namespace std;
+
 namespace water{
 namespace componet{
 
@@ -17,29 +20,37 @@ void Timer::tick()
 {
 
     TimePoint now = TheClock::now();
+//    cout << "wakup: " << timePointToString(now) << endl;
     TimePoint nearestWakeUp = EPOCH;
     {
         LockGuard lock(m_lock);
-        if(!m_eventHandlers.empty())
+        for(auto& pair : m_eventHandlers)
         {
-            for(auto& pair : m_eventHandlers)
-            {
-                TheClock::time_point wakeUp = pair.second.lastEmitTime + pair.first;
+            TheClock::time_point wakeUp = pair.second.lastExecTime + pair.first;
 
-                if(now >= wakeUp) //执行一次定时事件
-                {
-                    pair.second.lastEmitTime = now;
-                    pair.second.event(now);
-                    wakeUp = pair.second.lastEmitTime + pair.first;
-                    now = TheClock::now(); //触发了定时事件, 可能耗时较长, 需要重新获取当前时间
-                }
-                if(nearestWakeUp == EPOCH || wakeUp < nearestWakeUp)
-                    nearestWakeUp = wakeUp;
+            if(now >= wakeUp) //执行一次定时事件
+            {
+                pair.second.lastExecTime = now;
+                pair.second.event(now);
+                wakeUp = pair.second.lastExecTime + pair.first;
+                now = TheClock::now(); //触发了定时事件, 可能耗时较长, 需要重新获取当前时间
+                std::cout << "emit: " << timePointToString(now);
+                std::cout << ", next emit : " << timePointToString(wakeUp) << std::endl;
+            }
+            else
+                std::cout << "skip, now: " << timePointToString(now) << std::endl;
+            if(nearestWakeUp == EPOCH || wakeUp < nearestWakeUp)
+            {
+                nearestWakeUp = wakeUp;
+                std::cout << "update WakeUp: " << timePointToString(nearestWakeUp) << std::endl;
             }
         }
     }
     if(nearestWakeUp > now)
+    {
+        std::cout << "sleep until: " << timePointToString(nearestWakeUp) << std::endl;
         std::this_thread::sleep_until(nearestWakeUp);
+    }
 }
 
 int64_t Timer::precision() const
@@ -54,7 +65,7 @@ Timer::RegID Timer::regEventHandler(std::chrono::milliseconds interval,
 
     auto& info = m_eventHandlers[interval];
     auto eventId = info.event.reg(handler);
-    info.lastEmitTime = EPOCH;
+    info.lastExecTime = EPOCH;
     return {interval, eventId};
 }
 
