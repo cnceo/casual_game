@@ -3,42 +3,4 @@ syntax = "proto2";
 package PublicProto; 
 
 
-enum LoginType
-{
-    guest       = 0;
-    wechat      = 1;
-    oldplayer   = 2;
-}
-
-//step 1,  client -> gw
-message C_Login
-{
-    required bool login_type        = 1;
-    required int32 playerid         = 4;
-    optional string wechat_openid   = 2;
-    optional string wechat_token    = 3;
-    optional string session_token   = 5;
-}
-
-
-//step 2, gw -> client
-message S_LoginRet
-{
-    enum RetCode
-    {
-        failed      = 0;
-        successful  = 1;
-    }
-
-    message PlayerInfo
-    {
-        required bool is_guest   = 1;
-        required int32 unique_id = 2;
-    }
-
-    required RetCode ret_code       = 1;
-    required PlayerInfo playerInfo  = 2;
-}
-
-
 
