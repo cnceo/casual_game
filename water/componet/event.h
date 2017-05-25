@@ -24,11 +24,11 @@ template<typename T>
 class Event;
 
 
-template<typename... ParamType>
-class Event<void (ParamType...)>
+template<typename... ParamsType>
+class Event<void (ParamsType...)>
 {
 public:
-    typedef std::function<void (ParamType...)> Handler;
+    typedef std::function<void (ParamsType...)> Handler;
     typedef uint64_t RegID;
 
     enum {INVALID_REGID = 0};
@@ -75,15 +75,15 @@ public:
         regIDs.erase(it);
     }
 
-//    void raise(ParamType... args) noexcept
-    void operator()(ParamType... args) noexcept
+//    void raise(ParamsType... args) noexcept
+    void operator()(ParamsType... args) noexcept
     {
         for(auto& cb : callbackList)
         {
             try
             {
-                //cb.second(std::forward<ParamType>(args)...);
-                cb.second(args...);
+                cb.second(std::forward<ParamsType>(args)...);
+               // cb.second(args...);
             }
             catch(...)
             {

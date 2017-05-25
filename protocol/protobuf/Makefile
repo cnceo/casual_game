@@ -19,6 +19,7 @@ objects = \
 
 public_protodef_objects = \
 	public/client.pb.o\
+	public/login.pb.o\
 	public/account.pb.o\
 
 private_protodef_objects =\
@@ -30,6 +31,7 @@ protodef_objects = $(private_protodef_objects) $(public_protodef_objects)
 
 public_protobuf_codedef_list = \
 	public/client.codedef.h\
+	public/login.codedef.h\
 	public/account.codedef.h\
 
 

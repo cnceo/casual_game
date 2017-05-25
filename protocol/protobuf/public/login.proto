@@ -28,7 +28,7 @@ message S_LoginRet
     }
 
     required RetCode ret_code       = 1;
-    required PlayerInfo playerInfo  = 2;
+//    required PlayerInfo playerInfo  = 2;
 }
 
 

@@ -4,7 +4,7 @@
 #include "componet/datetime.h"
 
 #include "protocol/protobuf/proto_manager.h"
-#include "protocol/protobuf/public/client.codedef.h"
+#include "protocol/protobuf/public/login.codedef.h"
 
 namespace gateway{
 
