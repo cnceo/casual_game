@@ -1,49 +1,29 @@
-#include <iostream>
-#include <vector>
+#include <stddef.h>
 
-namespace water{
-namespace componet{
-
-
-class Corotn
+namespace corot
 {
+    using CorotId = uint32_t;
 
-public:
-    void schedule();
 
-    static bool yield();
-    //static bool yield(Task* other);
-    static Task* thisTask();
-private:
-    using TaskId = std::vector<Task*>::size_type;
-    class Task
+    //创建协程
+    CorotId create(const std::function<void(void)>& func);
+
+    //销毁协程, 一般不需要调用, 协程与线程类似，在启动函数正常return后自动销毁
+    void destroy(CorotId tid);
+
+    //返回当前的协程数量
+    uint32_t doSchedule();
+
+    void run(CorotId coid);
+
+    namespace this_corot
     {
-        uint8_t* stackData;
+        CorotId getId();
+        void yield();
+//        void resume(CorotId coid);
     };
 
-    Corotn() = default;
-    ~Corotn() = default;
-    
 
-
-    private
-
-private:
-    static bool invokeTask();
-    static bool resume(Task*);
-
-    bool getCtx(Task*);
-    bool makeCtx(Task*);
-    bool swapCtx(Task*);
-
-private:
-    std::vector<Task*> tasks;
-    uint8_t* stack;
-    std::list<TaskId> taskId;
-    TaskId currentTaskId;
-   
-    static thread_local Corotn t_me;
+//    extern thread_local Scheduler m_scheduler;
 };
 
-
-}}
