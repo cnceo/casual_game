@@ -30,9 +30,9 @@ using std::cin;
 using std::cerr;
 using std::endl;
 
-namespace water{
-namespace componet{
-namespace test{
+//namespace water{
+//namespace componet{
+//namespace test{
 
 template<typename T1, typename T2>
 std::ostream& operator << (std::ostream& os, const std::pair<T1, T2>& pair)
@@ -84,6 +84,6 @@ SENQUENTIAL_CONTAINER_OSTREAM_OPERATOR(std::deque)
 SENQUENTIAL_CONTAINER_OSTREAM_OPERATOR(std::list)
 SENQUENTIAL_CONTAINER_OSTREAM_OPERATOR(std::forward_list)
 
-}}}
+//}}}
 
 #endif
