@@ -1,4 +1,8 @@
-#include "corotn.h"
+#include "coroutine.h"
+
+#include <thread>
+#include <iostream>
+using namespace std;
 
 int g = 10;
 bool running = true;
@@ -10,6 +14,7 @@ corot::CorotId coc;
 
 void p()
 {
+    corot::create(c);
     while(running)
     {
         if(g < 10)
@@ -17,8 +22,8 @@ void p()
             g = g + 1;
             cout << "tid:" << corot::this_corot::getId() << ", produce 1 goods, total=" << g << endl;
         }
-        //corot::this_corot::yield();
-        corot::resume(coc);
+        corot::this_corot::yield();
+        //corot::resume(coc);
     }
 }
 
@@ -42,8 +47,8 @@ int main()
 {
     cop = corot::create(p);
     coc = corot::create(c);
-    corot::run(cop);
-/*
+ /*   corot::run(cop);
+
     for(int i = 0; i < 100000; ++i)
         corot::create(p);
 

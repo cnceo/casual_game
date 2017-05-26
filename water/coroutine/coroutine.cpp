@@ -1,3 +1,5 @@
+#include "coroutine.h"
+
 #include <stddef.h>
 #include <string.h>
 #include <functional>
@@ -6,12 +8,10 @@
 #include <ucontext.h>
 #include <assert.h>
 
-#include <thread>
 #include <iostream>
 using std::cout;
 using std::endl;
 
-#include "corotn.h"
 
 namespace corot
 {
