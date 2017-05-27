@@ -4,7 +4,7 @@
     <!-- TODO, mysql的配置应该放到需要连mysql的进程的自有配置中-->
     <mysql dbName="test" host ="127.0.0.1" userName="water" pwd="111111" port="3306"/>
 
-    <allProcesses allType="router gateway lobby interior">
+    <allProcesses allType="router gateway lobby hall">
         <!--网关服务器-->
         <processType name="gateway">
             <process num="1">
@@ -22,7 +22,7 @@
         </processType>
 
         <!--房间服务器-->
-        <processType name="interior">
+        <processType name="hall">
             <process num="1">
                 <private listen="" connectTo="router:1"/>
             </process>

@@ -293,7 +293,7 @@ void Process::init()
         }
     }
 
-    {//绑定各种核心事件的处理函数
+    {//各种核心事件的订阅
         using namespace std::placeholders;
         //私网的新连接, 放入连接检查器
         if(m_privateNetServer)
@@ -315,10 +315,8 @@ void Process::init()
 
         if(m_publicNetServer)
         {
-            //当有外部连接接入时的处理，这里级直接把新conn加入了connManager，
-            //应该要改，给这里加一个checker，像privaterConnectionChecker一样，
-            //checker会和client做通信，确认client的合法性，并确定client的id
-            //然后checker再把验证过的conn加入connManager
+            //外部连接接入请求的合法性验证处理一般和业务逻辑相关， 这里不做处理
+            //由具体的业务进程去 订阅 m_publicNetServer.e_newConn 事件
         }
 
         if(m_flashSandboxServer && m_flashSandboxHandler)

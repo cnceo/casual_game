@@ -14,7 +14,7 @@
 #include "protocol/rawmsg/commdef.h"
 #include "protocol/protobuf/proto_manager.h"
 
-namespace interior{
+namespace hall{
 
 using namespace water;
 using namespace process;
@@ -23,7 +23,7 @@ using protocol::protobuf::ProtoMsgPtr;
 using protocol::protobuf::ProtoManager;
 
 
-class Interior : public process::Process
+class Hall : public process::Process
 {
 public:
     bool sendToPrivate(ProcessId pid, TcpMsgCode code);
@@ -34,7 +34,7 @@ public:
     bool relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size);
 
 private:
-    Interior(int32_t num, const std::string& configDir, const std::string& logDir);
+    Hall(int32_t num, const std::string& configDir, const std::string& logDir);
 
     void tcpPacketHandle(TcpPacket::Ptr packet, 
                          TcpConnectionManager::ConnectionHolder::Ptr conn,
@@ -51,9 +51,9 @@ private:
 
 public:
     static void init(int32_t num, const std::string& configDir, const std::string& logDir);
-    static Interior& me();
+    static Hall& me();
 private:
-    static Interior* m_me;
+    static Hall* m_me;
 };
 
 }

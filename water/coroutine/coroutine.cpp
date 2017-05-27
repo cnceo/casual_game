@@ -12,7 +12,6 @@
 using std::cout;
 using std::endl;
 
-
 namespace corot
 {
     const uint32_t STACK_SIZE = 1024 * 1024 * 10; //10mb
@@ -285,7 +284,7 @@ namespace corot
         {
             Scheduler::me().resumeCorot(coid);
         }
-        bool resume(Corot* co)
+        void resume(Corot* co)
         {
             Scheduler::me().resumeCorot(co);
         }

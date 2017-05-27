@@ -1,4 +1,4 @@
-#include "interior.h"
+#include "hall.h"
 
 #include "water/componet/logger.h"
 #include "water/componet/scope_guard.h"
@@ -6,29 +6,29 @@
 #include "base/tcp_message.h"
 #include "protocol/rawmsg/rawmsg_manager.h"
 
-namespace interior{
+namespace hall{
 
 using protocol::rawmsg::RawmsgManager;
 
 
-Interior* Interior::m_me = nullptr;
+Hall* Hall::m_me = nullptr;
 
-Interior& Interior::me()
+Hall& Hall::me()
 {
     return *m_me;
 }
 
-void Interior::init(int32_t num, const std::string& configDir, const std::string& logDir)
+void Hall::init(int32_t num, const std::string& configDir, const std::string& logDir)
 {
-    m_me = new Interior(num, configDir, logDir);
+    m_me = new Hall(num, configDir, logDir);
 }
 
-Interior::Interior(int32_t num, const std::string& configDir, const std::string& logDir)
-: Process("interior", num, configDir, logDir)
+Hall::Hall(int32_t num, const std::string& configDir, const std::string& logDir)
+: Process("hall", num, configDir, logDir)
 {
 }
 
-void Interior::init()
+void Hall::init()
 {
     //先执行基类初始化
     process::Process::init();
@@ -36,18 +36,17 @@ void Interior::init()
     //加载配置
     loadConfig();
 
-    ProtoManager::me().loadConfig(m_cfgDir);
     //注册消息处理事件和主定时器事件
     registerTcpMsgHandler();
     registerTimerHandler();
 }
 
-void Interior::lanchThreads()
+void Hall::lanchThreads()
 {
     Process::lanchThreads();
 }
 
-void Interior::stop()
+void Hall::stop()
 {
     /*
 	for(Role::Ptr role : RoleManager::me())
@@ -61,17 +60,17 @@ void Interior::stop()
 	Process::stop();
 }
 
-bool Interior::sendToPrivate(ProcessId pid, TcpMsgCode code)
+bool Hall::sendToPrivate(ProcessId pid, TcpMsgCode code)
 {
     return sendToPrivate(pid, code, nullptr, 0);
 }
 
-bool Interior::sendToPrivate(ProcessId pid, TcpMsgCode code, const ProtoMsg& proto)
+bool Hall::sendToPrivate(ProcessId pid, TcpMsgCode code, const ProtoMsg& proto)
 {
     return relayToPrivate(getId().value(), pid, code, proto);
 }
 
-bool Interior::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const ProtoMsg& proto)
+bool Hall::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const ProtoMsg& proto)
 {
     const uint32_t protoBinSize = proto.ByteSize();
     const uint32_t bufSize = sizeof(Envelope) + protoBinSize;
@@ -95,12 +94,12 @@ bool Interior::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code,
     return m_conns.sendPacketToPrivate(routerId, packet);
 }
 
-bool Interior::sendToPrivate(ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size)
+bool Hall::sendToPrivate(ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size)
 {
     return relayToPrivate(getId().value(), pid, code, raw, size);
 }
 
-bool Interior::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size)
+bool Hall::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const void* raw, uint32_t size)
 {
     const uint32_t bufSize = sizeof(Envelope) + size;
     uint8_t* buf = new uint8_t[bufSize];
@@ -122,7 +121,7 @@ bool Interior::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code,
 }
 
 
-void Interior::tcpPacketHandle(TcpPacket::Ptr packet, 
+void Hall::tcpPacketHandle(TcpPacket::Ptr packet, 
                                TcpConnectionManager::ConnectionHolder::Ptr conn,
                                const componet::TimePoint& now)
 {

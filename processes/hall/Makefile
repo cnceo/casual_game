@@ -1,6 +1,6 @@
 objects = \
 		  main.o\
-		  interior.o\
+		  hall.o\
 		  load_cfg.o\
 		  register_tcp_msg_handler.o\
 		  register_timer_handler.o\

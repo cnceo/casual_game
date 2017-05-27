@@ -1,8 +1,9 @@
 SUBDIR =  \
+		  libs\
 		  componet\
 		  net\
 		  dbadaptcher\
-#		  process\
+		  coroutine\
 
 all: targets
 

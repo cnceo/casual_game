@@ -161,6 +161,7 @@ net::PacketConnection::Ptr Gateway::eraseClientConn(ClientConnectionId ccid)
 
 void Gateway::loadConfig()
 {
+    ProtoManager::me().loadConfig(m_cfgDir);
 }
 
 void Gateway::newClientConnection(net::PacketConnection::Ptr conn)

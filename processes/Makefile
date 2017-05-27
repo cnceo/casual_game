@@ -32,7 +32,7 @@ SUBDIR =  \
 		  router\
 		  gateway\
 		  lobby\
-		  interior\
+		  hall\
 
 
 #		  router\
