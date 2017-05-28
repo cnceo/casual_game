@@ -37,7 +37,7 @@ message_code = 0
 #sys.argv[3]	外部消息或内部消息 public 或 private
 
 out_put_dir = sys.argv[1]
-cpp_or_xml = sys.argv[2]
+file_suffix = sys.argv[2]
 hpp_folder = sys.argv[3]
 
 protobuf_or_rawmsg = ""
@@ -125,7 +125,7 @@ def getNamespaceStr():
 
 
 #***************************** 仅生成一个 *.xml 或 *.cpp 消息号文件 ********************************
-if "cpp" == cpp_or_xml:
+if "cpp" == file_suffix:
     namespace_str = getNamespaceStr()
     cpp_namespace_start_str="namespace " + namespace_str + "\n" + "{" + "\n"
     cpp_namespace_end_str="}"
@@ -167,7 +167,7 @@ if "cpp" == cpp_or_xml:
     write_cpp_handler.write(cpp_namespace_end_str)
     write_cpp_handler.close()	#关闭文件句柄	写protobuf.codedef.private.cpp 消息号
 
-elif "xml" == cpp_or_xml:
+elif "xml" == file_suffix:
     xml_start_str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root>\n"
     xml_end_str = "</root>"
     xml_file_name = out_put_dir + "/protobuf.codedef.xml"	#protobuf.codedef.xml 
@@ -197,4 +197,33 @@ elif "xml" == cpp_or_xml:
 
     write_xml_hanlder.write(xml_end_str)
     write_xml_hanlder.close()	#关闭文件句柄	写protobuf.codedef.private.xml消息号
+elif "h" == file_suffix:
+    access_type_str = "public"
+    if public_or_private == "PRIVATE":
+        access_type_str = "private"
+    all_in_one_codedef_header_file_name = out_put_dir + "/codedef." + access_type_str + ".h"
+    write_header_file_handler = open(all_in_one_codedef_header_file_name, 'w')
+    cpp_macro = "PROTOCOL_" + public_or_private + "_CODEDEF_HPP\n"
+    write_header_file_handler.write("#ifndef " + cpp_macro)
+    write_header_file_handler.write("#define " + cpp_macro)
+    write_header_file_handler.write(getCppHeaderStr())
+    write_header_file_handler.write("#endif\n")
+    write_header_file_handler.close()
+
+#    access_type_str = "public"
+#    if public_or_private == "PRIVATE":
+#        access_type_str = "private"
+#
+#    all_in_one_codedef_header_file_name = out_put_dir + "/codedef." + access_type_str + ".h"
+#    write_header_file_handler = open(all_in_one_codedef_header_file_name, 'w')
+#    cpp_macro = "PROTOCOL_" + public_or_private + "_CODEDEF_HPP\n"
+#    write_header_file_handler.write("#ifndef " + cpp_macro)
+#    write_header_file_handler.write("#define " + cpp_macro)
+#    for fileName in codedef_files_list:
+#        fileName = "access_type_str" + '/' + fileName
+#        newLine = '#include "' + fileName + '"\n'
+#        write_header_file_handler.write(newLine)
+#    write_header_file_handler.write("#endif\n")
+#    write_header_file_handler.close()
+#    return
 

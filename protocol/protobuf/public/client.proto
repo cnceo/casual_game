@@ -2,5 +2,34 @@ syntax = "proto2";
 
 package PublicProto; 
 
+enum LoginType
+{
+    guest       = 0;  //guest登录视为特殊的wechat登录，流程一样，但是不到tx平台做任何验证
+    wechat      = 1; 
+    oldplayer   = 2;
+}
+
+//step 1,  client -> gw
+message C_Login
+{
+    required LoginType login_type   = 1;  //登陆类型
+    optional string wechat_openid   = 2;  //微信openid
+    optional string wechat_token    = 3;  //微信token
+    optional string temp_token      = 4;  //临时token
+}
+
+//step 2, gw -> client
+message S_LoginRet
+{
+    enum RetCode
+    {
+        failed      = 0;
+        successful  = 1;
+    }
+
+    required RetCode ret_code       = 1;
+    optional string login_id        = 2;
+//    required PlayerInfo playerInfo  = 2;
+}
 
 

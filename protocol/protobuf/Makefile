@@ -19,8 +19,6 @@ objects = \
 
 public_protodef_objects = \
 	public/client.pb.o\
-	public/login.pb.o\
-	public/account.pb.o\
 
 private_protodef_objects =\
 	private/login.pb.o\
@@ -31,8 +29,6 @@ protodef_objects = $(private_protodef_objects) $(public_protodef_objects)
 
 public_protobuf_codedef_list = \
 	public/client.codedef.h\
-	public/login.codedef.h\
-	public/account.codedef.h\
 
 
 private_protobuf_codedef_list = \
@@ -54,53 +50,67 @@ target_lib = libprotobuf_message
 all: $(target_lib).a $(CONF_DIR)/protobuf.codedef.public.xml $(CONF_DIR)/protobuf.codedef.private.xml
 
 #.a和.so依赖于objs
-$(target_lib).a: $(protodef_objects) $(objects) 
-	@echo $(objects) $(protodef_objects)
+$(target_lib).a: $(protodef_objects) $(objects)
+	@echo $(protodef_objects) $(objects)
 	ar rs $(target_lib).a $(objects) $(protodef_objects)
 
-$(target_lib).so : $(objects)
-	$(cc) -shared $(objects) -o $(target_lib).so
-
-#objs 依赖于cpp 和 .pb.cc
-$(objects): %.o: %.cpp
+#objs 依赖于cpp 和 .pb.cc, 
+$(protodef_objects): %.pb.o: %.pb.cc
 	$(cc) $(cc_flags) -c $< -o $@
 
-$(protodef_objects): %.pb.o: %.pb.cc
+$(objects): %.o: %.cpp
 	$(cc) $(cc_flags) -c $< -o $@
 
 #proto文件翻译成c++源文件
 public/%.pb.cc: public/%.proto
-	$(PROTOBUF_COMPILER) --proto_path=$(PUBLIC_PROTOCOL_DEFINITION_DIR) --cpp_out=$(PUBLIC_PROTOCOL_DEFINITION_DIR) $(PROTO_ROOT_DIR)/$<
+	$(PROTOBUF_COMPILER) --proto_path=$(PUBLIC_PROTOCOL_DEFINITION_DIR) --cpp_out=$(PUBLIC_PROTOCOL_DEFINITION_DIR) $(PROTO_ROOT_DIR)/$<;
+
+
 #	$(PROTOBUF_COMPILER)  $< --proto_path=. --cpp_out=.
 
 private/%.pb.cc: private/%.proto
-	$(PROTOBUF_COMPILER) --proto_path=$(PRIVATE_PROTOCOL_DEFINITION_DIR) --cpp_out=$(PRIVATE_PROTOCOL_DEFINITION_DIR) $(PROTO_ROOT_DIR)/$<
+	$(PROTOBUF_COMPILER) --proto_path=$(PRIVATE_PROTOCOL_DEFINITION_DIR) --cpp_out=$(PRIVATE_PROTOCOL_DEFINITION_DIR) $(PROTO_ROOT_DIR)/$<;
 #	$(PROTOBUF_COMPILER)  $< --proto_path=. --cpp_out=.
 
-#从proto生成 消息号定义的 .h文件
+#从proto生成 消息号定义的 .h文件, 额外的pb.cc依赖保证在这之前先解析proto文件
 $(public_protobuf_codedef_list): %.codedef.h: %.proto
 	python codedef_hpp.py $< $@
+$(public_protobuf_codedef_list): %.codedef.h: %.pb.cc
 
 $(private_protobuf_codedef_list): %.codedef.h: %.proto
 	python codedef_hpp.py $< $@
+$(private_protobuf_codedef_list): %.codedef.h: %.pb.cc
 
 #protobuf_codedef.py 参数说明
 #argv[1]: $(CONF_DIR) config路径
 #argv[2]: 生成消息号文件 *.cpp 或 *.xml (cpp 或 xml) 
 #argc[3]: 生成外部消息号 或 内部消息号 (public 或 private)
 
-#外部的*.codedef.h文件生成消息号文件codedef.cpp
+#外部的*.codedef.h文件生成消息号文件codedef.public.cpp
 public/codedef.public.cpp : $(public_protobuf_codedef_list)
 	@curdir=$$(pwd);\
 	cd $(PROTO_ROOT_DIR); \
 	python protobuf_codedef.py $(PUBLIC_PROTOCOL_DEFINITION_DIR) cpp public || exit 1; \
 
 
-#内部的*.codedef.private.h文件生成消息号文件codedef.private.cpp
+#内部的*.codedef.h文件生成消息号文件codedef.private.cpp
 private/codedef.private.cpp : $(private_protobuf_codedef_list)
 	@curdir=$$(pwd);\
 	cd $(PROTO_ROOT_DIR);\
 	python protobuf_codedef.py $(PRIVATE_PROTOCOL_DEFINITION_DIR) cpp private || exit 1; \
+
+##外部的*.codedef.h文件汇总，生成codedef.public.h
+#public/codedef.public.h : $(public_protobuf_codedef_list)
+#	@curdir=$$(pwd);\
+#	cd $(PROTO_ROOT_DIR); \
+#	python protobuf_codedef.py $(PUBLIC_PROTOCOL_DEFINITION_DIR) h public || exit 1; \
+#
+#
+##内部的*.codedef.h文件生成消息号文件codedef.private.h
+#private/codedef.private.h : $(private_protobuf_codedef_list)
+#	@curdir=$$(pwd);\
+#	cd $(PROTO_ROOT_DIR);\
+#	python protobuf_codedef.py $(PRIVATE_PROTOCOL_DEFINITION_DIR) h private || exit 1; \
 
 
 #外部的*.codedef.private.h文件生成序列号xml protobuf.codedef.public.xml
@@ -118,15 +128,14 @@ $(CONF_DIR)/protobuf.codedef.private.xml : $(private_protobuf_codedef_list)
 	python protobuf_codedef.py $(PRIVATE_PROTOCOL_DEFINITION_DIR) xml private || exit 1; \
 	cp $(PRIVATE_PROTOCOL_DEFINITION_DIR)/protobuf.codedef.xml $(CONF_DIR)/protobuf.codedef.private.xml 
 
+
 %.d: %.cpp
-#此行用于调试	@set -e -x; \ #此行用于调试
 	@rm -f $@; \
-	$(cc) $(cc_flags) -MM $< > $@.$$$$;  \
+	$(cc) $(cc_flags) -I./public -I./private -MM $< > $@.$$$$ || exit 1;\
 	sed -r 's,^(.*)\.o:,$@ $*\.o:,' $@.$$$$ > $@;  \
 	rm -f $@.$$$$
 
 %.pb.d: %.pb.cc
-#此行用于调试	@set -e -x; \ #此行用于调试
 	@rm -f $@; \
 	$(cc) $(cc_flags) -MM $< > $@.$$$$;  \
 	sed -r 's,^(.*)\.o:,$@ $*\.o:,' $@.$$$$ > $@;  \
@@ -134,8 +143,9 @@ $(CONF_DIR)/protobuf.codedef.private.xml : $(private_protobuf_codedef_list)
 
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),distclean)
--include $(objects:.o=.d)
 -include $(protodef_objects:.pb.o=.pb.d)
+-include $(codedef_objects:.codedef.o=.codedef.d)
+-include $(objects:.o=.d)
 endif
 endif
 

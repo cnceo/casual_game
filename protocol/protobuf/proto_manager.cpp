@@ -4,13 +4,8 @@
 #include "water/componet/logger.h"
 #include "water/componet/xmlparse.h"
 
-#include "private/login.codedef.h"
-#include "private/gm.codedef.h"
-#include "public/account.codedef.h"
-#include "public/client.codedef.h"
-
-//static PublicProto::C_FastSignUp temp1;
-//static PublicProto::AccountAndTokenToServer temp2;
+//#include "public/codedef.public.h"
+//#include "private/codedef.private.h"
 
 
 namespace protocol{
