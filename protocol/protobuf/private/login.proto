@@ -2,35 +2,35 @@ syntax = "proto2";
 
 package PrivateProto;
 
-// step 2, gw -> super
-message CheckAccountAndToken
+// step 2, gw -> lo
+message LoginQuest
 {
-    required string account = 1;
-    required uint32 token   = 2;
+    required string openid  = 1;
+    required uint64 ccid    = 2;
 };
 
 
-// step 2,  gw -> world
+// step 2,  lo -> gw
 // 通知world让user进场景
-message UserIntoWorld
+enum RetLoginQuest_RetCode
 {
-    required uint64 rid      = 1;
-    required string account  = 2;
-    required uint32 scene_id  = 3;
+    RLQ_REG_FAILED  = 0;
+    RLQ_SUCCES      = 1;
+    RLQ_BAND        = 2;
+    RLQ_TEMP_BANK   = 3;
+}
+message RetLoginQuest
+{
+    required uint32 ret_code = 1;  //0 注册失败; 1 成功; 2 封号; 3 临时封号
+    required uint64 ccid     = 2;
+    optional uint64 cuid     = 3;
+    optional string openid   = 4;
 }
 
-// step 3, world -> gw
-//scene创建user完毕
-message RetUserIntoWorld
+// lo -> gw
+message ClientBeReplaced
 {
-    required uint64 rid             = 1;
-    required bool   is_successful   = 2;
+    required int64 ccid = 1;
+    required int64 cuid = 2;
 }
 
-// gw <- -> world
-//下线 or 踢人
-message UserOffline
-{
-    required uint64 rid        = 1;
-    required int32  reason     = 2;
-}

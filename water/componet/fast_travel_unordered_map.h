@@ -77,6 +77,11 @@ public:
         return true;
     }
 
+    bool insert(const Key& k, const Value& v)
+    {
+        return insert(std::pair<Key, Value>(k, v));
+    }
+
     iterator find(Key key)
     {
         auto mapIter = m_map.find(key);

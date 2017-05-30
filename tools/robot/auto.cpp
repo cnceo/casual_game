@@ -18,11 +18,12 @@ void AutoActions::init()
 void AutoActions::start()
 {
     C_Login s;
-    s.set_login_type(GUEST);
-    s.set_wechat_openid("00335");
+    s.set_login_type(LOGINT_WETCHAT);
+    s.set_openid("testrobot00335");
+    s.set_token("xxxx");
     SEND_MSG(C_Login, s);
 
     auto r = RECV_MSG(S_LoginRet);
-    LOG_TRACE("<{}, {}, {}>", r->ret_code(), r->unique_id(), r->temp_token());
+    LOG_TRACE("login successful, <{}, {}, {}>", r->ret_code(), r->cuid(), r->temp_token());
 }
 

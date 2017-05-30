@@ -11,6 +11,7 @@
 
 #include "gateway.h"
 
+#include "client_manager.h"
 #include "gm.h"
 
 #include "water/componet/logger.h"
@@ -23,7 +24,8 @@ namespace gateway{
 void Gateway::registerTimerHandler()
 {
     using namespace std::placeholders;
-    //m_timer.regEventHandler(std::chrono::seconds(10), std::bind(&Test::timerExec, _1));
+    //m_timer.regEventHandler(std::chrono::seconds(10), std::bind(Test::timerExec, _1));
+    m_timer.regEventHandler(std::chrono::milliseconds(10), std::bind(&ClientManager::timerExec, m_clientManager, _1));
 }
 
 

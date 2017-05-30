@@ -17,10 +17,12 @@ using namespace process;
 struct Client
 {
     TYPEDEF_PTR(Client)
+    CREATE_FUN_NEW(Client)
 
     ClientConnectionId ccid = INVALID_CCID;
     ClientUniqueId cuid = INVALID_CUID;
-    ProcessId roomId;
+    std::string openid;
+    //TODO 更多的字段
 };
 
 class ClientManager
@@ -38,18 +40,29 @@ public:
     void timerExec();
 
     void regMsgHandler();
-private:
-    void proto_C_Login(ProtoMsgPtr proto, ClientConnectionId ccid);
 
 private:
+    bool insert(Client::Ptr client);
+    void erase(Client::Ptr client);
+    Client::Ptr getByCuid(ClientUniqueId cuid);
+    Client::Ptr getByOpenid(const std::string& openid);
+
+private:
+    Client::Ptr loadClientFromDB(const std::string& openid);
+    bool saveClientToDB(Client::Ptr client);
     //分配uniqueId
     ClientUniqueId getClientUniqueId();
     void recoveryFromRedis();
+//    void dealLogin();
+private:
+    void proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid);
 
 private:
     uint32_t m_uniqueIdCounter = 0;
-    const std::string cuid2ClientsName = "cuid2Clients";
-    componet::FastTravelUnorderedMap<ClientUniqueId, Client::Ptr> cuid2Clients;
+    const std::string cuid2ClientsName = "openid2Clients"; //redis hashtable 用的名字
+    componet::FastTravelUnorderedMap<std::string, Client::Ptr> m_openid2Clients; //此map进redis
+    componet::FastTravelUnorderedMap<ClientUniqueId, Client::Ptr> m_cuid2Clients; //此map不进redis
+//    componet::FastTravelUnorderedMap<ClientConnectionId, Client::Ptr> ccid2Clients;
 
 private:
     static ClientManager* s_me;

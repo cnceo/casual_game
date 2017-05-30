@@ -2,28 +2,32 @@ syntax = "proto2";
 
 package PublicProto; 
 
-enum LoginType
-{
-    GUEST       = 0;  //guest登录视为特殊的wechat登录，流程一样，但是不到tx平台做任何验证
-    WECHAT      = 1; 
-    OLDPLAYER   = 2;
-}
 
 //step 1,  client -> gw
+enum LoginType_C_Login
+{
+    LOGINT_WETCHAT  = 0; //微信登陆
+    LOGINT_SESSION  = 1; //临时token, 此版本暂不支持
+}
 message C_Login
 {
-    required LoginType login_type   = 1;  //登陆类型
-    optional string wechat_openid   = 2;  //微信openid
-    optional string wechat_token    = 3;  //微信token
-    optional string temp_token      = 4;  //临时token
+    required int32  login_type  = 1;  //登陆类型
+    required string openid      = 2;  //openid
+    required string token       = 3;  //token, 依据login_type 的区别， 可能是wechat_token 或者 服务器的临时认证 token, 测试期间不做验证
 }
 
 //step 2, gw -> client
+enum RetCode_S_LoginRet
+{
+    LOGINR_FAILED               = 0;
+    LOGINR_SUCCES               = 1;
+    LOGINR_TEMP_TOKEN_EXPIRY    = 2; // temp_token 过期, 此版本暂不支持
+}
 message S_LoginRet
 {
-    required int32  ret_code       = 1;
-    optional int32  unique_id       = 2;
-    optional string temp_token      = 3;
+    required int32  ret_code     = 1;
+    optional int64  cuid         = 2;
+    optional string temp_token   = 3;
 //    required PlayerInfo playerInfo  = 2;
 }
 

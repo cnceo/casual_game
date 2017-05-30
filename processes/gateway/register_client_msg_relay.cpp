@@ -26,7 +26,7 @@ void ClientManager::regClientMsgRelay()
     hallPid  = ProcessId("hall", 1);
 
     /************转发到lobby************/
-    PUBLIC_MSG_TO_LOBBY(C_Login)
+//    PUBLIC_MSG_TO_LOBBY(C_Login)
     /************转发到hall*************/
 //    PUBLIC_MSG_TO_HALL();
     /*************转发到client**********/

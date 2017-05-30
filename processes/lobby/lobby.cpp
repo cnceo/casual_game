@@ -1,5 +1,7 @@
 #include "lobby.h"
 
+#include "client_manager.h"
+
 #include "water/componet/logger.h"
 #include "water/componet/scope_guard.h"
 #include "water/net/endpoint.h"
@@ -35,9 +37,9 @@ void Lobby::init()
     process::Process::init();
 
     //加载配置
-    //loadConfig();
-
     ProtoManager::me().loadConfig(m_cfgDir);
+    //初始化初始化ClientManager
+    ClientManager::me().init();
     //注册消息处理事件和主定时器事件
     registerTcpMsgHandler();
     registerTimerHandler();
