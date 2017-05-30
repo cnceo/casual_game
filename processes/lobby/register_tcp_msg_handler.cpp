@@ -8,6 +8,8 @@
 
 #include "lobby.h"
 
+#include "client_manager.h"
+
 #include "water/componet/logger.h"
 //#include "protocol/protobuf/proto_manager.h"
 #include "protocol/protobuf/private/gm.codedef.h"
@@ -19,13 +21,15 @@ void testPingHandler(const ProtoMsgPtr& proto, ProcessId pid)
 //    auto msg = std::static_pointer_cast<PrivateProto::Ping>(proto);
     auto msg = PROTO_PTR_CAST_PRIVATE(Ping, proto);
     LOG_DEBUG("recv 'Ping' from {}, ping.msg = '{}'", pid, msg->msg());
-    return ;
 }
-
 
 void Lobby::registerTcpMsgHandler()
 {
    using namespace std::placeholders;
+   /********************msg from client************************/
+   ClientManager::me().regMsgHandler();
+
+   /*******************msg from cluster***********************/
    REG_PROTO_PRIVATE(Ping, std::bind(testPingHandler, _1, _2));
 }
 

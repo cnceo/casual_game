@@ -22,6 +22,7 @@ Epoller::Epoller()
 {
     if(m_epollfd == -1)
         SYS_EXCEPTION(NetException, "::epoll_create");
+    setEventHandler([](Epoller* epoller, int32_t socketFD, Event event){});
 }
 
 Epoller::~Epoller()

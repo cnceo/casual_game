@@ -16,41 +16,26 @@ Timer::Timer()
 {
 }
 
-void Timer::tick()
+void Timer::operator()()
 {
 
-    TimePoint now = TheClock::now();
-//    cout << "wakup: " << timePointToString(now) << endl;
-    TimePoint nearestWakeUp = EPOCH;
+    TheTimePoint now = TheClock::now();
+    TimePoint sysNow = Clock::now();
     {
         LockGuard lock(m_lock);
         for(auto& pair : m_eventHandlers)
         {
-            TheClock::time_point wakeUp = pair.second.lastExecTime + pair.first;
+            TheClock::time_point emitTime = pair.second.regTime + pair.first * pair.second.counter;
 
-            if(now >= wakeUp) //执行一次定时事件
+            if(now >= emitTime) //执行一次定时事件
             {
-                pair.second.lastExecTime = now;
-                pair.second.event(now);
-                wakeUp = pair.second.lastExecTime + pair.first;
-                now = TheClock::now(); //触发了定时事件, 可能耗时较长, 需要重新获取当前时间
-                std::cout << "emit: " << timePointToString(now);
-                std::cout << ", next emit : " << timePointToString(wakeUp) << std::endl;
-            }
-            else
-                std::cout << "skip, now: " << timePointToString(now) << std::endl;
-            if(nearestWakeUp == EPOCH || wakeUp < nearestWakeUp)
-            {
-                nearestWakeUp = wakeUp;
-                std::cout << "update WakeUp: " << timePointToString(nearestWakeUp) << std::endl;
+                pair.second.event(sysNow);
+                pair.second.counter++;
             }
         }
     }
-    if(nearestWakeUp > now)
-    {
-        std::cout << "sleep until: " << timePointToString(nearestWakeUp) << std::endl;
-        std::this_thread::sleep_until(nearestWakeUp);
-    }
+    //std::this_thread::sleep_for(std::chrono::milliseconds(1)); //线程暂停1ms
+    std::this_thread::yield(); //线程暂停一下
 }
 
 int64_t Timer::precision() const
@@ -65,7 +50,8 @@ Timer::RegID Timer::regEventHandler(std::chrono::milliseconds interval,
 
     auto& info = m_eventHandlers[interval];
     auto eventId = info.event.reg(handler);
-    info.lastExecTime = EPOCH;
+    info.regTime = TheClock::now();
+    info.counter = 0;
     return {interval, eventId};
 }
 

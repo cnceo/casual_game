@@ -9,6 +9,7 @@
 #include <assert.h>
 
 #include <iostream>
+
 using std::cout;
 using std::endl;
 
@@ -126,7 +127,7 @@ namespace corot
                     memcpy(stackTop, co->stackData.data(), co->stackData.size()); /*恢复堆栈数据到运行堆栈, 这里恢复后不调用vector::clear(), 
                                                                                     因为clear()后只能节省最大一个STACK_SIZE的空间，与每次切换都重新内存的开销对比性价比太低
                                                                                    */
-                    cout << "coro resume, restore stack, stack size=" << co->stackData.size() << endl;
+                    //cout << "coro resume, restore stack, stack size=" << co->stackData.size() << endl;
                     this->runningCoid = coid;
                     co->status = CorotStatus::running;
                     if (-1 == swapcontext(&schedulerCtx, &taskCtx)) //切换上下文到taskCtx，并把当前的ctx保存在schedulerCtx中, 实现longjump
@@ -163,9 +164,9 @@ namespace corot
             memcpy(co->stackData.data(), stackTop, stackSize);
             co->status = CorotStatus::sleeping;
             this->runningCoid = SCHEDULE_TASK_ID;
-            cout << "coro yield, save stack, stack size=" << stackSize << endl;
+            //cout << "coro yield, save stack, stack size=" << stackSize << endl;
             if (-1 == swapcontext(&(co->ctx), &(this->ctx))) //此行执行完必须return
-                cout << "coro yield, swapcontext failed" << endl; //TODO log
+                //cout << "coro yield, swapcontext failed" << endl; //TODO log
             return;
         }
 
@@ -173,7 +174,7 @@ namespace corot
         {
             if (this->runningCoid != SCHEDULE_TASK_ID)
             {
-                cout << "error, scheduler is not running is main task" << endl;
+                //cout << "error, scheduler is not running is main task" << endl;
                 return 0;
             }
             uint32_t ret = 0;
@@ -188,7 +189,7 @@ namespace corot
                  */
                 if(!resumeCorot(coid))
                 {
-                    cout << "resume failed, coid=" << coid << endl;
+                    //cout << "resume failed, coid=" << coid << endl;
                     destroy(coid);
                     continue;
                 }
@@ -226,7 +227,7 @@ namespace corot
             co->exec();
 
             //co->exe()没有调用yield()而调用return才会走到这里
-            cout << "task exit, coid=" << coid << endl;
+            //cout << "task exit, coid=" << coid << endl;
             s_me.destroy(coid); //协程执行完毕
             s_me.runningCoid = SCHEDULE_TASK_ID; //控制权即将返回调度器
         }

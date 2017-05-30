@@ -1,4 +1,4 @@
-#SHELL = /bin/bash
+SHELL = /bin/bash
 
 #当前目录
 CUR_DIR = $(shell pwd)
@@ -19,7 +19,7 @@ $(INSTALL_DIR):
 	cd $(SOURCE_PACKGE_BASE_NAME); \
 		mkdir -p build; \
 		cd build; \
-		cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(INSTALL_DIR); \
+		cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(INSTALL_DIR) || exit 1; \
 		make && make install; \
 		cd $(CUR_DIR);
 

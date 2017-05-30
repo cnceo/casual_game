@@ -28,7 +28,7 @@ public:
     {
     }
 
-    T& get()
+    T& top()
     {
         if(empty())
             EXCEPTION(GetFromEmptyCircularQueue, "")
@@ -36,7 +36,7 @@ public:
         return m_data[m_begin];
     }
 
-    const T& get() const
+    const T& top() const
     {
         if(empty())
             EXCEPTION(GetFromEmptyCircularQueue, "")

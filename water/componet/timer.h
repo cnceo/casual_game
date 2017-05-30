@@ -13,6 +13,7 @@
 #include <map>
 #include <set>
 #include <mutex>
+#include <chrono>
 #include <functional>
 
 namespace water{
@@ -21,16 +22,17 @@ namespace componet{
 class Timer
 {
     //typedef std::chrono::high_resolution_clock TheClock;
-    typedef Clock TheClock;
+    using TheClock = std::chrono::steady_clock;
+    using TheTimePoint = TheClock::time_point;
 public:
     typedef std::pair<TheClock::duration, Event<void (const TimePoint&)>::RegID> RegID;
 
     Timer();
     ~Timer() = default;
 
-    void tick();
-
     int64_t precision() const;
+
+    void operator()();
 
     //注册一个触发间隔
     RegID regEventHandler(std::chrono::milliseconds interval,
@@ -43,12 +45,12 @@ private:
     struct EventHandlers
     {
         Event<void (const TimePoint&)> event;
-        TheClock::time_point lastExecTime;
+        TheClock::time_point regTime;
+        uint64_t counter;
     };
 
     Spinlock m_lock;
-    std::map<TheClock::duration, EventHandlers> m_eventHandlers;
-
+    std::map<Clock::duration, EventHandlers> m_eventHandlers;
     std::set<RegID> m_unregedId;
 };
 

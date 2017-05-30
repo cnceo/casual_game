@@ -24,8 +24,10 @@ public:
     CREATE_FUN_MAKE(TcpPacket)
 
     explicit TcpPacket();
+    explicit TcpPacket(SizeType contentSize);
     void setContent(const void* content, SizeType contentSize);
     void* content();
+//    void* resizeContent(SizeType contentSize);
     SizeType contentSize() const;
     void addCursor(SizeType add) override;
 };

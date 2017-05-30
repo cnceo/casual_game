@@ -25,7 +25,7 @@ bool ProcessTimer::exec()
         }
         try
         {
-            m_timer.tick();
+            m_timer();
         }
         catch(const componet::ExceptionBase& ex)
         {

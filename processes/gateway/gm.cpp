@@ -16,7 +16,7 @@ void Test::timerExec(const componet::TimePoint& now)
     PrivateProto::Ping ping;
     ping.set_msg(componet::format("hello, I am {}", Gateway::me().getId()));
     Gateway::me().sendToPrivate(ProcessId("lobby", 1), PROTO_CODE_PRIVATE(Ping), ping);
-    LOG_DEBUG("test: send proto msg Ping to {}", Gateway::me().getId());
+    LOG_DEBUG("send proto msg Ping to {}", Gateway::me().getId());
 }
 
 }

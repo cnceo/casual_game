@@ -43,7 +43,8 @@ public:
     const std::string& cfgDir() const;
     componet::TimePoint opentime() const;
     bool mergeFlag() const;
-    void regTimer(std::chrono::milliseconds interval, const ProcessTimer::EventHandler& handler);
+
+    //void regTimer(std::chrono::milliseconds interval, const ProcessTimer::EventHandler& handler);
 
 protected:
     virtual void init();

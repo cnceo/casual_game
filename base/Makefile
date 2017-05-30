@@ -23,7 +23,7 @@ objects = \
 CC = g++
 cc = g++
 
-cc_flags = -std=c++11 -ggdb -Wall -Werror $(optimization_flag) \
+cc_flags = -std=c++11 -g -Wall -Werror $(optimization_flag) \
 		   -I$(BASE_DIR)
 ln_flags = -lpthread 
 #-Lnet -lnet -Lcomponet -lcomponet

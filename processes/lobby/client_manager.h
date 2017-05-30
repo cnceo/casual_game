@@ -31,23 +31,30 @@ private:
 public:
     ~ClientManager() = default;
 
-    void recoveryFromRedis();
+    void init();
+
+    bool sendToClient(ClientConnectionId ccid, TcpMsgCode code, const ProtoMsg& proto);
 
     void timerExec();
+
+    void regMsgHandler();
+private:
+    void proto_C_Login(ProtoMsgPtr proto, ClientConnectionId ccid);
 
 private:
     //分配uniqueId
     ClientUniqueId getClientUniqueId();
+    void recoveryFromRedis();
 
 private:
-    uint32_t m_uniqueIdCounter;
+    uint32_t m_uniqueIdCounter = 0;
     const std::string cuid2ClientsName = "cuid2Clients";
     componet::FastTravelUnorderedMap<ClientUniqueId, Client::Ptr> cuid2Clients;
 
 private:
     static ClientManager* s_me;
 public:
-    static ClientManager& getMe();
+    static ClientManager& me();
 };
 
 

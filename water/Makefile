@@ -1,5 +1,4 @@
 SUBDIR =  \
-		  libs\
 		  componet\
 		  net\
 		  dbadaptcher\

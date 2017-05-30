@@ -1,33 +1,36 @@
 #include "client_manager.h"
+#include "gateway.h"
 
-
-#include "protocol/rawmsg/rawmsg_manager.h"
-
-#include "water/componet/logger.h"
+#include "protocol/protobuf/proto_manager.h"
+#include "protocol/protobuf/public/client.codedef.h"
 
 namespace gateway{
 
+using namespace std::placeholders;
 
-/*
-#define CLIENT_MSG_TO_WORLD(clientMsgName) \
-protocol::rawmsg::RawmsgManager::me().regHandler(RAWMSG_CODE_PUBLIC(clientMsgName), std::bind(&RoleManager::relayRoleMsgToWorld, this, RAWMSG_CODE_PUBLIC(clientMsgName), _1, _2, _3));
+static ProcessId lobbyPid;
+#define PUBLIC_MSG_TO_LOBBY(clientMsgName) \
+ProtoManager::me().regHandler(PROTO_CODE_PUBLIC(clientMsgName), std::bind(&ClientManager::relayClientMsgToServer, this, lobbyPid, PROTO_CODE_PUBLIC(clientMsgName),  _1, _2));
 
+static ProcessId hallPid("hall", 1);
+#define PUBLIC_MSG_TO_HALL(clientMsgName) \
+ProtoManager::me().regHandler(PROTO_CODE_PUBLIC(clientMsgName), std::bind(&ClientManager::relayClientMsgToServer, this, hallPid, PROTO_CODE_PUBLIC(clientMsgName),  _1, _2));
 
-#define CLIENT_MSG_TO_FUNC(clientMsgName) \
-protocol::rawmsg::RawmsgManager::me().regHandler(RAWMSG_CODE_PUBLIC(clientMsgName), std::bind(&RoleManager::relayRoleMsgToFunc, this, RAWMSG_CODE_PUBLIC(clientMsgName), _1, _2, _3));
-*/
-
-#define CLIENT_MSG_TO_CASINO(clientMsgName) \
-protocol::protobuf::ProtoManager::me().regHandler(PROTO_CODE_PUBLIC(clientMsgName), std::bind(&ClientManager::relayClientMsgToFunc, this, PROTO_CODE_PUBLIC(clientMsgName), _1, _2, _3));
+#define PUBLIC_MSG_TO_CLIENT(clientMsgName)\
+ProtoManager::me().regHandler(PROTO_CODE_PUBLIC(clientMsgName), std::bind(&ClientManager::relayClientMsgToClient, this, PROTO_CODE_PUBLIC(clientMsgName), _1, _2));
 
 
 void ClientManager::regClientMsgRelay()
 {
-    using namespace std::placeholders;
+    lobbyPid = ProcessId("lobby", 1);
+    hallPid  = ProcessId("hall", 1);
 
-    /************转发到world************/
-//    CLIENT_MSG_TO_WORLD(RoleMoveToPos);
-
+    /************转发到lobby************/
+    PUBLIC_MSG_TO_LOBBY(C_Login)
+    /************转发到hall*************/
+//    PUBLIC_MSG_TO_HALL();
+    /*************转发到client**********/
+    PUBLIC_MSG_TO_CLIENT(S_LoginRet)
 };
 
 }

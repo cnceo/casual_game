@@ -6,7 +6,7 @@ cc = g++
 
 cc_flags = -std=c++11 -ggdb -Wall -Werror $(optimization_flag)
 
-target = libcorot.a
+target = libcoroutine.a
 
 .PHONY:
 all: $(target)

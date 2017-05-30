@@ -1,10 +1,12 @@
 #include "client_manager.h"
 
+#include "gateway.h"
+
 #include "componet/logger.h"
 #include "componet/datetime.h"
 
 #include "protocol/protobuf/proto_manager.h"
-#include "protocol/protobuf/public/login.codedef.h"
+#include "protocol/protobuf/public/client.codedef.h"
 
 namespace gateway{
 
@@ -54,24 +56,63 @@ void ClientManager::clientOffline(ClientConnectionId ccid)
 
     if (client == nullptr)
     {
-        LOG_ERROR("ClientManager, 客户端离线, ccid不存在, clientSessionId={}", ccid);
+        LOG_TRACE("ClientManager, 客户端离线, ccid不存在, ccid={}", ccid);
         return;
     }
 
     if(client->state == Client::State::logining)
-        LOG_TRACE("ClientManager, 客户端离线, 登录过程终止, clientSessionId={}", ccid);
+        LOG_TRACE("ClientManager, 客户端离线, 登录过程终止, ccid={}", ccid);
     else
-        LOG_TRACE("ClientManager, 客户端离线, clientSessionId={}", ccid);
+        LOG_TRACE("ClientManager, 客户端离线, ccid={}", ccid);
 }
 
-void ClientManager::pub_C_Login(const ProtoMsgPtr& proto, ClientConnectionId connId)
+void ClientManager::KickOutClient(ClientConnectionId ccid)
 {
+    Client::Ptr client(nullptr);
+
+    {
+        LockGuard lock(m_clientsLock);
+
+        auto it = m_clients.find(ccid);
+        if (it != m_clients.end())
+        {
+            client = it->second;
+            m_clients.erase(it);
+        }
+    }
+    if (client == nullptr)
+    {
+        LOG_TRACE("ClientManager, 踢下线, ccid不存在, ccid={}", ccid);
+        return;
+    }
+
+    if(client->state == Client::State::logining)
+        LOG_TRACE("ClientManager, 踢下线, 登录过程终止, ccid={}", ccid);
+    else
+        LOG_TRACE("ClientManager, 踢下线, ccid={}", ccid);
+
+}
+
+void ClientManager::relayClientMsgToServer(const ProcessId& pid, TcpMsgCode code, const ProtoMsgPtr& protoPtr, ClientConnectionId ccid)
+{
+    LOG_DEBUG("relay client msg to process {}, code={}", pid, code);
+    Gateway::me().relayToPrivate(ccid, pid, code, *protoPtr);
+}
+
+void ClientManager::relayClientMsgToClient(TcpMsgCode code, const ProtoMsgPtr& protoPtr, ClientConnectionId ccid)
+{
+    LOG_DEBUG("relay client msg to client {}, code={}", ccid, code);
+    Gateway::me().sendToClient(ccid, code, *protoPtr);
 }
 
 void ClientManager::regMsgHandler()
 {
     using namespace std::placeholders;
-    REG_PROTO_PUBLIC(C_Login, std::bind(&ClientManager::pub_C_Login, this, _1, _2));
+    /**********************msg from client*************/
+//    REG_PROTO_PUBLIC(C_Login, std::bind(&ClientManager::pub_C_Login, this, _1, _2, _3));
+
+    /*********************msg from cluster*************/
+//    ProtoManager::me().regHandler(PROTO_CODE_PUBLIC(C_Login), std::bind(&ClientManager::relayClientMsg, this, ProcessId("lobby", 1),PROTO_CODE_PUBLIC(C_Login),  _1, _2));
 }
 
 }

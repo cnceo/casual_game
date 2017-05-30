@@ -23,7 +23,7 @@ namespace gateway{
 void Gateway::registerTimerHandler()
 {
     using namespace std::placeholders;
-    m_timer.regEventHandler(std::chrono::seconds(10), std::bind(&Test::timerExec, _1));
+    //m_timer.regEventHandler(std::chrono::seconds(10), std::bind(&Test::timerExec, _1));
 }
 
 

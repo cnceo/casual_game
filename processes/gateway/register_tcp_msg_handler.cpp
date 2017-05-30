@@ -21,6 +21,7 @@ void Gateway::registerTcpMsgHandler()
     using namespace std::placeholders;
  
     //clientManager
+    m_clientManager->regClientMsgRelay();
     m_clientManager->regMsgHandler();
 }
 

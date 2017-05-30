@@ -14,7 +14,7 @@ PROCESS_NOT_EXIST=1
 ulimit -c unlimited
 
 
-PROCESS_LIST=("router 1" "lobby 1" "interior 1" "gateway 1")
+PROCESS_LIST=("router 1" "lobby 1" "hall 1" "gateway 1")
 #PROCESS_LIST=("router 1" "lobby 1")
 
 function checkProcessExist()

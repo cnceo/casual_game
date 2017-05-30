@@ -13,7 +13,7 @@ PROCESS_EXIST=0
 PROCESS_NOT_EXIST=1
 
 
-PROCESS_LIST=("gateway" "interior" "lobby" "router")
+PROCESS_LIST=("gateway" "hall" "lobby" "router")
 
 function killProcess()
 {

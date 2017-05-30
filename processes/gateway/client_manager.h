@@ -55,6 +55,7 @@ public:
     //添加一个client connection, 返回分配给这个conn的clientId，失败返回INVALID_CLIENT_IDENDITY_VALUE
     ClientConnectionId clientOnline();
     void clientOffline(ClientConnectionId ccid);
+    void KickOutClient(ClientConnectionId ccid);
 
     void regMsgHandler();
     void regClientMsgRelay();
@@ -62,8 +63,9 @@ public:
 private:
     Client::Ptr createNewClient();
 
-private://消息处理
-    void pub_C_Login(const ProtoMsgPtr& proto, ClientConnectionId connId);
+    void relayClientMsgToServer(const ProcessId& pid, TcpMsgCode code, const ProtoMsgPtr& protoPtr, ClientConnectionId ccid);
+    void relayClientMsgToClient(TcpMsgCode code, const ProtoMsgPtr& protoPtr, ClientConnectionId ccid);
+
 
 private:
     const ProcessId m_processId;

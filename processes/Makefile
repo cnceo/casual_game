@@ -19,12 +19,15 @@ export base_ln_flag = \
 	-L$(ROOT_DIR)/base -lbase\
 	-L$(ROOT_DIR)/water/net -lnet\
 	-L$(ROOT_DIR)/water/componet -lcomponet\
-	-L$(ROOT_DIR)/water/dbadaptcher -ldbadaptcher
+	-L$(ROOT_DIR)/water/dbadaptcher -ldbadaptcher\
+	-L$(ROOT_DIR)/water/coroutine -lcoroutine\
+
 
 export dependent_moudles =\
 	$(ROOT_DIR)/base/libbase.a\
 	$(ROOT_DIR)/water/net/libnet.a\
 	$(ROOT_DIR)/water/componet/libcomponet.a\
+	$(ROOT_DIR)/water/coroutine/libcoroutine.a\
 	$(ROOT_DIR)/water/dbadaptcher/libdbadaptcher.a
 
 

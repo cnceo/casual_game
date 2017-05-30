@@ -77,9 +77,10 @@ bool Gateway::sendToPrivate(ProcessId pid, TcpMsgCode code, const void* raw, uin
 bool Gateway::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, const ProtoMsg& proto)
 {
     const uint32_t protoBinSize = proto.ByteSize();
-    const uint32_t bufSize = sizeof(Envelope) + protoBinSize;
-    uint8_t* buf = new uint8_t[bufSize];
-    ON_EXIT_SCOPE_DO(delete[] buf);
+    const uint32_t contentSize = sizeof(Envelope) + protoBinSize;
+
+    TcpPacket::Ptr packet = TcpPacket::create(contentSize);
+    void* buf = packet->content();
 
     Envelope* envelope = new(buf) Envelope(code);
     envelope->targetPid  = pid.value();
@@ -87,13 +88,11 @@ bool Gateway::relayToPrivate(uint64_t sourceId, ProcessId pid, TcpMsgCode code, 
 
     if(!proto.SerializeToArray(envelope->msg.data, protoBinSize))
     {
-        LOG_ERROR("proto serialize failed, msgCode = {}", code);
+        LOG_DEBUG("proto to private, serialize failed, msgCode = {}", code);
         return false;
     }
 
-    TcpPacket::Ptr packet = TcpPacket::create();
-    packet->setContent(buf, bufSize);
-
+    LOG_DEBUG("proto to private, pid={}, msgCode={}, packetSize={}", pid, code, packet->size());
     const ProcessId routerId("router", 1);
     return m_conns.sendPacketToPrivate(routerId, packet);
 }
@@ -137,19 +136,18 @@ bool Gateway::sendToClient(ClientConnectionId ccid, TcpMsgCode code, const void*
 bool Gateway::sendToClient(ClientConnectionId ccid, TcpMsgCode code, const ProtoMsg& proto)
 {
     const uint32_t protoBinSize = proto.ByteSize();
-    const uint32_t bufSize = sizeof(TcpMsg) + protoBinSize;
-    uint8_t* buf = new uint8_t[bufSize];
-    ON_EXIT_SCOPE_DO(delete[] buf);
+    const uint32_t contentSize = sizeof(TcpMsg) + protoBinSize;
+
+    TcpPacket::Ptr packet = TcpPacket::create(contentSize);
+    void* buf = packet->content();
 
     TcpMsg* msg = new(buf) TcpMsg(code);
+
     if(!proto.SerializeToArray(msg->data, protoBinSize))
     {
-        LOG_ERROR("proto serialize failed, msgCode = {}", code);
+        LOG_DEBUG("proto to client,  serialize failed, msgCode={}", code);
         return false;
     }
-
-    TcpPacket::Ptr packet = TcpPacket::create();
-    packet->setContent(buf, bufSize);
 
     return m_conns.sendPacketToPublic(ccid, packet);
 }
@@ -178,11 +176,10 @@ void Gateway::newClientConnection(net::PacketConnection::Ptr conn)
         if (ccid == INVALID_CCID)
         {
             LOG_ERROR("Gateway::newClientConnection failed, 加入ClientManager失败, {}", conn->getRemoteEndpoint());
-            return;
         }
-        if (!m_conns.addPublicConnection(conn, ccid))
+        else if (!m_conns.addPublicConnection(conn, ccid))
         {
-            m_clientManager->clientOffline(ccid);
+            m_clientManager->KickOutClient(ccid);
         }
     }
     catch (const net::NetException& ex)

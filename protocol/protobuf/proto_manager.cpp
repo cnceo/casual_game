@@ -139,7 +139,7 @@ void ProtoManager::dealTcpMsg(const TcpMsg* recv, uint32_t recvSize, uint64_t se
     uint32_t msgDataSize   = recvSize - sizeof(water::process::TcpMsg);
     uint64_t theSenderId   = senderId;
 
-    //如果是信封, 需要另作处理
+    //如果是信封, 拆开取内容后处理
     if(water::process::isEnvelopeMsgCode(recv->code))
     {
         auto envelope = reinterpret_cast<const water::process::Envelope*>(recv);

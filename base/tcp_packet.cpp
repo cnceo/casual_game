@@ -9,30 +9,49 @@ TcpPacket::TcpPacket()
 {
 }
 
+TcpPacket::TcpPacket(SizeType contentSize)
+    : net::Packet(sizeof(SizeType) + contentSize)
+{
+    std::memcpy(data(), &contentSize, sizeof(contentSize));
+}
+
 void TcpPacket::setContent(const void* content, SizeType contentSize)
 {
     const SizeType packetSize = sizeof(SizeType) + contentSize;
     resize(packetSize);
-    std::memcpy(data(), &packetSize, sizeof(contentSize));
+    std::memcpy(data(), &contentSize, sizeof(contentSize));
     std::memcpy(data() + sizeof(contentSize), content, contentSize);
 }
 
 void* TcpPacket::content()
 {
+    /*
     if(m_type == Packet::BuffType::send && m_cursor != size())
         return nullptr;
-
+*/
+    if(m_type == Packet::BuffType::recv && m_cursor != size())
+        return nullptr;
     if(size() < sizeof(SizeType))
         return nullptr;
 
     return data() + sizeof(SizeType);
 }
-
+/*
+void* TcpPacket::resizeContent(SizeType contentSize)
+{
+    const SizeType packetSize = sizeof(SizeType) + contentSize;
+    resize(packetSize);
+    return data() + sizeof(SizeType);
+}
+*/
 TcpPacket::SizeType TcpPacket::contentSize() const
 {
+    /*
     if(m_type == Packet::BuffType::send && m_cursor != size())
         return 0;
-
+*/
+    if(m_type == Packet::BuffType::recv && m_cursor != size())
+        return 0;
     if(size() < sizeof(SizeType))
         return 0;
 
@@ -47,7 +66,7 @@ void TcpPacket::addCursor(SizeType add)
     //把需要收取的长度改写为包的实际长度，以便继续接收
     if(m_type == Packet::BuffType::recv && m_cursor == sizeof(SizeType))
     {
-        SizeType packetSize = *reinterpret_cast<const SizeType*>(data());
+        SizeType packetSize = *reinterpret_cast<const SizeType*>(data()) + sizeof(SizeType);
         resize(packetSize);
     }
 }

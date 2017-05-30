@@ -21,6 +21,7 @@ SUBDIR =  \
 		  base\
 		  protocol\
 		  processes\
+          tools\
 
 
 all: targets

@@ -215,11 +215,11 @@ bool Process::mergeFlag() const
 //    return m_cfg.mergeFlag();
 }
 
-void Process::regTimer(std::chrono::milliseconds interval, const ProcessTimer::EventHandler& handler)
-{
-    m_timer.regEventHandler(interval, handler);
-    
-}
+//void Process::regTimer(std::chrono::milliseconds interval, const ProcessTimer::EventHandler& handler)
+//{
+//    m_timer.regEventHandler(interval, handler);
+//    
+//}
 
 void Process::init()
 {
@@ -337,7 +337,7 @@ void Process::init()
                                                             &m_conns, _1, _2));
 
         //处理消息接收队列
-        regTimer(std::chrono::milliseconds(20), std::bind(&Process::dealTcpPackets, this, _1));
+        m_timer.regEventHandler(std::chrono::milliseconds(2), std::bind(&Process::dealTcpPackets, this, _1));
     }
 }
 

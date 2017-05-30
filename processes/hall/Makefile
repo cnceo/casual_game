@@ -27,7 +27,7 @@ target_ln_dependents = $(dependent_moudles)\
 					   $(PROTOCOL_DIR)/protobuf/libprotobuf_message.a\
 					   $(PROTOCOL_DIR)/rawmsg/librawmsg.a
 
-target = interior_exec
+target = hall_exec
 
 .PHONY:
 all: $(target)
