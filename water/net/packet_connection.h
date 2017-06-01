@@ -14,7 +14,7 @@
 #include "net_exception.h"
 #include "endpoint.h"
 #include "packet.h"
-#include "componet/lock_free_circular_queue_ss.h"
+//#include "componet/lock_free_circular_queue_ss.h"
 
 
 namespace water{

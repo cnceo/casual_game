@@ -52,7 +52,7 @@ void FileWriter::run()
                 m_writeBuf.swap(m_readBuf);
             lock.unlock();
             std::unique_lock<std::mutex> lockWait(m_mutexWait);
-            cond.wait_for(lockWait, std::chrono::milliseconds(40));
+            cond.wait_for(lockWait, std::chrono::milliseconds(10));
         }
         else
         {

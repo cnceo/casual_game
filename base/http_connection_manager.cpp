@@ -80,7 +80,7 @@ bool HttpConnectionManager::exec()
 
         while(checkSwitch())
         {
-            m_epoller.wait(std::chrono::milliseconds(10)); //10 milliseconds 一轮
+            m_epoller.wait(std::chrono::milliseconds(5)); //5 milliseconds 一轮
         }
     }
     catch (const net::NetException& ex)

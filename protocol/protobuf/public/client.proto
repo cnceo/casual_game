@@ -31,4 +31,17 @@ message S_LoginRet
 //    required PlayerInfo playerInfo  = 2;
 }
 
+message C_G13_CreateGame
+{
+    required int32 play_type    = 1; //玩法
+    required int32 rounds       = 2; //局数
+    required int32 payment      = 3; //支付方式
+    required int32 da_qiang     = 4; //打枪
+    required bool  quan_lei_da  = 5; //全垒打
+    required int32 yi_tiao_long = 6; //一条龙
+}
+
+message C_JionGame
+{
+}
 

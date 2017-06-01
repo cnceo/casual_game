@@ -34,7 +34,7 @@ public:
     CREATE_FUN_MAKE(TcpConnectionManager)
 
     //临时
-    using ClientSessionId = int64_t;
+    using ClientSessionId = ClientConnectionId;
     enum class ConnType {privateType, publicType};
 
     struct ConnectionHolder

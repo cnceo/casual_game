@@ -85,7 +85,7 @@ ClientConnectionId ClientManager::clientOnline()
         return INVALID_CCID;
     }
 
-    LOG_TRACE("客户端接入，分配clientId为 {}", client->ccid);
+    LOG_TRACE("客户端接入，分配ClientConnectionId, ccid={}", client->ccid);
     return client->ccid;
 }
 

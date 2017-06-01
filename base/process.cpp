@@ -337,7 +337,7 @@ void Process::init()
                                                             &m_conns, _1, _2));
 
         //处理消息接收队列
-        m_timer.regEventHandler(std::chrono::milliseconds(2), std::bind(&Process::dealTcpPackets, this, _1));
+        m_timer.regEventHandler(std::chrono::milliseconds(1), std::bind(&Process::dealTcpPackets, this, _1));
     }
 }
 

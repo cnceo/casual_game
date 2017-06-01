@@ -152,7 +152,7 @@ void TcpConnectionManager::eraseConnection(net::PacketConnection::Ptr conn)
             LOG_ERROR("ConnectionManager, erase conn, notPublic and notPrivate id={}", pid);
         }
     }
-    LOG_TRACE("ConnectionManager, erase conn, socketFd={}, id={}, ep={}", conn->getFD(), it->second->id, conn->getRemoteEndpoint());
+    LOG_TRACE("ConnectionManager, erase conn, fd={}, id={}, ep={}", conn->getFD(), it->second->id, conn->getRemoteEndpoint());
     m_epoller.delSocket(conn->getFD());
     m_allConns.erase(it);
 }
@@ -170,7 +170,7 @@ bool TcpConnectionManager::exec()
 
         while(checkSwitch())
         {
-            m_epoller.wait(std::chrono::milliseconds(8)); //10 milliseconds 一轮
+            m_epoller.wait(std::chrono::milliseconds(5)); //5 milliseconds 一轮
         }
     }
     catch (const net::NetException& ex)

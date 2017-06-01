@@ -40,7 +40,7 @@ class LockFreeCircularQueueSPSC final //不可作为基类
 public:
     TYPEDEF_PTR(LockFreeCircularQueueSPSC);
 
-    explicit LockFreeCircularQueueSPSC(uint32_t powArg = 10) //队列长度为 pow(2, powArg)
+    explicit LockFreeCircularQueueSPSC(uint32_t powArg = 10) //队列长度为 2^powArg
     : m_begin(0), m_end(0), m_maxSize(1u << (powArg < 24 ? powArg : 24)), m_data(m_maxSize)
     {
     }
