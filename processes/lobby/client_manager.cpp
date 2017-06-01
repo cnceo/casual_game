@@ -11,6 +11,13 @@
 
 namespace lobby{
 
+bool Client::sendToMe(TcpMsgCode code, const ProtoMsg& proto)
+{
+    return ClientManager::me().sendToClient(this->ccid, code, proto);
+}
+
+
+/***********************************************/
 
 ClientManager* ClientManager::s_me = nullptr;
 

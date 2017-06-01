@@ -14,15 +14,24 @@ namespace lobby{
 using namespace water;
 using namespace process;
 
-struct Client
+class Client
 {
-    TYPEDEF_PTR(Client)
+friend class ClientManager;
+private:
     CREATE_FUN_NEW(Client)
+    Client() = default;
 
+public:
+    TYPEDEF_PTR(Client)
+
+    bool sendToMe(TcpMsgCode code, const ProtoMsg& proto);
+
+private:
     ClientConnectionId ccid = INVALID_CCID;
     ClientUniqueId cuid = INVALID_CUID;
     std::string openid;
     //TODO 更多的字段
+    uint32_t roomId;
 };
 
 class ClientManager
@@ -35,6 +44,9 @@ public:
 
     void init();
 
+    Client::Ptr getByCuid(ClientUniqueId cuid);
+    Client::Ptr getByOpenid(const std::string& openid);
+
     bool sendToClient(ClientConnectionId ccid, TcpMsgCode code, const ProtoMsg& proto);
 
     void timerExec();
@@ -44,8 +56,6 @@ public:
 private:
     bool insert(Client::Ptr client);
     void erase(Client::Ptr client);
-    Client::Ptr getByCuid(ClientUniqueId cuid);
-    Client::Ptr getByOpenid(const std::string& openid);
 
 private:
     Client::Ptr loadClientFromDB(const std::string& openid);
