@@ -53,13 +53,13 @@ elif "private" == hpp_folder:
     public_or_private = "PRIVATE"
 
 if "PROTOBUF" == protobuf_or_rawmsg and "PUBLIC" == public_or_private:
-    message_code = 0x10000000 | 0x00000000
-elif "PROTOBUF" == protobuf_or_rawmsg and "PRIVATE" == public_or_private:
-    message_code = 0x10000000 | 0x80000000
-elif "RAWMSG" == protobuf_or_rawmsg and "PUBLIC" == public_or_private:
     message_code = 0x00000000 | 0x00000000
+elif "PROTOBUF" == protobuf_or_rawmsg and "PRIVATE" == public_or_private:
+    message_code = 0x00000000 | 0x40000000
+elif "RAWMSG" == protobuf_or_rawmsg and "PUBLIC" == public_or_private:
+    message_code = 0x10000000 | 0x00000000
 elif "RAWMSG" == protobuf_or_rawmsg and "PRIVATE" == public_or_private:
-    message_code = 0x00000000 | 0x80000000
+    message_code = 0x10000000 | 0x40000000
 
 
 #过滤文件 *.codedef.private.h

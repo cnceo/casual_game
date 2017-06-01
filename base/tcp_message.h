@@ -29,21 +29,21 @@ using TcpMsgCode = uint32_t;
 //0为特殊消息号, 代表Envelop, 用与转发消息
 struct MsgCodeTypeMask
 {
-    static const TcpMsgCode accessType       = 0xc0000000;  //最高1-2bit, 可访问性
-    static const TcpMsgCode msgPublic        = 0x00000000;  //00表示public
-    static const TcpMsgCode msgPrivate       = 0x40000000;  //01表示private
-    static const TcpMsgCode msgEnvelope       = 0xc0000000;  //11表示信封消息
+    static const TcpMsgCode accessType       = 0xc0000000;  //1-2bit, 可访问性
+    static const TcpMsgCode msgPublic        = 0x00000000;  //0b00表示public
+    static const TcpMsgCode msgPrivate       = 0x40000000;  //0b01表示private
+    static const TcpMsgCode msgEnvelope      = 0xc0000000;  //0b11表示信封消息(11包含01，信封全是private的)
 
-    static const TcpMsgCode protocolType     = 0x30000000; //高3-4bits, 协议类型
-    static const TcpMsgCode protocolRaw      = 0x00000000; //00表示raw
-    static const TcpMsgCode protocolProtobuf = 0x10000000; //01表示protobuf
+    static const TcpMsgCode protocolType     = 0x30000000; //3-4bits, 协议编码
+    static const TcpMsgCode protocolRaw      = 0x10000000; //0b01表示raw
+    static const TcpMsgCode protocolProtobuf = 0x00000000; //0b00表示protobuf
 };
 
 const TcpMsgCode minPublicRawMsgCode = MsgCodeTypeMask::protocolRaw | MsgCodeTypeMask::msgPublic;
 const TcpMsgCode minPrivateRawMsgCode = MsgCodeTypeMask::protocolRaw | MsgCodeTypeMask::msgPrivate;
 
 const TcpMsgCode minPublicProtoMsgCode = MsgCodeTypeMask::protocolProtobuf | MsgCodeTypeMask::msgPublic;
-const TcpMsgCode mminPrivateProtoMsgCode = MsgCodeTypeMask::protocolProtobuf |  MsgCodeTypeMask::msgPrivate;
+const TcpMsgCode mminPrivateProtoMsgCode = MsgCodeTypeMask::protocolProtobuf | MsgCodeTypeMask::msgPrivate;
 
 /********************消息号的判定*************************/
 inline bool isEnvelopeMsgCode(TcpMsgCode code)
