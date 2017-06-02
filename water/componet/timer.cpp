@@ -34,8 +34,8 @@ void Timer::operator()()
             }
         }
     }
-    //std::this_thread::sleep_for(std::chrono::milliseconds(1)); //线程暂停1ms
-    std::this_thread::yield(); //线程暂停一下
+    std::this_thread::sleep_for(std::chrono::milliseconds(1)); //线程暂停1ms
+    //std::this_thread::yield(); //线程暂停一下
 }
 
 int64_t Timer::precision() const
