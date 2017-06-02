@@ -161,11 +161,12 @@ if "cpp" == file_suffix:
                 msg_obj_define = "    const " + msg_name + "\t\t temp" + msg_name + ";\n"
                 write_cpp_handler.write(msg_obj_define)
 
-        print "cpp, Parse " + fileName + " OK!"
+#        print "cpp, Parse " + fileName + " OK!"
         read_file_handler.close()	#关闭文件句柄	自定义的原始消息号头文件
 
     write_cpp_handler.write(cpp_namespace_end_str)
     write_cpp_handler.close()	#关闭文件句柄	写protobuf.codedef.private.cpp 消息号
+    print "gen " + codedef_file_name + ", OK!"
 
 elif "xml" == file_suffix:
     xml_start_str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root>\n"
@@ -192,7 +193,7 @@ elif "xml" == file_suffix:
                         ' msg_name="' + namespace_str + "." + xml_msg_name + '"/>\n'  
                 write_xml_hanlder.write(xml_msg)
 
-        print "Xml, Parse " + fileName + " OK!"
+#        print "Xml, Parse " + fileName + " OK!"
         read_file_handler.close()	#关闭文件句柄	自定义的原始消息号头文件
 
     write_xml_hanlder.write(xml_end_str)
@@ -209,6 +210,7 @@ elif "h" == file_suffix:
     write_header_file_handler.write(getCppHeaderStr())
     write_header_file_handler.write("#endif\n")
     write_header_file_handler.close()
+    print "gen " + all_in_one_codedef_header_file_name + ", OK!"
 elif "json" == file_suffix:
     access_type_str = "public"
     if public_or_private == "PRIVATE":
