@@ -101,7 +101,7 @@ def getMsgCodeName(search_line):
     msg_name = msg_name.strip()		#去除空格
     return msg_name
 
-def getXmlMsgName(search_line):
+def getFullMsgName(search_line):
     msg_name = delFront(search_line, "extern const uint32_t code")	 
     msg_name = msg_name.strip(";")  
     msg_name = msg_name.strip()		#去除空格
@@ -186,7 +186,7 @@ elif "xml" == file_suffix:
             if search_line.find(search_message_key) == 0:		# 查找extern
                 message_code += 1
 
-                xml_msg_name = getXmlMsgName(search_line)
+                xml_msg_name = getFullMsgName(search_line)
                 xml_msg = \
                         '\t<item msg_code="' + `message_code` + '"'\
                         ' msg_name="' + namespace_str + "." + xml_msg_name + '"/>\n'  
@@ -209,6 +209,35 @@ elif "h" == file_suffix:
     write_header_file_handler.write(getCppHeaderStr())
     write_header_file_handler.write("#endif\n")
     write_header_file_handler.close()
+elif "json" == file_suffix:
+    access_type_str = "public"
+    if public_or_private == "PRIVATE":
+        access_type_str = "private"
+    json_file_name = out_put_dir + "/protobuf.codedef.json"
+    json_file_hanlder = open(json_file_name, "w")
+    json_file_hanlder.write("{\n")
+    namespace_str = getNamespaceStr()
+    is_first_item = True
+    for fileName in codedef_files_list:
+        fileName = msg_def_dir + '/' + fileName
+        read_file_handler = open(fileName, 'r')
+        read_text_list = read_file_handler.readlines()  
+
+        for line in read_text_list:
+            search_line = line.strip()  #去除前面的空格
+            if search_line.find(search_message_key) == 0:		# 查找extern
+                message_code += 1
+
+                full_msg_name = getFullMsgName(search_line)
+                new_line = '\t"{}": {}'.format(full_msg_name, message_code)
+                if is_first_item :
+                    is_first_item = False
+                else:
+                    new_line = ",\n" + new_line
+                json_file_hanlder.write(new_line)
+        read_file_handler.close()	#关闭文件句柄	自定义的原始消息号头文件
+    json_file_hanlder.write('\n}\n')
+    json_file_hanlder.close()
 
 #    access_type_str = "public"
 #    if public_or_private == "PRIVATE":

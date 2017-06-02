@@ -47,7 +47,7 @@ cc_flags = -std=c++11 -ggdb -Wall -Werror\
 target_lib = libprotobuf_message
 
 .PHONY: all
-all: $(target_lib).a $(CONF_DIR)/protobuf.codedef.public.xml $(CONF_DIR)/protobuf.codedef.private.xml
+all: $(target_lib).a $(CONF_DIR)/protobuf.codedef.public.xml $(CONF_DIR)/protobuf.codedef.private.xml $(CONF_DIR)/protobuf.codedef.public.json
 
 #.a和.so依赖于objs
 $(target_lib).a: $(protodef_objects) $(objects)
@@ -87,47 +87,53 @@ $(private_protobuf_codedef_list): %.codedef.h: %.pb.cc
 #argc[3]: 生成外部消息号 或 内部消息号 (public 或 private)
 
 #外部的*.codedef.h文件生成消息号文件codedef.public.cpp
-public/codedef.public.cpp : $(public_protobuf_codedef_list)
+public/codedef.public.cpp: $(public_protobuf_codedef_list)
 	@curdir=$$(pwd);\
 	cd $(PROTO_ROOT_DIR); \
 	python protobuf_codedef.py $(PUBLIC_PROTOCOL_DEFINITION_DIR) cpp public || exit 1; \
 
 
 #内部的*.codedef.h文件生成消息号文件codedef.private.cpp
-private/codedef.private.cpp : $(private_protobuf_codedef_list)
+private/codedef.private.cpp: $(private_protobuf_codedef_list)
 	@curdir=$$(pwd);\
 	cd $(PROTO_ROOT_DIR);\
 	python protobuf_codedef.py $(PRIVATE_PROTOCOL_DEFINITION_DIR) cpp private || exit 1; \
 
 ##外部的*.codedef.h文件汇总，生成codedef.public.h
-#public/codedef.public.h : $(public_protobuf_codedef_list)
+#public/codedef.public.h: $(public_protobuf_codedef_list)
 #	@curdir=$$(pwd);\
 #	cd $(PROTO_ROOT_DIR); \
 #	python protobuf_codedef.py $(PUBLIC_PROTOCOL_DEFINITION_DIR) h public || exit 1; \
 #
 #
 ##内部的*.codedef.h文件生成消息号文件codedef.private.h
-#private/codedef.private.h : $(private_protobuf_codedef_list)
+#private/codedef.private.h: $(private_protobuf_codedef_list)
 #	@curdir=$$(pwd);\
 #	cd $(PROTO_ROOT_DIR);\
 #	python protobuf_codedef.py $(PRIVATE_PROTOCOL_DEFINITION_DIR) h private || exit 1; \
 
 
 #外部的*.codedef.private.h文件生成序列号xml protobuf.codedef.public.xml
-$(CONF_DIR)/protobuf.codedef.public.xml : $(public_protobuf_codedef_list)
+$(CONF_DIR)/protobuf.codedef.public.xml: $(public_protobuf_codedef_list)
 	@curdir=$$(pwd);\
 	cd $(PROTO_ROOT_DIR);\
+	python protobuf_codedef.py $(PUBLIC_PROTOCOL_DEFINITION_DIR) json public || exit 1; \  #public多生成一个json
 	python protobuf_codedef.py $(PUBLIC_PROTOCOL_DEFINITION_DIR) xml public || exit 1; \
-	cp $(PUBLIC_PROTOCOL_DEFINITION_DIR)/protobuf.codedef.xml $(CONF_DIR)/protobuf.codedef.public.xml 
- 
+	cp $(PUBLIC_PROTOCOL_DEFINITION_DIR)/protobuf.codedef.xml $(CONF_DIR)/protobuf.codedef.public.xml
 
 #内部的*.codedef.private.h文件生成序列号xml protobuf.codedef.private.xml
-$(CONF_DIR)/protobuf.codedef.private.xml : $(private_protobuf_codedef_list)
+$(CONF_DIR)/protobuf.codedef.private.xml: $(private_protobuf_codedef_list)
 	@curdir=$$(pwd);\
 	cd $(PROTO_ROOT_DIR);\
 	python protobuf_codedef.py $(PRIVATE_PROTOCOL_DEFINITION_DIR) xml private || exit 1; \
-	cp $(PRIVATE_PROTOCOL_DEFINITION_DIR)/protobuf.codedef.xml $(CONF_DIR)/protobuf.codedef.private.xml 
+	cp $(PRIVATE_PROTOCOL_DEFINITION_DIR)/protobuf.codedef.xml $(CONF_DIR)/protobuf.codedef.private.xml
 
+#public消息号的json格式映射
+$(CONF_DIR)/protobuf.codedef.public.json: $(public_protobuf_codedef_list)
+	@curdir=$$(pwd);\
+	cd $(PROTO_ROOT_DIR);\
+	python protobuf_codedef.py $(PUBLIC_PROTOCOL_DEFINITION_DIR) json public || exit 1; \
+	cp $(PUBLIC_PROTOCOL_DEFINITION_DIR)/protobuf.codedef.json $(CONF_DIR)/protobuf.codedef.public.json
 
 %.d: %.cpp
 	@rm -f $@; \
