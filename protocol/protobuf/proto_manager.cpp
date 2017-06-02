@@ -57,7 +57,7 @@ bool ProtoManager::realyLoadConfig(const std::string& configFile)
         google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(msgName);
         if (nullptr == descriptor)
         {
-            LOG_ERROR("protobuf, unkonwn msg, code={}, name={}", msgCode, msgName);
+            LOG_DEBUG("protobuf, loadConfig, skip msg, code={}, name={}", msgCode, msgName);
             continue;
         }
         m_protoDiscriptors[msgCode] = descriptor;
