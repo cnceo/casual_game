@@ -107,23 +107,23 @@ void ClientManager::clientOffline(ClientConnectionId ccid)
     erase(client);
 }
 
-void ClientManager::KickOutClient(ClientConnectionId ccid)
+void ClientManager::kickOutClient(ClientConnectionId ccid, bool delay/* = true*/)
 {
     Client::Ptr client = getByCcid(ccid);
 
     if (client == nullptr)
     {
-        LOG_TRACE("ClientManager, 踢下线, ccid不存在, ccid={}", ccid);
+        LOG_TRACE("ClientManager, 踢下线, ccid不存在, ccid={}, delay={}", ccid);
         return;
     }
 
     if(client->state == Client::State::logining)
-        LOG_TRACE("ClientManager, 踢下线, 登录过程终止, ccid={}", ccid);
+        LOG_TRACE("ClientManager, 踢下线, 登录过程终止, ccid={}, delay={}", ccid);
     else
-        LOG_TRACE("ClientManager, 踢下线, ccid={}", ccid);
+        LOG_TRACE("ClientManager, 踢下线, ccid={}, delay={}", ccid);
     //TODO 这里要加入到客户端的通知， 告知为何踢出, 次函数需要修改加入一个踢出原因参数
-    //destroy
-    erase(client);
+    delay ? eraseLater(client) : erase(client);
+    return;
 }
 
 void ClientManager::relayClientMsgToServer(const ProcessId& pid, TcpMsgCode code, const ProtoMsgPtr& protoPtr, ClientConnectionId ccid)
@@ -198,6 +198,20 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
     Gateway::me().sendToClient(client->ccid, PROTO_CODE_PUBLIC(S_LoginRet), snd);
 }
 
+void ClientManager::proto_ClientBeReplaced(ProtoMsgPtr proto)
+{
+    auto rcv = PROTO_PTR_CAST_PRIVATE(ClientBeReplaced, proto);
+    auto client = getByCcid(rcv->ccid());
+    if (client == nullptr)
+    {
+        LOG_TRACE("login, step 2.5, 客户端被挤下线, 已经不在线了, ccid={}, openid={}, cuid={}", rcv->ccid(), rcv->openid(), rcv->cuid());
+        return;
+    }
+    
+    kickOutClient(rcv->ccid());
+    LOG_TRACE("login, step 2.5, 客户端被挤下线, ccid={}, openid={}, cuid={}", rcv->ccid(), rcv->openid(), rcv->cuid());
+}
+
 void ClientManager::regMsgHandler()
 {
     using namespace std::placeholders;
@@ -206,6 +220,7 @@ void ClientManager::regMsgHandler()
 
     /*********************msg from cluster*************/
     REG_PROTO_PRIVATE(RetLoginQuest, std::bind(&ClientManager::proto_RetLoginQuest, this, _1));
+    REG_PROTO_PRIVATE(ClientBeReplaced, std::bind(&ClientManager::proto_ClientBeReplaced, this, _1));
 }
 
 }

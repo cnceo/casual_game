@@ -14,9 +14,11 @@ message C_Login
     required int32  login_type  = 1;  //登陆类型
     required string openid      = 2;  //openid
     required string token       = 3;  //token, 依据login_type 的区别， 可能是wechat_token 或者 服务器的临时认证 token, 测试期间不做验证
+    required string nick_name   = 4;  //昵称
 }
 
 //step 2, gw -> client
+//登录结果返回
 enum RetCode_S_LoginRet
 {
     LOGINR_FAILED               = 0;
@@ -28,20 +30,136 @@ message S_LoginRet
     required int32  ret_code     = 1;
     optional int64  cuid         = 2;
     optional string temp_token   = 3;
-//    required PlayerInfo playerInfo  = 2;
 }
 
+//通知客户端显示文本
+message S_Notice
+{
+    enum Type
+    {
+        MSG_BOX = 1; //弹窗消息
+    }
+    required Type   type = 1;
+    required string text = 2;
+}
+
+
+/*****************************13水消息********************************/
+
+//13水, 创建游戏, 即建房间, 成功则返回
 message C_G13_CreateGame
 {
-    required int32 play_type    = 1; //玩法
-    required int32 rounds       = 2; //局数
+    required int32 play_type    = 1; //玩法，普通=52，多一色=65
+    required int32 rounds       = 2; //局数，8， 12， 16
     required int32 payment      = 3; //支付方式
     required int32 da_qiang     = 4; //打枪
     required bool  quan_lei_da  = 5; //全垒打
     required int32 yi_tiao_long = 6; //一条龙
 }
 
-message C_JionGame
+//加入房间, 成功返回房间信息
+message C_G13_JionGame
+{
+    required int32 room_code    = 1;
+}
+
+//13水, 房间基本信息, 创建, 加入游戏成功的返回消息都是这一条
+message S_G13_RoomAttr
+{
+    required int32 room_code        = 1; //房间号，0表示创建失败
+    required int64 banker_cuid      = 2; //庄家(房主)的唯一id
+    required C_G13_CreateGame attr  = 3; //房间属性
+}
+
+//放弃游戏, 
+//在游戏开始阶段，庄家退出房间自动解散, 非庄家退出只有自己退出
+//在游戏进行阶段，退出游戏需要房间投票，通过后游戏自动终止
+//结算结束后，房间会保留30s，期间可以自由退出，房主退出不解散房间
+message C_G13_GiveUp
 {
 }
+
+enum G13_VoteOfAbort
+{
+    NONE = 0;  //未投
+    AYE  = 1;  //赞同
+    NAY  = 2;  //支持
+};
+
+// 关于退出游戏投票的更新和通知
+// 收到消息如果自己还未投票，则现实投票界面
+message S_G13_AbortGameOrNot
+{
+    message Vote
+    {
+        required int64 cuid             = 1;
+        required G13_VoteOfAbort choice = 2;
+    }
+    required int32 reset_of_seconds = 1;//剩余秒数
+    repeated Vote  votes = 2;           //当前票列表
+}
+
+// 投票表决是否赞同终止游戏
+message S_G13_VoteFoAbortGame
+{
+     required G13_VoteOfAbort choice = 1;
+}
+
+//已离开游戏
+message S_G13_Quited
+{
+    required int32 room_code = 1; //离开房间，如果room_code==0, 表示房间不再存在，游戏已解散
+}
+
+
+//确定游戏开始
+message C_G13_ReadySwitch
+{
+    required bool ready    = 1; // true=设为就绪, false=设为未就绪
+}
+
+//更新房间成员状态列表, 
+//房间人员数量或状态发生变动后，会对当前所有成员广播这一消息
+message S_G13_PlayersInRoom
+{
+    enum Status
+    {
+        PREP    = 0; //准备
+        READY   = 1; //就绪
+        SORT    = 2; //摆牌
+        COMPARE = 3; //比牌
+        DONE    = 4; //结束
+    }
+    message PlayerStatus
+    {
+        required int64 cuid     = 1;
+        required int32 Status   = 2;
+    }
+    repeated PlayerStatus players   = 1;
+}
+
+//拥有的牌(发牌的结果)
+message S_G13_Hand
+{
+    repeated int32 cards    = 1;
+}
+
+//确认出牌
+message C_G13_BringOut
+{
+    repeated int32 cards    = 1;
+}
+
+// 所有人的牌
+// 此消息发完后30s游戏自动解散
+message S_G13_AllHands
+{
+    message Player
+    {
+        required int64 cuid  = 1;
+        repeated int32 cards = 2;
+    }
+    repeated Player players = 1;
+}
+
 

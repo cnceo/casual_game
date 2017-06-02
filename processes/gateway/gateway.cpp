@@ -179,7 +179,7 @@ void Gateway::newClientConnection(net::PacketConnection::Ptr conn)
         }
         else if (!m_conns.addPublicConnection(conn, ccid))
         {
-            m_clientManager->KickOutClient(ccid);
+            m_clientManager->kickOutClient(ccid, false);
         }
     }
     catch (const net::NetException& ex)

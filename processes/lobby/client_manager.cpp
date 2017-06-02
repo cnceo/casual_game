@@ -115,8 +115,9 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         {
             client = Client::create();
             client->ccid = ccid;
-            client->openid = rcv->openid();
             client->cuid = getClientUniqueId();
+            client->openid = rcv->openid();
+            client->name = rcv->name();
 
             do {
                 if (insert(client))

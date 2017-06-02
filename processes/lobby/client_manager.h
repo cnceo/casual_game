@@ -30,6 +30,7 @@ private:
     ClientConnectionId ccid = INVALID_CCID;
     ClientUniqueId cuid = INVALID_CUID;
     std::string openid;
+    std::string name;
     //TODO 更多的字段
     uint32_t roomId;
 };

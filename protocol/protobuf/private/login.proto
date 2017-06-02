@@ -7,6 +7,7 @@ message LoginQuest
 {
     required string openid  = 1;
     required uint64 ccid    = 2;
+    required string name    = 3;
 };
 
 
@@ -32,5 +33,6 @@ message ClientBeReplaced
 {
     required int64 ccid = 1;
     required int64 cuid = 2;
+    required string openid = 3;
 }
 

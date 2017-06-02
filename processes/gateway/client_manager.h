@@ -59,7 +59,7 @@ public:
     //添加一个client connection, 返回分配给这个conn的clientId，失败返回INVALID_CLIENT_IDENDITY_VALUE
     ClientConnectionId clientOnline();
     void clientOffline(ClientConnectionId ccid);
-    void KickOutClient(ClientConnectionId ccid);
+    void kickOutClient(ClientConnectionId ccid, bool delay = true);
 
     void regMsgHandler();
     void regClientMsgRelay();
@@ -78,6 +78,7 @@ private: //client msg handlers
     void proto_C_Login(ProtoMsgPtr proto, ClientConnectionId ccid);
 private: //cluster msg handlers
     void proto_RetLoginQuest(ProtoMsgPtr proto);
+    void proto_ClientBeReplaced(ProtoMsgPtr proto);
 
 private:
     const ProcessId m_pid;
