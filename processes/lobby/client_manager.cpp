@@ -1,5 +1,5 @@
 #include "client_manager.h"
-
+#include "client.h"
 #include "lobby.h"
 #include "redis_handler.h"
 
@@ -13,9 +13,19 @@ namespace lobby{
 
 bool Client::sendToMe(TcpMsgCode code, const ProtoMsg& proto)
 {
-    return ClientManager::me().sendToClient(this->ccid, code, proto);
+    ProcessId gatewayPid("gateway", 1);
+    return Lobby::me().relayToPrivate(ccid(), gatewayPid, code, proto);
 }
 
+bool Client::noticeMessageBox(const std::string& text)
+{
+    PROTO_VAR_PUBLIC(S_Notice, snd);
+//    PublicProto::S_Notice snd;
+    snd.set_type(PublicProto::S_Notice::MSG_BOX);
+    snd.set_text(text);
+    return sendToMe(sndCode, snd);
+//    sendToMe(PROTO_CODE_PUBLIC(S_Notice), snd);
+}
 
 /***********************************************/
 
@@ -53,20 +63,38 @@ bool ClientManager::sendToClient(ClientConnectionId ccid, TcpMsgCode code, const
 
 bool ClientManager::insert(Client::Ptr client)
 {
-   if (!m_openid2Clients.insert(client->openid, client))
-       return false;
-   if (!m_cuid2Clients.insert(client->cuid, client))
-   {
-       m_openid2Clients.erase(client->openid);
-       return false;
-   }
+    if(client == nullptr)
+        return false;
+
+    if (!m_openid2Clients.insert(client->openid(), client))
+        return false;
+    if (!m_cuid2Clients.insert(client->cuid(), client))
+    {
+        m_openid2Clients.erase(client->openid());
+        return false;
+    }
+    if (!m_ccid2Clients.insert(client->ccid(), client))
+    {
+        m_openid2Clients.erase(client->openid());
+        m_cuid2Clients.erase(client->cuid());
+        return false;
+    }
    return true;
 }
 
 void ClientManager::erase(Client::Ptr client)
 {
-    m_openid2Clients.erase(client->openid);
-    m_cuid2Clients.erase(client->ccid);
+    m_openid2Clients.erase(client->openid());
+    m_cuid2Clients.erase(client->cuid());
+    m_ccid2Clients.erase(client->ccid());
+}
+
+Client::Ptr ClientManager::getByCcid(ClientConnectionId ccid)
+{
+    auto iter = m_ccid2Clients.find(ccid);
+    if (iter == m_ccid2Clients.end())
+        return nullptr;
+    return iter->second;
 }
 
 Client::Ptr ClientManager::getByCuid(ClientUniqueId cuid)
@@ -114,10 +142,10 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         if(client == nullptr) //新用户
         {
             client = Client::create();
-            client->ccid = ccid;
-            client->cuid = getClientUniqueId();
-            client->openid = rcv->openid();
-            client->name = rcv->name();
+            client->m_ccid = ccid;
+            client->m_cuid = getClientUniqueId();
+            client->m_openid = rcv->openid();
+            client->m_name = rcv->name();
 
             do {
                 if (insert(client))
@@ -130,16 +158,16 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
                     erase(client); //失败要重新删掉
                 }
                 //注册失败, 登陆失败
-                ret.set_cuid(client->cuid);
+                ret.set_cuid(client->cuid());
                 ret.set_ret_code(PrivateProto::RLQ_REG_FAILED);
                 Lobby::me().sendToPrivate(gatewayPid, retCode, ret);
-                LOG_TRACE("login, step 2, new client reg failed, ccid={}, openid={}", client->ccid, client->cuid, client->openid);
+                LOG_TRACE("login, step 2, new client reg failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
                 return;
             } while(false);
         }
         else //登陆过但不在线
         {
-            client->ccid = ccid;
+            client->m_ccid = ccid;
         }
     }
     else //已经在线了, 把当前在线的挤掉
@@ -147,20 +175,20 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         //TODO modify, 发送消息给gw，把老的挤下线
         PrivateProto::ClientBeReplaced cbr;
         TcpMsgCode cbrCode = PROTO_CODE_PRIVATE(ClientBeReplaced);
-        cbr.set_cuid(client->cuid);
-        cbr.set_ccid(client->ccid);
+        cbr.set_cuid(client->cuid());
+        cbr.set_ccid(client->ccid());
         Lobby::me().sendToPrivate(gatewayPid, cbrCode, cbr);
 
         //更新ccid
-        client->ccid = ccid;
+        client->m_ccid = ccid;
     }
 
     //登陆成功
     ret.set_ret_code(PrivateProto::RLQ_SUCCES);
-    ret.set_cuid(client->cuid);
-    ret.set_openid(client->openid);
+    ret.set_cuid(client->cuid());
+    ret.set_openid(client->openid());
     Lobby::me().sendToPrivate(gatewayPid, retCode, ret);
-    LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid, client->openid);
+    LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid(), client->openid());
     return;
 }
 

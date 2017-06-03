@@ -1,93 +1,643 @@
-#include "room.h"
+#include "game.h"
+#include "client.h"
+#include "componet/logger.h"
+#include "protocol/protobuf/public/client.codedef.h"
+
+#include <random>
+#include <algorithm>
+
+namespace lobby{
 
 
-class GameManager
+Game13::Deck Game13::s_deck;
+
+Game13::Ptr Game13::getByRoomId(RoomId roomId)
 {
-private:
-    bool createNewRoom(Client::Ptr client, GameType gameType);
+    auto it = s_rooms.find(roomId);
+    if (it == s_rooms.end())
+        return nullptr;
+    return std::static_pointer_cast<Game13>(it->second);
+}
 
-public:
-    registMsgHandler();
-    
-private:
-    std::unordered_map<RoomId, Game::Ptr> m_games;
-};
-
-bool GameManager::createNewRoom(Client::Ptr client, GameType gameType)
+void Game13::registMsgHandler()
 {
-    switch (gameType)
+    using namespace std::placeholders;
+    REG_PROTO_PUBLIC(C_G13_CreateGame, std::bind(&Game13::proto_C_G13_CreateGame, _1, _2));
+}
+
+void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
+{
+    auto client = ClientManager::me().getByCcid(ccid);
+    if (client == nullptr)
     {
-    case GameType::xm13:
+        LOG_DEBUG("G13_CreateGame, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+        return;
+    }
+
+    if (client->roomId() != 0)
+    {
+        client->noticeMessageBox("已经在房间中, 无法创建新房间!");
+        return;
+    }
+
+    auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_CreateGame, proto);
+    if (false) // TODO 检查创建消息中的数据是否合法
+    {
+        client->noticeMessageBox("创建房间失败, 非法的房间属性设定!");
+        return;
+    }
+
+    //房间
+    auto game = Game13::create(client->cuid(), rcv->player_size(), GameType::xm13);
+    //初始化游戏信息
+    auto& attr      = game->m_attr;
+    attr.roomId     = game->getId();
+    attr.playType   = rcv->play_type();
+    attr.rounds     = rcv->rounds();
+    attr.payor      = rcv->payor();
+    attr.daQiang    = rcv->da_qiang();
+    attr.quanLeiDa  = rcv->quan_lei_da();
+    attr.yiTiaoLong = rcv->yi_tiao_long();
+
+    //依据属性检查创建资格,并初始化游戏的动态数据
+    {
+        //初始化元牌
+        if (attr.playType == GP_52)
+            Game13::s_deck.cards.resize(52);
+        else// if(attr.playType == GP_65)
+            Game13::s_deck.cards.resize(65);
+        for (uint32_t i = 1; i <= Game13::s_deck.cards.size(); ++i)
+            Game13::s_deck.cards[i] = i % 52;
+    }
+
+    //最后进房间, 因为进房间要预扣款, 进入后再有什么原因失败需要回退
+    game->enterRoom(client);
+}
+
+void Game13::proto_C_G13_JionGame(ProtoMsgPtr proto, ClientConnectionId ccid)
+{
+    auto client = ClientManager::me().getByCcid(ccid);
+    if (client == nullptr)
+    {
+        LOG_DEBUG("G13_JionGame, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+        return;
+    }
+
+    auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_JionGame, proto);
+    auto game = Game13::getByRoomId(rcv->room_id());
+    if (game == nullptr)
+    {
+        client->noticeMessageBox("要加入的房间已解散");
+        return;
+    }
+    game->enterRoom(client);
+}
+
+void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
+{
+    auto client = ClientManager::me().getByCcid(ccid);
+    if (client == nullptr)
+    {
+        LOG_DEBUG("G13_GiveUp, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+        return;
+    }
+    if (client->roomId() == 0)
+    {
+        client->noticeMessageBox("已经不在房间内了");
+        return;
+    }
+
+    auto game = getByRoomId(client->roomId());
+    if (game == nullptr)
+    {
+        LOG_ERROR("C_G13_GiveUp, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
+                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+        PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd)
+        snd.set_cuid(client->roomId());
+        client->sendToMe(sndCode, snd);
+
+        client->setRoomId(0);
+        return;
+    }
+
+    switch (game->m_status)
+    {
+    case GameStatus::prepare:
         {
-            Room::Ptr = Room::create(
+            if (client->cuid() == game->ownerCuid()) //房主
+            {
+                LOG_TRACE("准备期间房主离开房间, roomId={}, ccid={}, cuid={}, openid={}",
+                          client->roomId(), client->ccid(), client->cuid(), client->openid()); 
+                game->abortGame();
+                Room::s_rooms.erase(game->getId()); //销毁房间
+                return;
+            }
+            else
+            {
+                LOG_TRACE("准备期间普通成员离开房间, roomId={}, ccid={}, cuid={}, openid={}",
+                          client->roomId(), client->ccid(), client->cuid(), client->openid()); 
+               game->removePlayer(client);
+               return;
+            }
         }
         break;
-    default:
-        return false;
+    case GameStatus::play:
+        {
+            client->noticeMessageBox("游戏进行中, 不能离开");
+        }
+        break;
+    case GameStatus::settle:
+    case GameStatus::closed:
+        {
+            LOG_TRACE("结算完毕后主动离开房间, roomId={}, ccid={}, cuid={}, openid={}",
+                      client->roomId(), client->ccid(), client->cuid(), client->openid()); 
+            game->removePlayer(client);
+            return;
+        }
     }
+    return;
+}
+
+void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId ccid)
+{
+    auto client = ClientManager::me().getByCcid(ccid);
+    if (client == nullptr)
+    {
+        LOG_DEBUG("VoteFoAbortGame, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+        return;
+    }
+    auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_VoteFoAbortGame, proto);
+    return;
+}
+
+void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
+{
+    auto client = ClientManager::me().getByCcid(ccid);
+    if (client == nullptr)
+    {
+        LOG_DEBUG("ReadyFlag, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+        return;
+    }
+
+    if (client->roomId() == 0)
+    {
+        client->noticeMessageBox("已经不在房间内了");
+        return;
+    }
+
+    auto game = getByRoomId(client->roomId());
+    if (game == nullptr)
+    {
+        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
+                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+        PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd)
+        snd.set_cuid(client->roomId());
+        client->sendToMe(sndCode, snd);
+
+        client->setRoomId(0);
+        return;
+    }
+
+    if (game->m_status != GameStatus::prepare)
+    {
+        client->noticeMessageBox("游戏已开始");
+        return;
+    }
+
+    PlayInfo* info = nullptr;
+    for(PlayInfo& i : game->m_players)
+    {
+        if (i.cuid == client->cuid())
+        {
+            info = &i;
+            break;
+        }
+    }
+    if (info == nullptr)
+    {
+        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
+                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+
+        PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd)
+        snd.set_cuid(client->roomId());
+        client->sendToMe(sndCode, snd);
+
+        client->setRoomId(0);
+        return;
+    }
+
+    auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_ReadyFlag, proto);
+    auto oldStatus = info->status;
+    auto newStatus = rcv->ready() ? PublicProto::S_G13_PlayersInRoom::READY : PublicProto::S_G13_PlayersInRoom::PREP;
+
+    //状态没变, 不用处理了
+    if (oldStatus == newStatus)
+        return;
+
+    //改变状态
+    info->status = newStatus;
+    LOG_TRACE("ReadyFlag, 玩家设置准备状态, readyFlag={}, roomId={}, ccid={}, cuid={}, openid={}",
+              rcv->ready(), client->roomId(), client->ccid(), client->cuid(), client->openid());
+
+    PROTO_VAR_PUBLIC(S_G13_PlayersInRoom, snd)
+    auto player = snd.add_players();
+    player->set_status(newStatus);
+    player->set_cuid(info->cuid);
+    player->set_name(info->name);
+    game->sendToAll(sndCode, snd);
+
+    //新的ready确认, 检查是否所有玩家都已确认, 可以启动游戏
+    if (newStatus == PublicProto::S_G13_PlayersInRoom::READY)
+        game->tryStartGame();
+}
+
+void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
+{
+    auto client = ClientManager::me().getByCcid(ccid);
+    if (client == nullptr)
+    {
+        LOG_DEBUG("BringOut, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+        return;
+    }
+
+    if (client->roomId() == 0)
+    {
+        client->noticeMessageBox("已经不在房间内了");
+        return;
+    }
+
+    auto game = getByRoomId(client->roomId());
+    if (game == nullptr)
+    {
+        LOG_ERROR("BringOut, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
+                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+        PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd)
+        snd.set_cuid(client->roomId());
+        client->sendToMe(sndCode, snd);
+
+        client->setRoomId(0);
+        return;
+    }
+
+    if (game->m_status != GameStatus::play)
+    {
+        client->noticeMessageBox("当前不能出牌(0x01)");
+        return;
+    }
+
+    //TODO 检查牌型是否合法
+    if (false)
+    {
+        client->noticeMessageBox("牌型不合法, 请重新摆牌");
+        return;
+    }
+
+    PlayInfo* info = nullptr;
+    for(PlayInfo& i : game->m_players)
+    {
+        if (i.cuid == client->cuid())
+        {
+            info = &i;
+            break;
+        }
+    }
+    if (info == nullptr)
+    {
+        LOG_ERROR("BringOut, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
+                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+
+        PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd)
+        snd.set_cuid(client->roomId());
+        client->sendToMe(sndCode, snd);
+
+        client->setRoomId(0);
+        return;
+    }
+
+    if (info->status != PublicProto::S_G13_PlayersInRoom::SORT)
+    {
+         client->noticeMessageBox("当前不能出牌0x02");
+         return;
+    }
+
+    auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_BringOut, proto);
+    if (static_cast<uint32_t>(rcv->cards_size()) != info->cards.size())
+    {
+        client->noticeMessageBox("出牌数量不对");
+        return;
+    }
+    
+    //改变状态
+    info->status = PublicProto::S_G13_PlayersInRoom::COMPARE;
+    std::string cardsStr;
+    cardsStr.reserve(42);
+    for (uint32_t index = 0; index < info->cards.size(); ++index)
+    {
+        info->cards[index] = rcv->cards(index);
+        cardsStr.append(std::to_string(info->cards[index]));
+        cardsStr.append(",");
+    }
+    LOG_TRACE("BringOut, roomId={}, ccid={}, cuid={}, openid={}, cards=[{}]",
+             client->roomId(), client->ccid(), client->cuid(), client->openid(), cardsStr);
+
+    PROTO_VAR_PUBLIC(S_G13_PlayersInRoom, snd)
+    auto player = snd.add_players();
+    player->set_status(info->status);
+    player->set_cuid(info->cuid);
+    player->set_name(info->name);
+    game->sendToAll(sndCode, snd);
+
+    game->trySettleGame();
 }
 
 
-class Game13
+/*************************************************************************/
+
+bool Game13::enterRoom(Client::Ptr client)
 {
-    friend Room::Ptr GameManager::createNewRoom(Client::Ptr, GameType);
-    enum class Status
-    {
-        creatRoom,
-        waitPlayers,
-        playing,
-        settleResult,
-    };
+    if (client == nullptr)
+        return false;
 
-    struct PlayCard
+    if (client->roomId() != 0)
     {
-        enum Suits {SPADE = 3, HEART = 2, CLUB = 1, DIAMOND = 0};
-        uint8_t deck[65];
-    };
-
-    enum AttrValue
-    {
-        GP_52,                  //玩法，普通
-        GP_65,                  //玩法，多一色
-
-        //    ROUND_BO8,      //局数，1
-        //    ROUND_BO12,     //局数，2
-        //    ROUND_BO16,     //局数，4
-        PAY_BANKER,     //支付，庄家
-        PAY_SHARE_EQU,  //支付，均摊
-        PAY_WINNER,     //支付，赢家, 这个较为复杂，暂不支持
-        DQ_3_DAO,       //打枪，3道
-        DQ_SHUANG_BEI,  //打枪，双倍
-        YTL1,//一条龙1
-        YTL2,//一条龙2
-        YTL4,//一条龙4
-    }
-public:
-    Game13(Room::Ptr room, AttrValue* attr)
-    {
+        if (client->roomId() == getId()) //就在这个房中, 直接忽略
+            return true;
+        client->noticeMessageBox("已经在{}号房间中了!", client->roomId());
+        return false;
     }
 
-private:
-    bool enterRoom(RoomId, Client::Ptr);
-    bool leaveRoom(RoomId, Client::Ptr);
-    bool settlement(RoomId);
-    void shuffle();
-    void deal();
-    void 
-
-private:
-    Room::Ptr m_room;
-
-    struct Data
+    if (m_status != GameStatus::prepare)
     {
-        int32_t playType    = PG_52;        //玩法
-        int32_t rounds      = 0;            //局数
-        int32_t payment     = PAY_BANKER;   //支付方式
-        int32_t daQiang     = DQ_3_DAO;     //打枪
-        bool    quanLeiDa   = false;        //打枪, 全垒打
-        int32_t yiTiaoLong  = 1;            //一条龙
-        int32_t playerSize  = 4;            //人数
-    };
-    Data m_data;
-};
+        client->noticeMessageBox("进入失败, 此房间的游戏已经开始");
+        return false;
+    }
+
+    if (m_players.size() >= m_attr.playerSize)
+    {
+        client->noticeMessageBox("进入失败, 房间人数已满");
+        return false;
+    }
+
+    //加入成员列表
+    m_players.emplace_back(client->cuid(), client->name(), PublicProto::S_G13_PlayersInRoom::PREP);
+
+    {//预扣钱, 这个放到最后, 避免扣钱后进入失败需要回退
+        bool enoughMoney = false;
+        switch (m_attr.payor)
+        {
+        case PAY_BANKER:
+            enoughMoney = (!m_players.empty()) || client->enoughMoney(10);
+            break;
+        case PAY_SHARE_EQU:
+            enoughMoney = client->enoughMoney(5);
+            break;
+        case PAY_WINNER:
+            enoughMoney = client->enoughMoney(10);
+            break;
+        default:
+            return false;
+        }
+        if (!enoughMoney)
+        {
+            m_players.empty() ? client->noticeMessageBox("创建失败, 钻石不足") : client->noticeMessageBox("进入失败, 钻石不足");
+            return false;
+        }
+    }
+
+    client->setRoomId(getId());
+
+    {//给进入者发送房间基本属性
+        PROTO_VAR_PUBLIC(S_G13_RoomAttr, snd)
+        snd.set_room_id(m_attr.roomId);
+        snd.set_banker_cuid(ownerCuid());
+        snd.mutable_attr()->set_player_size(m_attr.playerSize);
+        snd.mutable_attr()->set_play_type(m_attr.playType);
+        snd.mutable_attr()->set_rounds(m_attr.rounds);
+        snd.mutable_attr()->set_payor(m_attr.payor);
+        snd.mutable_attr()->set_da_qiang(m_attr.daQiang);
+        snd.mutable_attr()->set_quan_lei_da(m_attr.quanLeiDa);
+        snd.mutable_attr()->set_yi_tiao_long(m_attr.yiTiaoLong);
+        client->sendToMe(sndCode, snd);
+    }
+    syncAllPlayersInfoToAllClients();
+    return true;
+}
+
+void Game13::sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto)
+{
+    for(const PlayInfo& info : m_players)
+    {
+        Client::Ptr client = ClientManager::me().getByCcid(info.cuid);
+        if (client != nullptr)
+            client->sendToMe(msgCode, proto);
+    }
+}
+
+void Game13::syncAllPlayersInfoToAllClients()
+{
+    PROTO_VAR_PUBLIC(S_G13_PlayersInRoom, snd)
+    for(const PlayInfo& info : m_players)
+    {
+        using namespace PublicProto;
+        auto player = snd.add_players();
+        player->set_status(S_G13_PlayersInRoom::PREP);
+        player->set_cuid(info.cuid);
+        player->set_name(info.name);
+    }
+    sendToAll(sndCode, snd);
+}
+
+void Game13::removePlayer(ClientPtr client)
+{
+    if (client == nullptr)
+        return;
+
+    for (auto iter = m_players.begin(); iter != m_players.end(); ++iter)
+    {
+        if (iter->cuid == client->cuid())
+        {
+            m_players.erase(iter);
+
+            PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
+            snd.set_cuid(client->roomId());
+            sendToAll(sndCode, snd);
+            client->setRoomId(0);
+            LOG_TRACE("Game13, reomvePlayer, roomid={}, ccid={}, cuid={}, openid={}",
+                      client->roomId(), client->ccid(), client->cuid(), client->openid());
+            break;
+        }
+    }
+    return;
+}
+
+void Game13::abortGame()
+{
+    //退钱
+    if (m_status == GameStatus::play)
+    {
+        switch (m_attr.payor)
+        {
+        case PAY_BANKER:
+            {
+                auto roomOwner = ClientManager::me().getByCuid(ownerCuid());
+                if (roomOwner == nullptr)
+                {
+                    LOG_ERROR("解散房间, 房主模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
+                    break;
+                }
+                roomOwner->addMoney(10);
+                LOG_TRACE("解散房间, 房主模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
+            }
+            break;
+        case PAY_SHARE_EQU:
+            {
+                for(const PlayInfo& info : m_players)
+                {
+                    Client::Ptr client = ClientManager::me().getByCcid(info.cuid);
+                    if (client == nullptr)
+                    {
+                        LOG_ERROR("解散房间, AA模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
+                        continue;
+                    }
+                    client->addMoney(5);
+                    LOG_TRACE("解散房间, AA模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
+                    //顺带发送踢掉通知
+                    PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
+                    snd.set_cuid(client->roomId());
+                    sendToAll(sndCode, snd);
+                    client->setRoomId(0);
+                    LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
+                              client->roomId(), client->ccid(), client->cuid(), client->openid());
+                }
+                m_players.clear();
+                m_status = GameStatus::closed;
+                return;
+            }
+            break;
+        case PAY_WINNER:
+            //没结束, 所以没人付钱, 不用退
+            break;
+        default:
+            break;
+        }
+    }
+    //kick out all
+    for (const PlayInfo& info : m_players)
+    {
+        Client::Ptr client = ClientManager::me().getByCcid(info.cuid);
+        if (client == nullptr)
+        {
+            LOG_ERROR("解散房间, AA模式, 解散时玩家不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
+            continue;
+        }
+        PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
+        snd.set_cuid(client->roomId());
+        sendToAll(sndCode, snd);
+        client->setRoomId(0);
+        LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
+                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+    }
+    m_players.clear();
+    m_status = GameStatus::closed;
+}
+
+void Game13::tryStartGame()
+{
+    if (m_status != GameStatus::prepare)
+        return;
+
+    //everyone ready
+    for (const PlayInfo& info : m_players)
+    {
+        if (info.status != PublicProto::S_G13_PlayersInRoom::READY)
+            return;
+    }
+
+    //游戏状态改变
+    m_status = GameStatus::play;
+
+    //shuffle
+    {
+        std::random_device rd;
+        std::shuffle(Game13::s_deck.cards.begin(), Game13::s_deck.cards.end(), std::mt19937(rd()));
+    }
+
+    //deal cards, then update player status and send to client
+    PROTO_VAR_PUBLIC(S_G13_PlayersInRoom, snd1)
+    uint32_t index = 0;
+    for (PlayInfo& info : m_players)
+    {
+        //发牌
+        for (uint32_t i = 0; i < info.cards.size(); ++i)
+            info.cards[i] = Game13::s_deck.cards[index++];
+
+        //同步手牌到端
+        PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
+        std::string cardsStr;
+        cardsStr.reserve(42);
+        for (auto card : info.cards)
+        {
+            cardsStr.append(std::to_string(card));
+            cardsStr.append(",");
+            snd2.add_cards(card);
+        }
+        auto client = ClientManager::me().getByCuid(info.cuid);
+        if (client == nullptr)
+        {
+            LOG_TRACE("发牌, 玩家不在线, roomid={}, ccid={}, cards=[{}]", getId(), info.cuid, cardsStr);
+        }
+        else
+        {
+            LOG_TRACE("发牌, roomid={}, ccid={}, cuid={}, openid={}, cards=[{}]",
+                      getId(), client->ccid(), info.cuid, client->openid(), cardsStr);
+            client->sendToMe(snd2Code, snd2);
+        }
+
+        //玩家状态改变
+        info.status = PublicProto::S_G13_PlayersInRoom::SORT;
+        auto player = snd1.add_players();
+        player->set_status(PublicProto::S_G13_PlayersInRoom::PREP);
+        player->set_cuid(info.cuid);
+        player->set_name(info.name);
+
+    }
+    sendToAll(snd1Code, snd1);
+}
+
+void Game13::trySettleGame()
+{
+    if (m_status != GameStatus::prepare)
+        return;
+
+    //everyone compare
+    for (const PlayInfo& info : m_players)
+    {
+        if (info.status != PublicProto::S_G13_PlayersInRoom::COMPARE)
+            return;
+    }
+
+    m_status = GameStatus::settle;
+    
+   
+    /*
+    TODO 比牌型, 算的分
+    for (PlayInfo& info : m_players)
+    {
+    }
+    */
+
+    //发结果
+    PROTO_VAR_PUBLIC(S_G13_AllHands, snd)
+    for (const PlayInfo& info : m_players)
+    {
+        auto player = snd.add_players();
+        player->set_cuid(info.cuid);
+        for (Deck::Card crd : info.cards)
+            player->add_cards(crd);
+        player->set_rank(0);
+    }
+    sendToAll(sndCode, snd);
+}
+
+}
 

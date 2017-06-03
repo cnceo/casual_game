@@ -26,11 +26,24 @@ void ClientManager::regClientMsgRelay()
     hallPid  = ProcessId("hall", 1);
 
     /************转发到lobby************/
-//    PUBLIC_MSG_TO_LOBBY(C_Login)
+    PUBLIC_MSG_TO_LOBBY(C_G13_CreateGame)
+    PUBLIC_MSG_TO_LOBBY(C_G13_JionGame)
+    PUBLIC_MSG_TO_LOBBY(C_G13_GiveUp)
+    PUBLIC_MSG_TO_CLIENT(C_G13_VoteFoAbortGame)
+    PUBLIC_MSG_TO_LOBBY(C_G13_ReadyFlag)
+    PUBLIC_MSG_TO_LOBBY(C_G13_BringOut)
+
     /************转发到hall*************/
-//    PUBLIC_MSG_TO_HALL();
+//    PUBLIC_MSG_TO_HALL()
     /*************转发到client**********/
-    PUBLIC_MSG_TO_CLIENT(S_LoginRet)
+    PUBLIC_MSG_TO_CLIENT(S_Notice)
+    PUBLIC_MSG_TO_CLIENT(S_G13_RoomAttr)
+    PUBLIC_MSG_TO_CLIENT(S_G13_AbortGameOrNot)
+    PUBLIC_MSG_TO_CLIENT(S_G13_PlayerQuited)
+    PUBLIC_MSG_TO_CLIENT(S_G13_PlayersInRoom)
+    PUBLIC_MSG_TO_CLIENT(S_G13_HandOfMine)
+    PUBLIC_MSG_TO_CLIENT(S_G13_AllHands)
+
 };
 
 }

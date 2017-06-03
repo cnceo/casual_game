@@ -111,6 +111,12 @@ using protocol::protobuf::ProtoMsgHandler;
 #define PROTO_CODE_PRIVATE(protoName) (PrivateProto::code##protoName)
 #endif
 
+#ifndef PROTO_VAR_PUBLIC
+#define PROTO_VAR_PUBLIC(protoName, varName) \
+PublicProto::protoName varName;\
+TcpMsgCode varName##Code = PROTO_CODE_PUBLIC(protoName);
+#endif
+
 
 #define REG_PROTO_PUBLIC(proto, handler) \
 protocol::protobuf::ProtoManager::me().regHandler(PROTO_CODE_PUBLIC(proto), handler);

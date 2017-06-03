@@ -1,49 +1,58 @@
-//#include "lobby.h"
+#include "base/process_id.h"
+#include "componet/class_helper.h"
 
-#include "client_manager.h"
+#include <list>
+#include <memory>
+#include <unordered_map>
+
+namespace lobby{
+
+using namespace water;
+using namespace process;
+
 
 enum class GameType
 {
-    xm13;
+    xm13,
     xmMaJiang,
 };
 
 using RoomId = uint32_t;
-class Room
+
+class Room : public std::enable_shared_from_this<Room>
 {
 public:
     TYPEDEF_PTR(Room)
-    ~Room()
-    {
-        Room::s_rooms.erase(m_id);
-        expiredIds.push_back(m_id);
-    }
+    virtual ~Room();
 
     RoomId getId() const;
     bool addCuid(ClientUniqueId cuid) const;
     std::list<ClientUniqueId>& cuids();
     ClientUniqueId ownerCuid() const;
+
+    /*
     bool full() const;
     uint32_t size() const;
-
-private:
-    Room(RomId id, ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
-    : m_id(id), m_ownerCuid(ownerCuid), m_maxSize(maxSize), m_gameType(gameType)
-    {
-    }
+*/
+protected:
+    Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
 
 private:
     RoomId m_id;
     const ClientUniqueId m_ownerCuid;
     const uint32_t m_maxSize;
     const GameType m_gameType;
-    std::list<ClientUniqueId> m_cuids;
+//    std::list<ClientUniqueId> m_cuids;
 
-public:
-    static Room::Ptr create(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
 private:
-    static RoomId s_lastRoomId = 100000;
+    static RoomId getRoomId();
+private:
+    static RoomId s_lastRoomId;
     static std::list<RoomId> s_expiredIds;
+protected:
+
+protected:
+    static std::unordered_map<RoomId, Room::Ptr> s_rooms;
 };
 
 inline RoomId Room::getId() const
@@ -51,45 +60,21 @@ inline RoomId Room::getId() const
     return m_id;
 }
 
-bool Room::addCuid(ClientUniqueId cuid) const
-{
-    if (full())
-        return false;
-    m_cuids.push_back(cuid);
-    return true;
-}
-
-std::list<ClientUniqueId>& Room::cuids()
-{
-    return m_cuids;
-}
-
-ClientUniqueId Room::ownerCuid() const
+inline ClientUniqueId Room::ownerCuid() const
 {
     return m_ownerCuid;
 }
-
-bool Room::full() const
+/*
+inline bool Room::full() const
 {
-    return 
+    return size() == m_maxSize;
 }
 
-uint32_t Room::size() const
+inline uint32_t Room::size() const
 {
-    m_cuids.size();
+    return m_cuids.size();
 }
+*/
 
-Room::Ptr Room::create(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
-{
-    RoomId id = 0;
-    if (s_expiredIds.empty())
-        id = ++s_lastRoomId;
-    else
-    {
-        id = s_expiredIds.front();
-        s_expiredIds.pop_front();
-    }
-
-    Room::Ptr ret(new Room(ownerCuid, maxSize, gameType);
 }
 

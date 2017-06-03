@@ -1,9 +1,12 @@
-objects = lobby.o\
+objects = \
+		  main.o\
+          lobby.o\
+          room.o\
+          game.o\
 		  client_manager.o\
 		  redis_handler.o\
 		  register_timer_handler.o\
 		  register_tcp_msg_handler.o\
-		  main.o\
 
 
 

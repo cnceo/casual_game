@@ -46,29 +46,51 @@ message S_Notice
 
 /*****************************13水消息********************************/
 
-//13水, 创建游戏, 即建房间, 成功则返回
+//13水, 创建游戏, 即建房间, 成功则返回房间信息
 message C_G13_CreateGame
 {
-    required int32 play_type    = 1; //玩法，普通=52，多一色=65
-    required int32 rounds       = 2; //局数，8， 12， 16
-    required int32 payment      = 3; //支付方式
-    required int32 da_qiang     = 4; //打枪
-    required bool  quan_lei_da  = 5; //全垒打
-    required int32 yi_tiao_long = 6; //一条龙
+    required int32 player_size  = 1; //人数
+    required int32 play_type    = 2; //玩法，普通=52，多一色=65
+    required int32 rounds       = 3; //局数，8， 12， 16
+    required int32 payor        = 4; //支付者, 10=庄家付，11=均摊，12=赢家付
+    required int32 da_qiang     = 5; //打枪, 3=3道，2=双倍
+    required bool  quan_lei_da  = 6; //全垒打, false=否，true=是
+    required int32 yi_tiao_long = 7; //一条龙 倍数
 }
 
-//加入房间, 成功返回房间信息
+//加入房间
 message C_G13_JionGame
 {
-    required int32 room_code    = 1;
+    required int32 room_id    = 1;  //房号
 }
 
 //13水, 房间基本信息, 创建, 加入游戏成功的返回消息都是这一条
 message S_G13_RoomAttr
 {
-    required int32 room_code        = 1; //房间号，0表示创建失败
+    required int32 room_id          = 1; //房号
     required int64 banker_cuid      = 2; //庄家(房主)的唯一id
     required C_G13_CreateGame attr  = 3; //房间属性
+}
+
+//更新房间成员状态列表, 只发送有变动的players
+//房间人员数量或状态发生变动后，会对当前所有成员广播这一消息
+message S_G13_PlayersInRoom
+{
+    enum Status
+    {
+        PREP    = 0; //准备
+        READY   = 1; //就绪
+        SORT    = 2; //摆牌
+        COMPARE = 3; //比牌
+        DONE    = 4; //结束
+    }
+    message PlayerStatus
+    {
+        required int64 cuid     = 1; //未确定
+        required int32 status   = 2; //已确定
+        required string name    = 3; //
+    }
+    repeated PlayerStatus players   = 1;
 }
 
 //放弃游戏, 
@@ -100,46 +122,26 @@ message S_G13_AbortGameOrNot
 }
 
 // 投票表决是否赞同终止游戏
-message S_G13_VoteFoAbortGame
+message C_G13_VoteFoAbortGame
 {
      required G13_VoteOfAbort choice = 1;
 }
 
-//已离开游戏
-message S_G13_Quited
+//玩家已离开游戏
+message S_G13_PlayerQuited
 {
-    required int32 room_code = 1; //离开房间，如果room_code==0, 表示房间不再存在，游戏已解散
+    required int32 cuid = 1;  //如果和自己的cuid相同， 就是自己已经离开了
 }
 
 
 //确定游戏开始
-message C_G13_ReadySwitch
+message C_G13_ReadyFlag
 {
     required bool ready    = 1; // true=设为就绪, false=设为未就绪
 }
 
-//更新房间成员状态列表, 
-//房间人员数量或状态发生变动后，会对当前所有成员广播这一消息
-message S_G13_PlayersInRoom
-{
-    enum Status
-    {
-        PREP    = 0; //准备
-        READY   = 1; //就绪
-        SORT    = 2; //摆牌
-        COMPARE = 3; //比牌
-        DONE    = 4; //结束
-    }
-    message PlayerStatus
-    {
-        required int64 cuid     = 1;
-        required int32 Status   = 2;
-    }
-    repeated PlayerStatus players   = 1;
-}
-
 //拥有的牌(发牌的结果)
-message S_G13_Hand
+message S_G13_HandOfMine
 {
     repeated int32 cards    = 1;
 }
@@ -150,14 +152,15 @@ message C_G13_BringOut
     repeated int32 cards    = 1;
 }
 
-// 所有人的牌
-// 此消息发完后30s游戏自动解散
+// 所有人的牌, 以及结算结果
+// 此消息发完后30s游戏自动解散, 期间可以自由离开
 message S_G13_AllHands
 {
     message Player
     {
         required int64 cuid  = 1;
         repeated int32 cards = 2;
+        required int32 rank  = 3; //得分, 暂时服务器没有计算，客户端直接按照自己算的结果播动画吧
     }
     repeated Player players = 1;
 }
