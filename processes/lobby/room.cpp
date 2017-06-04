@@ -27,7 +27,6 @@ Room::Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
 , m_maxSize(maxSize)
 , m_gameType(gameType)
 {
-    Room::s_rooms.insert({m_id, shared_from_this()});
 }
 
 Room::~Room()

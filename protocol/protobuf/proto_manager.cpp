@@ -161,7 +161,7 @@ void ProtoManager::dealTcpMsg(const TcpMsg* recv, uint32_t recvSize, uint64_t se
         return;
     }
 
-//    LOG_DEBUG("protoManager dispatche msg, code={}, protoSize={}", msgCode, msgDataSize);
+    LOG_DEBUG("protoManager dispatche msg, code={}, protoSize={}", msgCode, msgDataSize);
 
     auto iterToHandler = m_handlers.find(msgCode);
     if(iterToHandler == m_handlers.end())

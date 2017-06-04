@@ -9,6 +9,7 @@
 #include "lobby.h"
 
 #include "client_manager.h"
+#include "game.h"
 
 #include "water/componet/logger.h"
 //#include "protocol/protobuf/proto_manager.h"
@@ -26,9 +27,12 @@ void testPingHandler(const ProtoMsgPtr& proto, ProcessId pid)
 void Lobby::registerTcpMsgHandler()
 {
    using namespace std::placeholders;
-   /********************msg from client************************/
-   ClientManager::me().regMsgHandler();
 
+   ClientManager::me().regMsgHandler();
+   Game13::regMsgHandler();
+
+   /********************msg from client************************/
+   //
    /*******************msg from cluster***********************/
    REG_PROTO_PRIVATE(Ping, std::bind(testPingHandler, _1, _2));
 }

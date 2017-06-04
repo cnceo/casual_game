@@ -54,7 +54,7 @@ private:
     void abortGame();
 
     void removePlayer(ClientPtr client);
-
+public:
     void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto);
     void syncAllPlayersInfoToAllClients(); //这个有空可以拆成 sendAllToMe和sendMeToAll, 现在懒得搞了
 
@@ -100,11 +100,9 @@ private://消息处理
     static void proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid);
     static void proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid);
 
-private:
-    static Game13::Ptr getByRoomId(RoomId roomId);
 public:
-    static void shuffle();
-    static void registMsgHandler();
+    static Game13::Ptr getByRoomId(RoomId roomId);
+    static void regMsgHandler();
 private:
     static Deck s_deck;
 };

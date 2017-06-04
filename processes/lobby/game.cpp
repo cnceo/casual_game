@@ -19,7 +19,7 @@ Game13::Ptr Game13::getByRoomId(RoomId roomId)
     return std::static_pointer_cast<Game13>(it->second);
 }
 
-void Game13::registMsgHandler()
+void Game13::regMsgHandler()
 {
     using namespace std::placeholders;
     REG_PROTO_PUBLIC(C_G13_CreateGame, std::bind(&Game13::proto_C_G13_CreateGame, _1, _2));
@@ -29,10 +29,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
 {
     auto client = ClientManager::me().getByCcid(ccid);
     if (client == nullptr)
-    {
-        LOG_DEBUG("G13_CreateGame, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
         return;
-    }
 
     if (client->roomId() != 0)
     {
@@ -49,6 +46,12 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     //房间
     auto game = Game13::create(client->cuid(), rcv->player_size(), GameType::xm13);
+    if (Room::s_rooms.insert(std::make_pair(game->getId(), game)).second == false)
+    {
+        LOG_ERROR("G13, 创建房间失败, s_rooms.insert失败");
+        return;
+    }
+
     //初始化游戏信息
     auto& attr      = game->m_attr;
     attr.roomId     = game->getId();
@@ -58,6 +61,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     attr.daQiang    = rcv->da_qiang();
     attr.quanLeiDa  = rcv->quan_lei_da();
     attr.yiTiaoLong = rcv->yi_tiao_long();
+    attr.playerSize = rcv->player_size();
 
     //依据属性检查创建资格,并初始化游戏的动态数据
     {
@@ -78,10 +82,7 @@ void Game13::proto_C_G13_JionGame(ProtoMsgPtr proto, ClientConnectionId ccid)
 {
     auto client = ClientManager::me().getByCcid(ccid);
     if (client == nullptr)
-    {
-        LOG_DEBUG("G13_JionGame, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
         return;
-    }
 
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_JionGame, proto);
     auto game = Game13::getByRoomId(rcv->room_id());
@@ -97,10 +98,8 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
 {
     auto client = ClientManager::me().getByCcid(ccid);
     if (client == nullptr)
-    {
-        LOG_DEBUG("G13_GiveUp, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
         return;
-    }
+
     if (client->roomId() == 0)
     {
         client->noticeMessageBox("已经不在房间内了");
@@ -162,10 +161,7 @@ void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId c
 {
     auto client = ClientManager::me().getByCcid(ccid);
     if (client == nullptr)
-    {
-        LOG_DEBUG("VoteFoAbortGame, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
         return;
-    }
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_VoteFoAbortGame, proto);
     return;
 }
@@ -174,10 +170,7 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
 {
     auto client = ClientManager::me().getByCcid(ccid);
     if (client == nullptr)
-    {
-        LOG_DEBUG("ReadyFlag, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
         return;
-    }
 
     if (client->roomId() == 0)
     {
@@ -255,10 +248,7 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
 {
     auto client = ClientManager::me().getByCcid(ccid);
     if (client == nullptr)
-    {
-        LOG_DEBUG("BringOut, client不在线, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
         return;
-    }
 
     if (client->roomId() == 0)
     {
@@ -420,6 +410,8 @@ bool Game13::enterRoom(Client::Ptr client)
         client->sendToMe(sndCode, snd);
     }
     syncAllPlayersInfoToAllClients();
+    LOG_TRACE("G13, 进入房间成功, roomId={}, ccid={}, cuid={}, openid={}",
+              client->roomId(), client->ccid(), client->cuid(), client->openid());
     return true;
 }
 

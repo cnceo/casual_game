@@ -2,6 +2,7 @@
 #include "client.h"
 #include "lobby.h"
 #include "redis_handler.h"
+#include "game.h"
 
 #include "componet/logger.h"
 
@@ -181,7 +182,17 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         Lobby::me().sendToPrivate(gatewayPid, cbrCode, cbr);
 
         //更新ccid
+        erase(client);
         client->m_ccid = ccid;
+        if (!insert(client))
+        {
+            //更新ccid失败, 登陆失败
+            ret.set_cuid(client->cuid());
+            ret.set_ret_code(PrivateProto::RLQ_REG_FAILED);
+            Lobby::me().sendToPrivate(gatewayPid, retCode, ret);
+            LOG_TRACE("login, step 2, new client reg failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+        }
+
     }
 
     //登陆成功
@@ -190,6 +201,13 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     ret.set_openid(client->openid());
     Lobby::me().sendToPrivate(gatewayPid, retCode, ret);
     LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid(), client->openid());
+
+    //更新游戏信息
+    if (client->roomId() != 0)
+    {
+        auto game = Game13::getByRoomId(client->roomId());
+        game->syncAllPlayersInfoToAllClients();
+    }
     return;
 }
 
