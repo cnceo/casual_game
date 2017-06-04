@@ -28,12 +28,24 @@ void msg_S_G13_PlayersInRoom()
     }
 }
 
+void msg_S_G13_HandOfMine()
+{
+    auto msg = RECV_MSG(S_G13_HandOfMine);
+    std::string cards;
+    for (int i = 0; i < msg->cards_size(); ++i)
+    {
+        cards.append(std::to_string(msg->cards(i)));
+        cards.append(", ");
+    }
+    LOG_TRACE("handOfMine, [{}]", cards);
+}
 
 void AutoActions::init()
 {
     corot::create(std::bind(&AutoActions::start, this));
     corot::create(msgBox);
     corot::create(msg_S_G13_PlayersInRoom);
+    corot::create(msg_S_G13_HandOfMine);
 }
 
 struct Self
@@ -47,9 +59,9 @@ void AutoActions::start()
 {
     C_Login c_login;
     c_login.set_login_type(LOGINT_WETCHAT);
-    c_login.set_openid("testrobot2xxxx");
+    c_login.set_openid("testrobot4xxxx");
     c_login.set_token("xxxx");
-    c_login.set_nick_name("testrobot1");
+    c_login.set_nick_name("testrobot4");
     SEND_MSG(C_Login, c_login);
 
     auto r = RECV_MSG(S_LoginRet);
@@ -71,11 +83,18 @@ void AutoActions::start()
     LOG_TRACE("RECVED S_G13_RoomAttr, roomid={}, bankerCuid={}", loginRet->room_id(), loginRet->banker_cuid());
 
     //离开房间
-    C_G13_GiveUp  c_giveUp;
-    SEND_MSG(C_G13_GiveUp, c_giveUp);
+    if (false)
+    {
+        C_G13_GiveUp  c_giveUp;
+        SEND_MSG(C_G13_GiveUp, c_giveUp);
 
-    auto playerQuite = RECV_MSG(S_G13_PlayerQuited);
-    LOG_TRACE("RECVED, S_G13_PlayerQuited, rev->cuid={}, selfcuid={}", playerQuite->cuid(), self.cuid);
-    
+        auto playerQuite = RECV_MSG(S_G13_PlayerQuited);
+        LOG_TRACE("RECVED, S_G13_PlayerQuited, rev->cuid={}, selfcuid={}", playerQuite->cuid(), self.cuid);
+    }
+
+    //确认准备就绪
+    C_G13_ReadyFlag c_readyFlag;
+    c_readyFlag.set_ready(true);
+    SEND_MSG(C_G13_ReadyFlag, c_readyFlag);
 }
 

@@ -18,10 +18,10 @@ class Game13 : public Room
 
     enum class GameStatus
     {
-        prepare,
-        play,
-        settle,
-        closed,
+        prepare, //建房之后
+        play,    //发牌之后
+        settle,  //一局结束
+        closed,  //所有局结束
     };
 
     struct Deck
@@ -52,7 +52,7 @@ private:
 	using Room::Room;
     bool enterRoom(ClientPtr client);
 //    void leaveRoom(ClientPtr client);
-    void tryStartGame();
+    void tryStartRound();
     void trySettleGame();
     void abortGame();
 
@@ -68,7 +68,7 @@ private:
     {
         RoomId  roomId      = 0;
         uint32_t playType   = GP_52;        //玩法
-        uint32_t rounds     = 0;            //局数
+        int32_t rounds      = 0;            //局数
         uint32_t payor      = PAY_BANKER;   //支付方式
         uint32_t daQiang    = DQ_3_DAO;     //打枪
         bool    quanLeiDa   = false;        //打枪, 全垒打
@@ -93,6 +93,7 @@ private:
     std::list<PlayInfo> m_players;
 
     GameStatus m_status = GameStatus::prepare;
+    int32_t m_rounds = 0;
 
 private://消息处理
     static void proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid);

@@ -32,7 +32,7 @@ Room::Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
 Room::~Room()
 {
     Room::s_rooms.erase(m_id);
-    Room::s_expiredIds.push_back(m_id);
+//    Room::s_expiredIds.push_back(m_id); //暂不回收, 要解决ABA问题才能用回收机制
 }
 
 }

@@ -66,7 +66,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     attr.daQiang    = rcv->da_qiang();
     attr.quanLeiDa  = rcv->quan_lei_da();
     attr.yiTiaoLong = rcv->yi_tiao_long();
-    attr.playerSize = rcv->player_size();
+    attr.playerSize = 1;//rcv->player_size();
 
     //依据属性检查创建资格,并初始化游戏的动态数据
     {
@@ -247,7 +247,7 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     //新的ready确认, 检查是否所有玩家都已确认, 可以启动游戏
     if (newStatus == PublicProto::S_G13_PlayersInRoom::READY)
-        game->tryStartGame();
+        game->tryStartRound();
 }
 
 void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
@@ -344,6 +344,16 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     game->sendToAll(sndCode, snd);
 
     game->trySettleGame();
+
+    //是否已经结束
+    if (game->m_status == GameStatus::closed)
+    {
+        game->abortGame();
+        return;
+    }
+
+    //没结束, 就开下一局
+    game->tryStartRound();
 }
 
 
@@ -426,7 +436,29 @@ void Game13::playerOnLine(Client::Ptr client)
         snd.mutable_attr()->set_yi_tiao_long(m_attr.yiTiaoLong);
         client->sendToMe(sndCode, snd);
     }
+
+    //给所有人发送成员列表
     syncAllPlayersInfoToAllClients();
+
+    //给进入者发送他自己的牌信息
+    if (m_status == GameStatus::play)
+    {
+        for (PlayInfo& info : m_players)
+        {
+            //同步手牌到端
+            PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
+            std::string cardsStr;
+            cardsStr.reserve(42);
+            for (auto card : info.cards)
+            {
+                cardsStr.append(std::to_string(card));
+                cardsStr.append(",");
+                snd2.add_cards(card);
+            }
+            client->sendToMe(snd2Code, snd2);
+        }
+    }
+
 }
 
 void Game13::sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto)
@@ -479,7 +511,7 @@ void Game13::removePlayer(ClientPtr client)
 void Game13::abortGame()
 {
     //退钱
-    if (m_status == GameStatus::play)
+    if (m_status == GameStatus::play || m_status == GameStatus::settle)
     {
         switch (m_attr.payor)
         {
@@ -488,11 +520,11 @@ void Game13::abortGame()
                 auto roomOwner = ClientManager::me().getByCuid(ownerCuid());
                 if (roomOwner == nullptr)
                 {
-                    LOG_ERROR("解散房间, 房主模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
+                    LOG_ERROR("开始前解散房间, 房主模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
                     break;
                 }
                 roomOwner->addMoney(10);
-                LOG_TRACE("解散房间, 房主模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
+                LOG_TRACE("解开始前散房间, 房主模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
             }
             break;
         case PAY_SHARE_EQU:
@@ -502,18 +534,18 @@ void Game13::abortGame()
                     Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
                     if (client == nullptr)
                     {
-                        LOG_ERROR("解散房间, AA模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
+                        LOG_ERROR("解开始前散房间, AA模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
                         continue;
                     }
                     client->addMoney(5);
-                    LOG_TRACE("解散房间, AA模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
+                    LOG_TRACE("开始前解散房间, AA模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
                     //顺带发送踢掉通知
                     PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
                     snd.set_cuid(client->roomId());
                     sendToAll(sndCode, snd);
                     client->setRoomId(0);
                     LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
-                              client->roomId(), client->ccid(), client->cuid(), client->openid());
+                              getId(), client->ccid(), client->cuid(), client->openid());
                 }
                 m_players.clear();
                 m_status = GameStatus::closed;
@@ -527,18 +559,15 @@ void Game13::abortGame()
             break;
         }
     }
-    //kick out all
+    //踢所有人
     for (const PlayInfo& info : m_players)
     {
         Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
         if (client == nullptr)
-        {
-            LOG_ERROR("解散房间, AA模式, 解散时玩家不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
             continue;
-        }
         PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
         snd.set_cuid(client->roomId());
-        sendToAll(sndCode, snd);
+        client->sendToMe(sndCode, snd);
         client->setRoomId(0);
         LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
                   client->roomId(), client->ccid(), client->cuid(), client->openid());
@@ -547,20 +576,20 @@ void Game13::abortGame()
     m_status = GameStatus::closed;
 }
 
-void Game13::tryStartGame()
+void Game13::tryStartRound()
 {
-    if (m_status != GameStatus::prepare)
+    if (m_status != GameStatus::prepare && m_status != GameStatus::settle)
         return;
 
     //everyone ready
+    if (m_attr.playerSize > m_players.size()) //未满员
+        return;
     for (const PlayInfo& info : m_players)
     {
-        if (info.status != PublicProto::S_G13_PlayersInRoom::READY)
+        if (info.status != PublicProto::S_G13_PlayersInRoom::READY) //||
+            //info.status != PublicProto::S_G13_PlayersInRoom::)
             return;
     }
-
-    //游戏状态改变
-    m_status = GameStatus::play;
 
     //shuffle
     {
@@ -608,6 +637,9 @@ void Game13::tryStartGame()
 
     }
     sendToAll(snd1Code, snd1);
+
+    //游戏状态改变
+    m_status = GameStatus::play;
 }
 
 void Game13::trySettleGame()
@@ -622,15 +654,12 @@ void Game13::trySettleGame()
             return;
     }
 
-    m_status = GameStatus::settle;
-    
-   
-    /*
-    TODO 比牌型, 算的分
+
+    //TODO 比牌型, 算的分
     for (PlayInfo& info : m_players)
     {
+        info.rank += 0;
     }
-    */
 
     //发结果
     PROTO_VAR_PUBLIC(S_G13_AllHands, snd)
@@ -640,9 +669,12 @@ void Game13::trySettleGame()
         player->set_cuid(info.cuid);
         for (Deck::Card crd : info.cards)
             player->add_cards(crd);
-        player->set_rank(0);
+        player->set_rank(info.rank);
     }
     sendToAll(sndCode, snd);
+
+    //更新游戏装态
+    m_status = (++m_rounds < m_attr.rounds) ? GameStatus::settle : GameStatus::closed;
 }
 
 }
