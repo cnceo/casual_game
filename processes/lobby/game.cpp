@@ -66,7 +66,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     attr.daQiang    = rcv->da_qiang();
     attr.quanLeiDa  = rcv->quan_lei_da();
     attr.yiTiaoLong = rcv->yi_tiao_long();
-    attr.playerSize = 1;//rcv->player_size();
+    attr.playerSize = rcv->player_size();
 
     //依据属性检查创建资格,并初始化游戏的动态数据
     {
