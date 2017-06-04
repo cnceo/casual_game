@@ -396,6 +396,17 @@ bool Game13::enterRoom(Client::Ptr client)
 
     client->setRoomId(getId());
 
+    playerOnLine(client);
+
+    LOG_TRACE("G13, 进入房间成功, roomId={}, ccid={}, cuid={}, openid={}",
+              client->roomId(), client->ccid(), client->cuid(), client->openid());
+    return true;
+}
+
+void Game13::playerOnLine(Client::Ptr client)
+{
+    if (client == nullptr)
+        return;
     {//给进入者发送房间基本属性
         PROTO_VAR_PUBLIC(S_G13_RoomAttr, snd)
         snd.set_room_id(m_attr.roomId);
@@ -410,16 +421,13 @@ bool Game13::enterRoom(Client::Ptr client)
         client->sendToMe(sndCode, snd);
     }
     syncAllPlayersInfoToAllClients();
-    LOG_TRACE("G13, 进入房间成功, roomId={}, ccid={}, cuid={}, openid={}",
-              client->roomId(), client->ccid(), client->cuid(), client->openid());
-    return true;
 }
 
 void Game13::sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto)
 {
     for(const PlayInfo& info : m_players)
     {
-        Client::Ptr client = ClientManager::me().getByCcid(info.cuid);
+        Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
         if (client != nullptr)
             client->sendToMe(msgCode, proto);
     }

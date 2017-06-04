@@ -5,10 +5,11 @@
 namespace water{
 namespace componet{
 
+std::atomic<GlobalLogger*> GlobalLogger::m_me;
+std::mutex GlobalLogger::m_mutex;
+
 GlobalLogger* GlobalLogger::getMe() 
 {
-    static std::atomic<GlobalLogger*> m_me;
-    static std::mutex m_mutex;
     GlobalLogger* tmp = m_me.load(std::memory_order_acquire);
     if (tmp == nullptr) 
     {

@@ -206,7 +206,17 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     if (client->roomId() != 0)
     {
         auto game = Game13::getByRoomId(client->roomId());
-        game->syncAllPlayersInfoToAllClients();
+        if (game == nullptr)
+        {
+            LOG_ERROR("login, step 2.5, 登录时发现房间号法非, roomid={}, ccid={}, cuid={}, openid={}",
+                      client->roomId(), ccid, client->cuid(), client->openid());
+        }
+        else
+        {
+            game->playerOnLine(client);
+            LOG_TRACE("login, step 2.5, 同步房间信息到端, roomid={}, ccid={}, cuid={}, openid={}",
+                      game->getId(), ccid, client->cuid(), client->openid());
+        }
     }
     return;
 }

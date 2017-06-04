@@ -21,10 +21,12 @@ namespace componet{
 class GlobalLogger : public Logger
 {
 public:
-    ~GlobalLogger();
+    ~GlobalLogger() = default;
     static GlobalLogger* getMe();
 private:
     GlobalLogger() = default;
+    static std::atomic<GlobalLogger*> m_me;
+    static std::mutex m_mutex;
 };
 
 
