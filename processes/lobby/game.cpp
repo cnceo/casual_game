@@ -238,12 +238,15 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     LOG_TRACE("ReadyFlag, 玩家设置准备状态, readyFlag={}, roomId={}, ccid={}, cuid={}, openid={}",
               rcv->ready(), client->roomId(), client->ccid(), client->cuid(), client->openid());
 
+    game->syncAllPlayersInfoToAllClients();
+    /*
     PROTO_VAR_PUBLIC(S_G13_PlayersInRoom, snd)
     auto player = snd.add_players();
     player->set_status(newStatus);
     player->set_cuid(info->cuid);
     player->set_name(info->name);
     game->sendToAll(sndCode, snd);
+    */
 
     //新的ready确认, 检查是否所有玩家都已确认, 可以启动游戏
     if (newStatus == PublicProto::S_G13_PlayersInRoom::READY)
@@ -482,6 +485,7 @@ void Game13::syncAllPlayersInfoToAllClients()
         player->set_cuid(info.cuid);
         player->set_name(info.name);
     }
+    snd.set_rounds(m_rounds);
     sendToAll(sndCode, snd);
 }
 
@@ -599,6 +603,7 @@ void Game13::tryStartRound()
 
     //deal cards, then update player status and send to client
     PROTO_VAR_PUBLIC(S_G13_PlayersInRoom, snd1)
+    snd1.set_rounds(m_rounds);
     uint32_t index = 0;
     for (PlayInfo& info : m_players)
     {
@@ -673,7 +678,7 @@ void Game13::trySettleGame()
     }
     sendToAll(sndCode, snd);
 
-    //更新游戏装态
+    //局数计数器, 并更新游戏装态
     m_status = (++m_rounds < m_attr.rounds) ? GameStatus::settle : GameStatus::closed;
 }
 

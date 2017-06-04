@@ -48,39 +48,74 @@ void AutoActions::init()
     corot::create(msg_S_G13_HandOfMine);
 }
 
-struct Self
+struct Info
 {
-    uint64_t cuid = 0;
+    Info (bool b_, std::string o, std::string n)
+    {
+        banker = b_;
+        openid = o;
+        name = n;
+    }
+    bool banker;
+    std::string openid;
+    std::string name;
+    uint64_t cuid;
 };
-static Self self;
+
+static Info info[2] = 
+{
+    {
+        true,
+        std::string("xxxxx1"),
+        std::string("robot1"),
+    },
+    {
+        false,
+        std::string("xxxxx2"),
+        std::string("robot2"),
+    },
+
+};
+
+static Info& self = info[1];
 
 
 void AutoActions::start()
 {
     C_Login c_login;
     c_login.set_login_type(LOGINT_WETCHAT);
-    c_login.set_openid("testrobot4xxxx");
-    c_login.set_token("xxxx");
-    c_login.set_nick_name("testrobot4");
+    c_login.set_openid(self.openid);
+    c_login.set_token("OOOOOO");
+    c_login.set_nick_name(self.name);
     SEND_MSG(C_Login, c_login);
 
     auto r = RECV_MSG(S_LoginRet);
     self.cuid = r->cuid();
     LOG_TRACE("login successful, <{}, {}, {}>", r->ret_code(), r->cuid(), r->temp_token());
 
-    //建房间
-    C_G13_CreateGame c_crtgm;
-    c_crtgm.set_player_size(4);
-    c_crtgm.set_play_type(52);
-    c_crtgm.set_rounds(12);
-    c_crtgm.set_payor(10);
-    c_crtgm.set_da_qiang(2);
-    c_crtgm.set_quan_lei_da(true);
-    c_crtgm.set_yi_tiao_long(2);
-    SEND_MSG(C_G13_CreateGame, c_crtgm);
+    //建房间 或 进房间
+    if (self.banker)
+    {
+        C_G13_CreateGame c_crtgm;
+        c_crtgm.set_player_size(2);
+        c_crtgm.set_play_type(52);
+        c_crtgm.set_rounds(12);
+        c_crtgm.set_payor(10);
+        c_crtgm.set_da_qiang(2);
+        c_crtgm.set_quan_lei_da(true);
+        c_crtgm.set_yi_tiao_long(2);
+        SEND_MSG(C_G13_CreateGame, c_crtgm);
+    }
+    else
+    {
+        C_G13_JionGame c_jionGame;
+        c_jionGame.set_room_id(100001);
+        SEND_MSG(C_G13_JionGame, c_jionGame);
+    }
 
     auto loginRet = RECV_MSG(S_G13_RoomAttr);
-    LOG_TRACE("RECVED S_G13_RoomAttr, roomid={}, bankerCuid={}", loginRet->room_id(), loginRet->banker_cuid());
+    LOG_TRACE("RECVED S_G13_RoomAttr, roomid={}, bankerCuid={}",
+              loginRet->room_id(), loginRet->banker_cuid());
 
     //离开房间
     if (false)

@@ -91,6 +91,7 @@ message S_G13_PlayersInRoom
         required string name    = 3; //
     }
     repeated PlayerStatus players   = 1;
+    required int32 rounds           = 2; //当前是第几局, 准备阶段值为0
 }
 
 //放弃游戏, 
