@@ -19,6 +19,29 @@ RoomId Room::getRoomId()
     return id;
 }
 
+bool Room::add(Room::Ptr room)
+{
+    if (room == nullptr)
+        return false;
+    return s_rooms.insert(std::make_pair(room->getId(), room)).second;
+}
+
+void Room::del(Room::Ptr room)
+{
+    if (room == nullptr)
+        return;
+    s_rooms.erase(room->getId());
+    //s_expiredIds.push_back(m_id); //暂不回收, 要解决ABA问题才能用回收机制
+}
+
+Room::Ptr Room::get(RoomId roomId)
+{
+    auto iter = s_rooms.find(roomId);
+    if (iter == s_rooms.end())
+        return nullptr;
+    return iter->second;
+}
+
 /**********************************non static**************************************/
 
 Room::Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
@@ -31,7 +54,7 @@ Room::Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
 
 Room::~Room()
 {
-    Room::s_rooms.erase(m_id);
+//    Room::s_rooms.erase(m_id);
 //    Room::s_expiredIds.push_back(m_id); //暂不回收, 要解决ABA问题才能用回收机制
 }
 

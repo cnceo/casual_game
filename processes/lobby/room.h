@@ -44,14 +44,14 @@ private:
     const GameType m_gameType;
 //    std::list<ClientUniqueId> m_cuids;
 
-private:
+protected:
     static RoomId getRoomId();
+    static bool add(Room::Ptr);
+    static void del(Room::Ptr);
+    static Room::Ptr get(RoomId);
 private:
     static RoomId s_lastRoomId;
     static std::list<RoomId> s_expiredIds;
-protected:
-
-protected:
     static std::unordered_map<RoomId, Room::Ptr> s_rooms;
 };
 

@@ -169,7 +169,8 @@ void Process::start()
         LOG_ERROR("process {} start, unkonw error", getFullName());
     }
     LOG_TRACE("{} exited", getFullName());
-    LOG_STOP;
+    std::this_thread::sleep_for(std::chrono::seconds(1)); //TODO 修改日志逻辑, 加入等待日志写完后才返回的功能
+//    LOG_STOP;
     ON_EXIT_SCOPE_DO(SignalHandler::resetSignalHandle({SIGINT, SIGTERM}));
 //    LOG_CLEAR_FILE;
 }

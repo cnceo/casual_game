@@ -13,10 +13,7 @@ Game13::Deck Game13::s_deck;
 
 Game13::Ptr Game13::getByRoomId(RoomId roomId)
 {
-    auto it = s_rooms.find(roomId);
-    if (it == s_rooms.end())
-        return nullptr;
-    return std::static_pointer_cast<Game13>(it->second);
+    return std::static_pointer_cast<Game13>(Room::get(roomId));
 }
 
 void Game13::regMsgHandler()
@@ -51,9 +48,9 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     //房间
     auto game = Game13::create(client->cuid(), rcv->player_size(), GameType::xm13);
-    if (Room::s_rooms.insert(std::make_pair(game->getId(), game)).second == false)
+    if (Room::add(game) == false)
     {
-        LOG_ERROR("G13, 创建房间失败, s_rooms.insert失败");
+        LOG_ERROR("G13, 创建房间失败, Room::add失败");
         return;
     }
 
@@ -133,7 +130,7 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
                 LOG_TRACE("准备期间房主离开房间, roomId={}, ccid={}, cuid={}, openid={}",
                           client->roomId(), client->ccid(), client->cuid(), client->openid()); 
                 game->abortGame();
-                Room::s_rooms.erase(game->getId()); //销毁房间
+                Room::del(game); //销毁房间
                 LOG_TRACE("准备期间终止游戏, 房间已销毁, roomId={}", client->roomId());
                 return;
             }
