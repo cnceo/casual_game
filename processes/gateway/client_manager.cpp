@@ -158,6 +158,7 @@ void ClientManager::proto_C_Login(ProtoMsgPtr proto, ClientConnectionId ccid)
         PrivateProto::LoginQuest snd;
         snd.set_openid(rcv->openid());
         snd.set_ccid(ccid);
+        snd.set_name(rcv->nick_name());
         Gateway::me().sendToPrivate(ProcessId("lobby", 1), PROTO_CODE_PRIVATE(LoginQuest), snd);
         LOG_TRACE("login, step 1, openid&token 验证通过, ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
     }

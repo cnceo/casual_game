@@ -177,6 +177,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         TcpMsgCode cbrCode = PROTO_CODE_PRIVATE(ClientBeReplaced);
         cbr.set_cuid(client->cuid());
         cbr.set_ccid(client->ccid());
+        cbr.set_openid(client->openid());
         Lobby::me().sendToPrivate(gatewayPid, cbrCode, cbr);
 
         //更新ccid
