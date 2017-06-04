@@ -18,12 +18,29 @@ void msgBox()
     }
 }
 
+void msg_S_G13_PlayersInRoom()
+{
+    while (true)
+    {
+        auto msg = RECV_MSG(S_G13_PlayersInRoom);
+        LOG_TRACE("S_G13_PlayersInRoom:");
+        corot::this_corot::yield();
+    }
+}
+
 
 void AutoActions::init()
 {
     corot::create(std::bind(&AutoActions::start, this));
     corot::create(msgBox);
+    corot::create(msg_S_G13_PlayersInRoom);
 }
+
+struct Self
+{
+    uint64_t cuid = 0;
+};
+static Self self;
 
 
 void AutoActions::start()
@@ -36,6 +53,7 @@ void AutoActions::start()
     SEND_MSG(C_Login, c_login);
 
     auto r = RECV_MSG(S_LoginRet);
+    self.cuid = r->cuid();
     LOG_TRACE("login successful, <{}, {}, {}>", r->ret_code(), r->cuid(), r->temp_token());
 
     //建房间
@@ -51,5 +69,13 @@ void AutoActions::start()
 
     auto loginRet = RECV_MSG(S_G13_RoomAttr);
     LOG_TRACE("RECVED S_G13_RoomAttr, roomid={}, bankerCuid={}", loginRet->room_id(), loginRet->banker_cuid());
+
+    //离开房间
+    C_G13_GiveUp  c_giveUp;
+    SEND_MSG(C_G13_GiveUp, c_giveUp);
+
+    auto playerQuite = RECV_MSG(S_G13_PlayerQuited);
+    LOG_TRACE("RECVED, S_G13_PlayerQuited, rev->cuid={}, selfcuid={}", playerQuite->cuid(), self.cuid);
+    
 }
 

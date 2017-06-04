@@ -23,6 +23,11 @@ void Game13::regMsgHandler()
 {
     using namespace std::placeholders;
     REG_PROTO_PUBLIC(C_G13_CreateGame, std::bind(&Game13::proto_C_G13_CreateGame, _1, _2));
+    REG_PROTO_PUBLIC(C_G13_JionGame, std::bind(&Game13::proto_C_G13_JionGame, _1, _2));
+    REG_PROTO_PUBLIC(C_G13_GiveUp, std::bind(&Game13::proto_C_G13_GiveUp, _1, _2));
+    REG_PROTO_PUBLIC(C_G13_VoteFoAbortGame, std::bind(&Game13::proto_C_G13_VoteFoAbortGame, _1, _2));
+    REG_PROTO_PUBLIC(C_G13_ReadyFlag, std::bind(&Game13::proto_C_G13_ReadyFlag, _1, _2));
+    REG_PROTO_PUBLIC(C_G13_BringOut, std::bind(&Game13::proto_C_G13_BringOut, _1, _2));
 }
 
 void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
@@ -129,6 +134,7 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
                           client->roomId(), client->ccid(), client->cuid(), client->openid()); 
                 game->abortGame();
                 Room::s_rooms.erase(game->getId()); //销毁房间
+                LOG_TRACE("准备期间终止游戏, 房间已销毁, roomId={}", client->roomId());
                 return;
             }
             else
@@ -493,7 +499,7 @@ void Game13::abortGame()
             {
                 for(const PlayInfo& info : m_players)
                 {
-                    Client::Ptr client = ClientManager::me().getByCcid(info.cuid);
+                    Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
                     if (client == nullptr)
                     {
                         LOG_ERROR("解散房间, AA模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
@@ -524,7 +530,7 @@ void Game13::abortGame()
     //kick out all
     for (const PlayInfo& info : m_players)
     {
-        Client::Ptr client = ClientManager::me().getByCcid(info.cuid);
+        Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
         if (client == nullptr)
         {
             LOG_ERROR("解散房间, AA模式, 解散时玩家不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
