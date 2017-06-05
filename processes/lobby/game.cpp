@@ -123,6 +123,7 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     switch (game->m_status)
     {
+    case GameStatus::play: //DEBUG
     case GameStatus::prepare:
         {
             if (client->cuid() == game->ownerCuid()) //房主
@@ -143,11 +144,12 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
             }
         }
         break;
+        /*
     case GameStatus::play:
         {
             client->noticeMessageBox("游戏进行中, 不能离开");
         }
-        break;
+        break;*/
     case GameStatus::settle:
     case GameStatus::closed:
         {
