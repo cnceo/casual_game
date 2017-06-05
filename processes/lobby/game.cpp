@@ -132,13 +132,13 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
                           client->roomId(), client->ccid(), client->cuid(), client->openid()); 
                 game->abortGame();
                 Room::del(game); //销毁房间
-                LOG_TRACE("准备期间终止游戏, 房间已销毁, roomId={}", client->roomId());
+                LOG_TRACE("准备期间终止游戏, 房间已销毁, roomId={}", game->getId());
                 return;
             }
             else
             {
                 LOG_TRACE("准备期间普通成员离开房间, roomId={}, ccid={}, cuid={}, openid={}",
-                          client->roomId(), client->ccid(), client->cuid(), client->openid()); 
+                          game->getId(), client->ccid(), client->cuid(), client->openid()); 
                game->removePlayer(client);
                return;
             }
@@ -154,7 +154,7 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
     case GameStatus::closed:
         {
             LOG_TRACE("结算完毕后主动离开房间, roomId={}, ccid={}, cuid={}, openid={}",
-                      client->roomId(), client->ccid(), client->cuid(), client->openid()); 
+                      game->getId(), client->ccid(), client->cuid(), client->openid()); 
             game->removePlayer(client);
             return;
         }
