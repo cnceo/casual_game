@@ -498,14 +498,13 @@ void Game13::removePlayer(ClientPtr client)
     {
         if (iter->cuid == client->cuid())
         {
-            m_players.erase(iter);
-
             PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
-            snd.set_cuid(client->cuid());
+            snd.set_cuid(iter->cuid);
             sendToAll(sndCode, snd);
             client->setRoomId(0);
             LOG_TRACE("Game13, reomvePlayer, roomid={}, ccid={}, cuid={}, openid={}",
                         getId(), client->ccid(), client->cuid(), client->openid());
+            m_players.erase(iter);
             break;
         }
     }

@@ -1,5 +1,5 @@
 #替换默认shell
-#SHELL = /bin/bash
+SHELL = /bin/bash
 
 MYSQL_CONFIG_CMD = mysql_config
 
