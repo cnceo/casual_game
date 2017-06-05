@@ -116,7 +116,7 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
     {
         LOG_ERROR("C_G13_GiveUp, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
                   client->roomId(), client->ccid(), client->cuid(), client->openid());
-        client->afterLeaveRoom();
+        client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
 
@@ -188,7 +188,7 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     {
         LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
                   client->roomId(), client->ccid(), client->cuid(), client->openid());
-        client->afterLeaveRoom();
+        client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
 
@@ -212,7 +212,7 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
         LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
                   client->roomId(), client->ccid(), client->cuid(), client->openid());
 
-        client->afterLeaveRoom();
+        client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
 
@@ -261,7 +261,7 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     {
         LOG_ERROR("BringOut, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
                   client->roomId(), client->ccid(), client->cuid(), client->openid());
-        client->afterLeaveRoom();
+        client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
 
@@ -292,7 +292,7 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         LOG_ERROR("BringOut, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
                   client->roomId(), client->ccid(), client->cuid(), client->openid());
 
-        client->afterLeaveRoom();
+        client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
 
@@ -496,6 +496,7 @@ void Game13::removePlayer(ClientPtr client)
             break;
         }
     }
+    syncAllPlayersInfoToAllClients();
     return;
 }
 
