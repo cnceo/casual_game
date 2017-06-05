@@ -72,8 +72,8 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
             Game13::s_deck.cards.resize(52);
         else// if(attr.playType == GP_65)
             Game13::s_deck.cards.resize(65);
-        for (uint32_t i = 1; i <= Game13::s_deck.cards.size(); ++i)
-            Game13::s_deck.cards[i] = i % 52;
+        for (uint32_t i = 0; i < Game13::s_deck.cards.size(); ++i)
+            Game13::s_deck.cards[i] = (i % 52) + 1;
 
         //玩家座位数量
         game->m_players.resize(attr.playerSize);
