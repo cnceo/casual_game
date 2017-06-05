@@ -544,8 +544,8 @@ void Game13::abortGame()
                     LOG_TRACE("开始前解散房间, AA模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
                     //顺带发送踢掉通知
                     PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
-                    snd.set_cuid(client->roomId());
-                    sendToAll(sndCode, snd);
+                    snd.set_cuid(info.cuid);
+                    client->sendToMe(sndCode, snd); //只发给自己就行了， 因为随后就要解散了
                     client->setRoomId(0);
                     LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
                               getId(), client->ccid(), client->cuid(), client->openid());
@@ -569,11 +569,11 @@ void Game13::abortGame()
         if (client == nullptr)
             continue;
         PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
-        snd.set_cuid(client->roomId());
+        snd.set_cuid(info.cuid);
         client->sendToMe(sndCode, snd);
         client->setRoomId(0);
         LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
-                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+                  getId(), client->ccid(), client->cuid(), client->openid());
     }
     m_players.clear();
     m_status = GameStatus::closed;
