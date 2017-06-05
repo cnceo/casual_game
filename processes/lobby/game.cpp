@@ -385,7 +385,7 @@ bool Game13::enterRoom(Client::Ptr client)
     }
 
     //加入成员列表
-    m_players.emplace_back(client->cuid(), client->name(), PublicProto::S_G13_PlayersInRoom::PREP);
+    m_players.emplace_back(client->cuid(), client->name(), PublicProto::S_G13_PlayersInRoom::PREP, client->money());
 
     {//预扣钱, 这个放到最后, 避免扣钱后进入失败需要回退
         bool enoughMoney = false;
@@ -478,9 +478,10 @@ void Game13::syncAllPlayersInfoToAllClients()
     {
         using namespace PublicProto;
         auto player = snd.add_players();
-        player->set_status(S_G13_PlayersInRoom::PREP);
         player->set_cuid(info.cuid);
         player->set_name(info.name);
+        player->set_status(info.status);
+        player->set_money(info.money);
     }
     snd.set_rounds(m_rounds);
     sendToAll(sndCode, snd);
@@ -592,6 +593,9 @@ void Game13::tryStartRound()
             return;
     }
 
+    //牌局开始
+    ++m_rounds;
+
     //shuffle
     {
         std::random_device rd;
@@ -625,6 +629,24 @@ void Game13::tryStartRound()
         }
         else
         {
+            if (m_rounds == 1) //第一局
+            {
+                if(m_attr.payor == PAY_BANKER && client->cuid() == ownerCuid())
+                {
+                    client->addMoney(-10);
+                    info.money -= 10;
+                    LOG_TRACE("游戏开始扣钱, 房主付费, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
+                              -10, getId(), client->ccid(), info.cuid, client->openid());
+                }
+                else if(m_attr.payor == PAY_SHARE_EQU)
+                {
+                    client->addMoney(-5);
+                    info.money -= 5;
+                    LOG_TRACE("游戏开始扣钱, 均摊, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
+                              -5, getId(), client->ccid(), info.cuid, client->openid());
+                }
+            }
+
             LOG_TRACE("发牌, roomid={}, ccid={}, cuid={}, openid={}, cards=[{}]",
                       getId(), client->ccid(), info.cuid, client->openid(), cardsStr);
             client->sendToMe(snd2Code, snd2);
@@ -633,9 +655,10 @@ void Game13::tryStartRound()
         //玩家状态改变
         info.status = PublicProto::S_G13_PlayersInRoom::SORT;
         auto player = snd1.add_players();
-        player->set_status(PublicProto::S_G13_PlayersInRoom::PREP);
+        player->set_status(info.status);
         player->set_cuid(info.cuid);
         player->set_name(info.name);
+        player->set_money(info.money);
 
     }
     sendToAll(snd1Code, snd1);
@@ -676,7 +699,7 @@ void Game13::trySettleGame()
     sendToAll(sndCode, snd);
 
     //局数计数器, 并更新游戏装态
-    m_status = (++m_rounds < m_attr.rounds) ? GameStatus::settle : GameStatus::closed;
+    m_status = (m_rounds < m_attr.rounds) ? GameStatus::settle : GameStatus::closed;
 }
 
 }

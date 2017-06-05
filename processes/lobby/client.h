@@ -25,6 +25,7 @@ public:
     uint32_t roomId() const;
     void setRoomId(uint32_t roomId);
 
+    int32_t money() const;
     bool enoughMoney(int32_t money);
     int32_t addMoney(int32_t money);
 
@@ -69,6 +70,11 @@ inline uint32_t Client::roomId() const
 inline void Client::setRoomId(uint32_t roomId)
 {
     m_roomId = roomId;
+}
+
+inline int32_t Client::money() const
+{
+    return m_money;
 }
 
 inline bool Client::enoughMoney(int32_t money)

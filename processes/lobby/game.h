@@ -80,13 +80,14 @@ private:
     {
 //        TYPEDEF_PTR(PlayInfo)
 //        CREATE_FUN_NEW(PlayInfo)
-        PlayInfo(ClientUniqueId cuid_, std::string name_, int32_t status_)
-        :cuid(cuid_), name(name_), status(status_)
+        PlayInfo(ClientUniqueId cuid_, std::string name_, int32_t status_, int32_t money_)
+        :cuid(cuid_), name(name_), status(status_), money(money_)
         {
         }
         const ClientUniqueId cuid;
         const std::string name;
         int32_t status;
+        int32_t money;
         int16_t rank = 0;
         std::array<Deck::Card, 13> cards;
     };
