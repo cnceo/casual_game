@@ -124,7 +124,7 @@ void AutoActions::start()
         SEND_MSG(C_G13_GiveUp, c_giveUp);
 
         auto playerQuite = RECV_MSG(S_G13_PlayerQuited);
-        LOG_TRACE("RECVED, S_G13_PlayerQuited, rev->cuid={}, selfcuid={}", playerQuite->cuid(), self.cuid);
+        LOG_TRACE("RECVED, S_G13_PlayerQuited, me.cuid={}", self.cuid);
     }
 
     //确认准备就绪

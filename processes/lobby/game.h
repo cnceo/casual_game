@@ -60,6 +60,8 @@ private:
     void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto);
     void syncAllPlayersInfoToAllClients(); //这个有空可以拆成 sendAllToMe和sendMeToAll, 现在懒得搞了
 
+    const uint32_t NO_POS = -1;
+    uint32_t getEmptySeatIndex();
 
 private:
     Room::Ptr m_room;
@@ -80,18 +82,26 @@ private:
     {
 //        TYPEDEF_PTR(PlayInfo)
 //        CREATE_FUN_NEW(PlayInfo)
-        PlayInfo(ClientUniqueId cuid_, std::string name_, int32_t status_, int32_t money_)
+        PlayInfo(ClientUniqueId cuid_ = 0, std::string name_ = "", int32_t status_ = 0, int32_t money_ = 0)
         :cuid(cuid_), name(name_), status(status_), money(money_)
         {
         }
-        const ClientUniqueId cuid;
-        const std::string name;
+        void clear()
+        {
+            cuid = 0;
+            name.clear();
+            status = 0;
+            money = 0;
+            rank = 0;
+        }
+        ClientUniqueId cuid;
+        std::string name;
         int32_t status;
         int32_t money;
         int16_t rank = 0;
         std::array<Deck::Card, 13> cards;
     };
-    std::list<PlayInfo> m_players;
+    std::vector<PlayInfo> m_players;
 
     GameStatus m_status = GameStatus::prepare;
     int32_t m_rounds = 0;

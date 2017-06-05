@@ -12,6 +12,13 @@
 
 namespace lobby{
 
+void Client::afterLeaveRoom()
+{
+    m_roomId = 0;
+    PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
+    sendToMe(sndCode, snd);
+}
+
 bool Client::sendToMe(TcpMsgCode code, const ProtoMsg& proto)
 {
     ProcessId gatewayPid("gateway", 1);

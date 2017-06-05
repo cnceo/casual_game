@@ -24,6 +24,7 @@ public:
 
     uint32_t roomId() const;
     void setRoomId(uint32_t roomId);
+    void afterLeaveRoom();
 
     int32_t money() const;
     bool enoughMoney(int32_t money);

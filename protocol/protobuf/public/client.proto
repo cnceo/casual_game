@@ -78,11 +78,12 @@ message S_G13_PlayersInRoom
 {
     enum Status
     {
-        PREP    = 0; //准备
-        READY   = 1; //就绪
-        SORT    = 2; //摆牌
-        COMPARE = 3; //比牌
-        DONE    = 4; //结束
+        NONE    = 0; //空状态
+        PREP    = 1; //准备
+        READY   = 2; //就绪
+        SORT    = 3; //摆牌
+        COMPARE = 4; //比牌
+        DONE    = 5; //结束
     }
     message PlayerStatus
     {
@@ -129,10 +130,9 @@ message C_G13_VoteFoAbortGame
      required G13_VoteOfAbort choice = 1;
 }
 
-//玩家已离开游戏
+//玩家已离开游戏, 仅发给自己
 message S_G13_PlayerQuited
 {
-    required int32 cuid = 1;  //如果和自己的cuid相同， 就是自己已经离开了
 }
 
 
