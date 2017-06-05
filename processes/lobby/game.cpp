@@ -501,11 +501,11 @@ void Game13::removePlayer(ClientPtr client)
             m_players.erase(iter);
 
             PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
-            snd.set_cuid(client->roomId());
+            snd.set_cuid(client->cuid());
             sendToAll(sndCode, snd);
             client->setRoomId(0);
             LOG_TRACE("Game13, reomvePlayer, roomid={}, ccid={}, cuid={}, openid={}",
-                      client->roomId(), client->ccid(), client->cuid(), client->openid());
+                        getId(), client->ccid(), client->cuid(), client->openid());
             break;
         }
     }
