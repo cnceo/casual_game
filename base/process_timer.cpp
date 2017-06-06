@@ -26,6 +26,7 @@ bool ProcessTimer::exec()
         try
         {
             m_timer();
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
         catch(const componet::ExceptionBase& ex)
         {
