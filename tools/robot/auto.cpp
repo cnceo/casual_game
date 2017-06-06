@@ -96,7 +96,7 @@ static Info info[2] =
 
 };
 
-static Info& self = info[0];
+static Info& self = info[1];
 
 
 void AutoActions::start()
@@ -128,7 +128,7 @@ void AutoActions::start()
     else
     {
         C_G13_JionGame c_jionGame;
-        c_jionGame.set_room_id(100001);
+        c_jionGame.set_room_id(100022);
         SEND_MSG(C_G13_JionGame, c_jionGame);
     }
 

@@ -2,7 +2,7 @@ objects = \
 		  main.o\
           lobby.o\
           room.o\
-          game.o\
+          game13.o\
 		  client_manager.o\
 		  redis_handler.o\
 		  register_timer_handler.o\
