@@ -26,6 +26,7 @@ void ClientManager::regClientMsgRelay()
     hallPid  = ProcessId("hall", 1);
 
     /************转发到lobby************/
+    PUBLIC_MSG_TO_LOBBY(C_SendChat)
     PUBLIC_MSG_TO_LOBBY(C_G13_CreateGame)
     PUBLIC_MSG_TO_LOBBY(C_G13_JionGame)
     PUBLIC_MSG_TO_LOBBY(C_G13_GiveUp)
@@ -36,6 +37,7 @@ void ClientManager::regClientMsgRelay()
     /************转发到hall*************/
 //    PUBLIC_MSG_TO_HALL()
     /*************转发到client**********/
+    PUBLIC_MSG_TO_CLIENT(S_Chat)
     PUBLIC_MSG_TO_CLIENT(S_Notice)
     PUBLIC_MSG_TO_CLIENT(S_G13_RoomAttr)
     PUBLIC_MSG_TO_CLIENT(S_G13_AbortGameOrNot)

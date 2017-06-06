@@ -13,7 +13,8 @@ using namespace water;
 using TcpMsgCode = process::TcpMsgCode;
 
 const char cfgDir[] = "/home/water/github/casual_game/config";
-const net::Endpoint serverAddr("119.23.71.237:7000");
+const net::Endpoint serverAddr("127.0.0.1:7000");
+//const net::Endpoint serverAddr("119.23.71.237:7000");
 
 class Client
 {

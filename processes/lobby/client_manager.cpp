@@ -240,7 +240,7 @@ void ClientManager::proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionI
         return;
 
     PROTO_VAR_PUBLIC(S_Chat, snd);
-    snd.set_cuid(rcv->type());
+    snd.set_cuid(client->cuid());
     auto sndCtn = snd.mutable_content();
     sndCtn->set_type(rcv->type());
     switch (rcv->type())

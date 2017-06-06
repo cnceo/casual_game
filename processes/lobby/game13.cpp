@@ -408,7 +408,7 @@ bool Game13::enterRoom(Client::Ptr client)
 
     playerOnLine(client);
 
-    LOG_TRACE("G13, 进入房间成功, roomId={}, ccid={}, cuid={}, openid={}",
+    LOG_TRACE("G13, {}房间成功, roomId={}, ccid={}, cuid={}, openid={}", (ownerCuid() != client->cuid()) ? "进入" : "创建",
               client->roomId(), client->ccid(), client->cuid(), client->openid());
     return true;
 }
