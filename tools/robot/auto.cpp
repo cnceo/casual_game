@@ -36,7 +36,7 @@ static Info info[2] =
     },
 
 };
-static Info& self = info[1];
+static Info& self = info[0];
 
 
 void msgBox()

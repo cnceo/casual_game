@@ -39,6 +39,7 @@ public:
 
     //注册一个触发间隔
     void regEventHandler(std::chrono::milliseconds interval, const EventHandler& handle);
+
 public:
     componet::Event<void (ProcessTimer*)> e_stop;
 

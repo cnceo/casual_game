@@ -20,6 +20,7 @@ class Game13 : public Room
     {
         prepare, //建房之后
         play,    //发牌之后
+        vote,    //投票解散游戏
         settle,  //一局结束
         closed,  //所有局结束
     };
@@ -59,6 +60,7 @@ private:
     void removePlayer(ClientPtr client);
     virtual void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto) override;
     virtual void sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto) override;
+    virtual void timerExec(componet::TimePoint now) override;
 
     void syncAllPlayersInfoToAllClients(); //这个有空可以拆成 sendAllToMe和sendMeToAll, 现在懒得搞了
 

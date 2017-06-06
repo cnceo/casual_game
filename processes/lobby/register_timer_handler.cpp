@@ -7,6 +7,7 @@
  */
 
 #include "lobby.h"
+#include "room.h"
 
 #include "water/componet/logger.h"
 
@@ -15,6 +16,7 @@ namespace lobby{
 
 void Lobby::registerTimerHandler()
 {
+    m_timer.regEventHandler(std::chrono::seconds(1), &Room::timerExecAll);
 }
 
 

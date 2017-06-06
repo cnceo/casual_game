@@ -42,6 +42,14 @@ Room::Ptr Room::get(RoomId roomId)
     return iter->second;
 }
 
+void Room::timerExecAll(componet::TimePoint now)
+{
+    for (auto iter = s_rooms.begin(); iter != s_rooms.end(); ++iter)
+    {
+        iter->second->timerExec(now);
+    }
+}
+
 /**********************************non static**************************************/
 
 Room::Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
@@ -57,6 +65,7 @@ Room::~Room()
 //    Room::s_rooms.erase(m_id);
 //    Room::s_expiredIds.push_back(m_id); //暂不回收, 要解决ABA问题才能用回收机制
 }
+
 
 }
 

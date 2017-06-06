@@ -21,7 +21,6 @@ namespace componet{
 
 class Timer
 {
-    //typedef std::chrono::high_resolution_clock TheClock;
     using TheClock = std::chrono::steady_clock;
     using TheTimePoint = TheClock::time_point;
 public:
@@ -40,7 +39,8 @@ public:
     void unregEventHandler(RegID);
 public:
     Event<void (Timer*)> e_stop;
-
+private:
+    void cleanEventHandler();
 private:
     struct EventHandlers
     {
@@ -49,9 +49,10 @@ private:
         uint64_t counter;
     };
 
-    Spinlock m_lock;
-    std::map<Clock::duration, EventHandlers> m_eventHandlers;
-    std::set<RegID> m_unregedId;
+    Spinlock m_handlersLock;
+    std::map<TheClock::duration, EventHandlers> m_eventHandlers;
+    Spinlock m_unregLock;
+    std::set<RegID> m_unregedIds;
 };
 
 }}

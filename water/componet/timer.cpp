@@ -18,11 +18,13 @@ Timer::Timer()
 
 void Timer::operator()()
 {
-
     TheTimePoint now = TheClock::now();
     TimePoint sysNow = Clock::now();
     {
-        LockGuard lock(m_lock);
+        LockGuard lock(m_handlersLock);
+
+        cleanEventHandler();
+
         for(auto& pair : m_eventHandlers)
         {
             TheClock::time_point emitTime = pair.second.regTime + pair.first * pair.second.counter;
@@ -44,7 +46,7 @@ int64_t Timer::precision() const
 Timer::RegID Timer::regEventHandler(std::chrono::milliseconds interval,
                             const std::function<void (const TimePoint&)>& handler)
 {
-    std::lock_guard<componet::Spinlock> lock(m_lock);
+    LockGuard lock(m_handlersLock);
 
     auto& info = m_eventHandlers[interval];
     auto eventId = info.event.reg(handler);
@@ -55,13 +57,22 @@ Timer::RegID Timer::regEventHandler(std::chrono::milliseconds interval,
 
 void Timer::unregEventHandler(RegID id)
 {
-    std::lock_guard<componet::Spinlock> lock(m_lock);
+    LockGuard lock(m_unregLock);
+    m_unregedIds.insert(id);
+}
 
-    auto it = m_eventHandlers.find(id.first);
-    if(it == m_eventHandlers.end())
-        return;
+void Timer::cleanEventHandler()
+{
+    LockGuard lock(m_unregLock);
+    for (const auto& id : m_unregedIds)
+    {
+        auto it = m_eventHandlers.find(id.first);
+        if(it == m_eventHandlers.end())
+            return;
 
-    it->second.event.unreg(id.second);
+        it->second.event.unreg(id.second);
+    }
+    m_unregedIds.clear();
 }
 
 }}

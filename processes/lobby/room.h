@@ -1,6 +1,7 @@
 #include "base/process_id.h"
 #include "base/tcp_message.h"
 #include "componet/class_helper.h"
+#include "componet/datetime.h"
 #include "protocol/protobuf/proto_manager.h"
 
 #include <list>
@@ -37,6 +38,7 @@ protected:
     Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
 
 public:
+    virtual void timerExec(componet::TimePoint now) = 0;
     virtual void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto) = 0;
     virtual void sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto) = 0;
 
@@ -49,6 +51,7 @@ private:
 
 public:
     static Room::Ptr get(RoomId);
+    static void timerExecAll(componet::TimePoint now);
 
 protected:
     static RoomId getRoomId();

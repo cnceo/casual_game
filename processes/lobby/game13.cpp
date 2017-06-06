@@ -150,6 +150,11 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
             LOG_TRACE("游戏进行期间离开， 终止游戏");
         }
         break;
+    case GameStatus::vote:
+        {
+            //视为赞成票
+        }
+        break;
     case GameStatus::settle:
     case GameStatus::closed:
         {
@@ -710,6 +715,11 @@ uint32_t Game13::getEmptySeatIndex()
             return i;
     }
     return NO_POS;
+}
+
+void Game13::timerExec(componet::TimePoint now)
+{
+    return;
 }
 
 }
