@@ -228,6 +228,39 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     return;
 }
 
+void ClientManager::proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionId ccid)
+{
+    auto rcv = PROTO_PTR_CAST_PUBLIC(C_SendChat, proto);
+    Client::Ptr client = ClientManager::me().getByCcid(ccid);
+    if (client == nullptr)
+        return;
+
+    auto room = Room::get(client->roomId());
+    if (room == nullptr)
+        return;
+
+    PROTO_VAR_PUBLIC(S_Chat, snd);
+    snd.set_cuid(rcv->type());
+    auto sndCtn = snd.mutable_content();
+    sndCtn->set_type(rcv->type());
+    switch (rcv->type())
+    {
+    case PublicProto::CHAT_TEXT:
+        {
+            sndCtn->set_data_text(rcv->data_text());
+        }
+        break;
+    case PublicProto::CHAT_FACE:
+    case PublicProto::CHAT_VOICE:
+        {
+            sndCtn->set_data_int(rcv->data_int());
+        }
+        break;
+    }
+    room->sendToOthers(client->cuid(), sndCode, snd);
+}
+
+
 ClientUniqueId ClientManager::getClientUniqueId()
 {
     //TODO uniqueid的组成和生成规则
@@ -238,7 +271,7 @@ void ClientManager::regMsgHandler()
 {
     using namespace std::placeholders;
     /************msg from client***********/
-//    REG_PROTO_PUBLIC(C_Login, std::bind(&ClientManager::proto_C_Login, this, _1, _2));
+    REG_PROTO_PUBLIC(C_SendChat, std::bind(&ClientManager::proto_C_SendChat, this, _1, _2));
     /************msg from cluster**********/
     REG_PROTO_PRIVATE(LoginQuest, std::bind(&ClientManager::proto_LoginQuest, this, _1, _2));
 }

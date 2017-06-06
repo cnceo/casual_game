@@ -344,6 +344,10 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
 
 
 /*************************************************************************/
+Game13::Game13(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
+    : Room(ownerCuid, maxSize, gameType)
+{
+}
 
 bool Game13::enterRoom(Client::Ptr client)
 {
@@ -456,6 +460,19 @@ void Game13::sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto)
     for(const PlayInfo& info : m_players)
     {
         if (info.cuid == 0)
+            continue;
+
+        Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
+        if (client != nullptr)
+            client->sendToMe(msgCode, proto);
+    }
+}
+
+void Game13::sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto)
+{
+    for(const PlayInfo& info : m_players)
+    {
+        if (info.cuid == 0 || info.cuid == cuid)
             continue;
 
         Client::Ptr client = ClientManager::me().getByCuid(info.cuid);

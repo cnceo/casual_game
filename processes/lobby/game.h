@@ -49,7 +49,7 @@ public:
 private:
     CREATE_FUN_NEW(Game13);
     TYPEDEF_PTR(Game13);
-	using Room::Room;
+    Game13(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
     bool enterRoom(ClientPtr client);
 //    void leaveRoom(ClientPtr client);
     void tryStartRound();
@@ -57,7 +57,9 @@ private:
     void abortGame();
 
     void removePlayer(ClientPtr client);
-    void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto);
+    virtual void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto) override;
+    virtual void sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto) override;
+
     void syncAllPlayersInfoToAllClients(); //这个有空可以拆成 sendAllToMe和sendMeToAll, 现在懒得搞了
 
     const uint32_t NO_POS = -1;

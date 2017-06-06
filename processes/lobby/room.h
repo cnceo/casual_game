@@ -1,5 +1,7 @@
 #include "base/process_id.h"
+#include "base/tcp_message.h"
 #include "componet/class_helper.h"
+#include "protocol/protobuf/proto_manager.h"
 
 #include <list>
 #include <memory>
@@ -24,10 +26,7 @@ class Room : public std::enable_shared_from_this<Room>
 public:
     TYPEDEF_PTR(Room)
     virtual ~Room();
-
     RoomId getId() const;
-    bool addCuid(ClientUniqueId cuid) const;
-    std::list<ClientUniqueId>& cuids();
     ClientUniqueId ownerCuid() const;
 
     /*
@@ -37,6 +36,10 @@ public:
 protected:
     Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
 
+public:
+    virtual void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto) = 0;
+    virtual void sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto) = 0;
+
 private:
     RoomId m_id;
     const ClientUniqueId m_ownerCuid;
@@ -44,11 +47,13 @@ private:
     const GameType m_gameType;
 //    std::list<ClientUniqueId> m_cuids;
 
+public:
+    static Room::Ptr get(RoomId);
+
 protected:
     static RoomId getRoomId();
     static bool add(Room::Ptr);
     static void del(Room::Ptr);
-    static Room::Ptr get(RoomId);
 private:
     static RoomId s_lastRoomId;
     static std::list<RoomId> s_expiredIds;

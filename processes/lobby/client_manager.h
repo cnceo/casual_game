@@ -49,6 +49,8 @@ private:
     void recoveryFromRedis();
 //    void dealLogin();
 private:
+    void proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionId ccid);
+private:
     void proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid);
 
 private:

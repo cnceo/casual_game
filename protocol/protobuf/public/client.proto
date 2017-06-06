@@ -32,7 +32,7 @@ message S_LoginRet
     optional string temp_token   = 3;
 }
 
-//通知客户端显示文本
+//通知客户端显示系统级推送的文本
 message S_Notice
 {
     enum Type
@@ -43,6 +43,24 @@ message S_Notice
     required string text = 2;
 }
 
+//聊天信息
+enum ChatType
+{
+    CHAT_TEXT  = 0;
+    CHAT_FACE  = 1;
+    CHAT_VOICE = 2;
+}
+message C_SendChat
+{
+    required ChatType   type        = 1; //聊天的内容类型
+    optional int64      data_int    = 3; //整形数据, 表情或语音id
+    optional string     data_text   = 4; //字符串型数据, 文字内容
+}
+message S_Chat
+{
+    required int64      cuid    = 1; //发送者
+    required C_SendChat content = 2; //内容
+}
 
 /*****************************13水消息********************************/
 

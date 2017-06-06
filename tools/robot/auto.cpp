@@ -40,12 +40,31 @@ void msg_S_G13_HandOfMine()
     LOG_TRACE("handOfMine, [{}]", cards);
 }
 
+void msg_S_Chat()
+{
+    auto msg = RECV_MSG(S_Chat);
+    const auto& ctn = msg->content();
+    switch (ctn.type())
+    {
+    case CHAT_TEXT:
+        LOG_TRACE("player talk, cuid={}, text={}", msg->cuid(), ctn.data_text());
+        break;
+    case CHAT_FACE:
+        LOG_TRACE("player emijo, cuid={}, code={}", msg->cuid(), ctn.data_int());
+        break;
+    case CHAT_VOICE:
+        LOG_TRACE("player voice, cuid={}, code={}", msg->cuid(), ctn.data_int());
+        break;
+    }
+}
+
 void AutoActions::init()
 {
     corot::create(std::bind(&AutoActions::start, this));
     corot::create(msgBox);
     corot::create(msg_S_G13_PlayersInRoom);
     corot::create(msg_S_G13_HandOfMine);
+    corot::create(msg_S_Chat);
 }
 
 struct Info
