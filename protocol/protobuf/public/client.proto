@@ -124,9 +124,9 @@ message C_G13_GiveUp
 
 enum G13_VoteOfAbort
 {
-    NONE = 0;  //未投
-    AYE  = 1;  //赞同
-    NAY  = 2;  //支持
+    VT_NONE = 0;  //未投
+    VT_AYE  = 1;  //赞同
+    VT_NAY  = 2;  //支持
 };
 
 // 关于退出游戏投票的更新和通知
@@ -135,17 +135,17 @@ message S_G13_AbortGameOrNot
 {
     message Vote
     {
-        required int64 cuid             = 1;
-        required G13_VoteOfAbort choice = 2;
+        required int64  cuid = 1;
+        required int32  vote = 2;
     }
-    required int32 reset_of_seconds = 1;//剩余秒数
-    repeated Vote  votes = 2;           //当前票列表
+    required int32 remain_seconds   = 1;//剩余秒数
+    repeated Vote  votes            = 2;           //当前票列表
 }
 
 // 投票表决是否赞同终止游戏
 message C_G13_VoteFoAbortGame
 {
-     required G13_VoteOfAbort choice = 1;
+     required G13_VoteOfAbort vote = 1;
 }
 
 //玩家已离开游戏, 仅发给自己

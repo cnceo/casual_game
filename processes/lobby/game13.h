@@ -20,7 +20,7 @@ class Game13 : public Room
     {
         prepare, //建房之后
         play,    //发牌之后
-        vote,    //投票解散游戏
+        vote,
         settle,  //一局结束
         closed,  //所有局结束
     };
@@ -52,9 +52,9 @@ private:
     TYPEDEF_PTR(Game13);
     Game13(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
     bool enterRoom(ClientPtr client);
-//    void leaveRoom(ClientPtr client);
     void tryStartRound();
     void trySettleGame();
+    void checkAllVotes();
     void abortGame();
 
     void removePlayer(ClientPtr client);
@@ -66,6 +66,8 @@ private:
 
     const uint32_t NO_POS = -1;
     uint32_t getEmptySeatIndex();
+    struct PlayerInfo;
+    PlayerInfo* getPlayerInfoByCuid(ClientUniqueId cuid);
 
 private:
     Room::Ptr m_room;
@@ -82,11 +84,9 @@ private:
         uint32_t playerSize = 0;            //人数
     } m_attr;
 
-    struct PlayInfo
+    struct PlayerInfo
     {
-//        TYPEDEF_PTR(PlayInfo)
-//        CREATE_FUN_NEW(PlayInfo)
-        PlayInfo(ClientUniqueId cuid_ = 0, std::string name_ = "", int32_t status_ = 0, int32_t money_ = 0)
+        PlayerInfo(ClientUniqueId cuid_ = 0, std::string name_ = "", int32_t status_ = 0, int32_t money_ = 0)
         :cuid(cuid_), name(name_), status(status_), money(money_)
         {
         }
@@ -104,11 +104,13 @@ private:
         int32_t money;
         int16_t rank = 0;
         std::array<Deck::Card, 13> cards;
+        int32_t vote = 0;
     };
-    std::vector<PlayInfo> m_players;
+    std::vector<PlayerInfo> m_players;
 
     GameStatus m_status = GameStatus::prepare;
     int32_t m_rounds = 0;
+    time_t m_startVoteTime = 0;
 
 private://消息处理
     static void proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid);
