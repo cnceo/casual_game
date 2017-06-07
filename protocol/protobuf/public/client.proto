@@ -139,7 +139,7 @@ message S_G13_AbortGameOrNot
         required int32  vote = 2;
     }
     required int32 remain_seconds   = 1;//剩余秒数
-    repeated Vote  votes            = 2;           //当前票列表
+    repeated Vote  votes            = 2;//当前票列表
 }
 
 // 投票表决是否赞同终止游戏

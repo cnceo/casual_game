@@ -208,6 +208,8 @@ void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId c
 
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_VoteFoAbortGame, proto);
     info->vote = rcv->vote();
+    if (rcv->vote() == PublicProto::VT_NONE) //因为弃权最后等于赞同, 所以投弃权等于投赞同
+        info->vote = (PublicProto::VT_AYE);
 
     game->checkAllVotes();
     return;
@@ -455,22 +457,25 @@ void Game13::playerOnLine(Client::Ptr client)
     syncAllPlayersInfoToAllClients();
 
     //给进入者发送他自己的牌信息
-    if (m_status == GameStatus::play)
+    PROTO_VAR_PUBLIC(S_G13_AbortGameOrNot, snd3);
+    if (m_status == GameStatus::play || m_status == GameStatus::vote)
     {
-        for (PlayerInfo& info : m_players)
+        for (const PlayerInfo& info : m_players)
         {
             //同步手牌到端
             PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
-            std::string cardsStr;
-            cardsStr.reserve(42);
             for (auto card : info.cards)
-            {
-                cardsStr.append(std::to_string(card));
-                cardsStr.append(",");
                 snd2.add_cards(card);
-            }
             client->sendToMe(snd2Code, snd2);
+
+            auto voteInfo = snd3.add_votes();
+            voteInfo->set_cuid(info.cuid);
+            voteInfo->set_vote(info.vote);
         }
+    }
+    if (m_status == GameStatus::vote)
+    {
+        client->sendToMe(snd3Code, snd3);
     }
 }
 
