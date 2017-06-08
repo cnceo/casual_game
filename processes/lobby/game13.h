@@ -7,6 +7,8 @@
 
 #include "protocol/protobuf/proto_manager.h"
 
+#include "deck.h"
+
 namespace lobby{
 
 class Client;
@@ -23,13 +25,6 @@ class Game13 : public Room
         vote,    //投票解散游戏
         settle,  //一局结束
         closed,  //所有局结束
-    };
-
-    struct Deck
-    {
-        enum Suits {SPADE = 3, HEART = 2, CLUB = 1, DIAMOND = 0};
-        using Card = int8_t;
-        std::vector<Card> cards;
     };
 
     enum

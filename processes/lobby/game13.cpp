@@ -525,61 +525,61 @@ void Game13::removePlayer(ClientPtr client)
 void Game13::abortGame()
 {
     //退钱
-    if (m_status == GameStatus::play || m_status == GameStatus::settle)
-    {
-        switch (m_attr.payor)
-        {
-        case PAY_BANKER:
-            {
-                auto roomOwner = ClientManager::me().getByCuid(ownerCuid());
-                if (roomOwner == nullptr)
-                {
-                    LOG_ERROR("开始前解散房间, 房主模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
-                    break;
-                }
-                roomOwner->addMoney(10);
-                LOG_TRACE("解开始前散房间, 房主模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
-            }
-            break;
-        case PAY_SHARE_EQU:
-            {
-                for(const PlayInfo& info : m_players)
-                {
-                    Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
-                    if (client == nullptr)
-                    {
-                        LOG_ERROR("解开始前散房间, AA模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
-                        continue;
-                    }
-                    client->addMoney(5);
-                    LOG_TRACE("开始前解散房间, AA模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
-                    //顺带发送踢掉通知
-                    client->afterLeaveRoom();
-                    LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
-                              getId(), client->ccid(), client->cuid(), client->openid());
-                }
-                m_players.clear();
-                m_players.resize(m_attr.playerSize);
-                m_status = GameStatus::closed;
-                return;
-            }
-            break;
-        case PAY_WINNER:
-            //没结束, 所以没人付钱, 不用退
-            break;
-        default:
-            break;
-        }
-    }
+    //if (m_status == GameStatus::prepare) //只有准备阶段退钱, 其实就是不用退钱, 还没扣~~
+    //{
+    //    switch (m_attr.payor)
+    //    {
+    //    case PAY_BANKER:
+    //        {
+    //            auto roomOwner = ClientManager::me().getByCuid(ownerCuid());
+    //            if (roomOwner == nullptr)
+    //            {
+    //                LOG_ERROR("开始前解散房间, 房主模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
+    //                break;
+    //            }
+    //            roomOwner->addMoney(10);
+    //            LOG_TRACE("解开始前散房间, 房主模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
+    //        }
+    //        break;
+    //    case PAY_SHARE_EQU:
+    //        {
+    //            for(const PlayInfo& info : m_players)
+    //            {
+    //                Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
+    //                if (client == nullptr)
+    //                {
+    //                    LOG_ERROR("解开始前散房间, AA模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
+    //                    continue;
+    //                }
+    //                client->addMoney(5);
+    //                LOG_TRACE("开始前解散房间, AA模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
+    //                //顺带发送踢掉通知
+    //                client->afterLeaveRoom();
+    //                LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
+    //                          getId(), client->ccid(), client->cuid(), client->openid());
+    //            }
+    //            m_players.clear();
+    //            m_players.resize(m_attr.playerSize);
+    //            m_status = GameStatus::closed;
+    //            return;
+    //        }
+    //        break;
+    //    case PAY_WINNER:
+    //        //没结束, 所以没人付钱, 不用退
+    //        break;
+    //    default:
+    //        break;
+    //    }
+    //}
+
     //踢所有人
     for (const PlayInfo& info : m_players)
     {
+        LOG_TRACE("Game13, abortGame, 踢人, roomid={}, cuid={}", getId(), info.cuid());
         Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
         if (client == nullptr)
             continue;
         client->afterLeaveRoom();
-        LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
-                  getId(), client->ccid(), client->cuid(), client->openid());
     }
     m_players.clear();
     m_players.resize(m_attr.playerSize);
@@ -616,6 +616,9 @@ void Game13::tryStartRound()
         //发牌
         for (uint32_t i = 0; i < info.cards.size(); ++i)
             info.cards[i] = Game13::s_deck.cards[index++];
+
+        //排个序, 以后检查外挂换牌时好比较
+        std::sort(info.cards.begin(), info.cards.end());
 
         //同步手牌到端
         PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
