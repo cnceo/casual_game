@@ -61,6 +61,7 @@ void Room::timerExecAll(componet::TimePoint now)
             break;
         }
         iter->second->timerExec(now);
+        ++iter;
     }
 }
 
