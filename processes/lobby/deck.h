@@ -8,9 +8,10 @@ namespace lobby{
 
 class Deck
 {
+public:
     friend class Game13;
 
-    using Card = int8_t;
+    using Card = uint8_t;
 
     enum class Suit : uint8_t
     {
@@ -39,16 +40,17 @@ class Deck
 
     enum class Brand : uint16_t //枚举还是取德州的叫法了, 规则是一样的
     {
-        fiveOfKind      = 0x0200,  //五同(类似4条, 5张同点数的)
-        straightFlush   = 0x0100,  //同花顺
-        fourOfKind      = 0x0080,  //四条, 铁支
-        fullHouse       = 0x0040,  //葫芦, 满堂红, 三带二
-        flush           = 0x0020,  //同花
-        straight        = 0x0010,  //顺子
-        threeOfKind     = 0x0008,  //三条, 三一一
-        twoPairs        = 0x0004,  //双对, 两对
-        onePair         = 0x0002,  //单对, 对子, 一对
-        hightCard       = 0x0001,  //乌龙, 高牌, 散牌
+        none,
+        fiveOfKind      = 9,  //五同(类似4条, 5张同点数的)
+        straightFlush   = 8,  //同花顺
+        fourOfKind      = 7,  //四条, 铁支
+        fullHouse       = 6,  //葫芦, 满堂红, 三带二
+        flush           = 5,  //同花
+        straight        = 4,  //顺子
+        threeOfKind     = 3,  //三条, 三一一
+        twoPairs        = 2,  //双对, 两对
+        onePair         = 1,  //单对, 对子, 一对
+        hightCard       = 0,  //乌龙, 高牌, 散牌
     };
 
 
@@ -63,9 +65,9 @@ class Deck
     static bool cmp(Card c1, Card c2);
 
 
-    Brand brand(Card* begin, uint32_t size);
-    Brand brand3(Card* begin);
-    Brand brand5(Card* begin);
+    static Brand brand(Card* begin, uint32_t size);
+    static Brand brand3(Card* begin);
+    static Brand brand5(Card* begin);
 
     std::vector<Card> cards;
 };

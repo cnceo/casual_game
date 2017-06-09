@@ -2,6 +2,15 @@
 
 namespace lobby{
 
+Deck::Brand Deck::brand(Card* begin, uint32_t size)
+{
+    if (size == 5)
+        return brand5(begin);
+    else if (size == 3)
+        return brand3(begin);
+    return Brand::none;
+}
+
 Deck::Brand Deck::brand5(Card* c)
 {
     const uint32_t size = 5;
@@ -26,7 +35,8 @@ Deck::Brand Deck::brand5(Card* c)
     bool isStright = true;
     for (uint32_t i = 1; i < size; ++i)
     {
-        if (static_cast<uint8_t>(r[i - 1]) + 1 != static_cast<uint8_t>(r[i]) )
+        using T = typename std::underlying_type<Rank>::type;
+        if (static_cast<T>(r[i - 1]) + 1 != static_cast<T>(r[i]))
             isStright = false;
         if (s[i - 1] != s[i])
             isFlush = false;
@@ -110,3 +120,4 @@ Deck::Brand Deck::brand3(Card* c)
 }
 
 }
+

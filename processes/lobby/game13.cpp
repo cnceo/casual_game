@@ -458,6 +458,7 @@ void Game13::playerOnLine(Client::Ptr client)
 
     //给进入者发送他自己的牌信息
     PROTO_VAR_PUBLIC(S_G13_AbortGameOrNot, snd3);
+    snd3.set_remain_seconds(componet::toUnixTime(s_timerTime) - m_startVoteTime);
     if (m_status == GameStatus::play || m_status == GameStatus::vote)
     {
         for (const PlayerInfo& info : m_players)
