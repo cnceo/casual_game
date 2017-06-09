@@ -1,6 +1,7 @@
 #include "game13.h"
 #include "client.h"
 #include "componet/logger.h"
+#include "componet/scope_guard.h"
 #include "protocol/protobuf/public/client.codedef.h"
 
 #include <random>
@@ -9,7 +10,7 @@
 namespace lobby{
 
 
-Game13::Deck Game13::s_deck;
+Deck Game13::s_deck;
 
 Game13::Ptr Game13::getByRoomId(RoomId roomId)
 {
@@ -120,6 +121,10 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
         return;
     }
 
+    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
+    if (info == nullptr)
+        return;
+
     switch (game->m_status)
     {
     case GameStatus::prepare:
@@ -129,7 +134,6 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
                 LOG_TRACE("准备期间房主离开房间, roomId={}, ccid={}, cuid={}, openid={}",
                           client->roomId(), client->ccid(), client->cuid(), client->openid()); 
                 game->abortGame();
-                Room::del(game); //销毁房间
                 LOG_TRACE("准备期间终止游戏, 房间已销毁, roomId={}", game->getId());
                 return;
             }
@@ -144,15 +148,22 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
         break;
     case GameStatus::play:
         { //临时处理， 要改成投票
+            /*
             client->noticeMessageBox("游戏进行中, 离开解散房间");
             game->abortGame();
             Room::del(game);
             LOG_TRACE("游戏进行期间离开， 终止游戏");
+            */
+
+            game->m_startVoteTime = componet::toUnixTime(s_timerTime);
+            game->m_status = GameStatus::vote;
         }
-        break;
+        //no break
     case GameStatus::vote:
         {
             //视为赞成票
+            info->vote = PublicProto::VT_AYE;
+            game->checkAllVotes();
         }
         break;
     case GameStatus::settle:
@@ -172,7 +183,35 @@ void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId c
     auto client = ClientManager::me().getByCcid(ccid);
     if (client == nullptr)
         return;
+    auto game = getByRoomId(client->roomId());
+    if (game == nullptr)
+    {
+        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
+                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+        client->afterLeaveRoom(); //ERR_HANDLER
+        return;
+    }
+
+    if (game->m_status != GameStatus::vote)
+        return;
+
+
+    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
+    if (info == nullptr)
+    {
+        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
+                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+
+        client->afterLeaveRoom(); //ERR_HANDLER
+        return;
+    }
+
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_VoteFoAbortGame, proto);
+    info->vote = rcv->vote();
+    if (rcv->vote() == PublicProto::VT_NONE) //因为弃权最后等于赞同, 所以投弃权等于投赞同
+        info->vote = (PublicProto::VT_AYE);
+
+    game->checkAllVotes();
     return;
 }
 
@@ -203,15 +242,7 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
         return;
     }
 
-    PlayInfo* info = nullptr;
-    for(PlayInfo& i : game->m_players)
-    {
-        if (i.cuid == client->cuid())
-        {
-            info = &i;
-            break;
-        }
-    }
+    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
     if (info == nullptr)
     {
         LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
@@ -283,15 +314,7 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         return;
     }
 
-    PlayInfo* info = nullptr;
-    for(PlayInfo& i : game->m_players)
-    {
-        if (i.cuid == client->cuid())
-        {
-            info = &i;
-            break;
-        }
-    }
+    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
     if (info == nullptr)
     {
         LOG_ERROR("BringOut, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
@@ -336,15 +359,9 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     game->trySettleGame();
 
-    //是否已经结束
-    if (game->m_status == GameStatus::closed)
-    {
-        game->abortGame();
-        return;
-    }
-
-    //没结束, 就开下一局
-    game->tryStartRound();
+    //是否已经结束, 没结束就开下一局
+    if (game->m_status != GameStatus::closed)
+        game->tryStartRound();
 }
 
 
@@ -440,29 +457,31 @@ void Game13::playerOnLine(Client::Ptr client)
     syncAllPlayersInfoToAllClients();
 
     //给进入者发送他自己的牌信息
-    if (m_status == GameStatus::play)
+    PROTO_VAR_PUBLIC(S_G13_AbortGameOrNot, snd3);
+    if (m_status == GameStatus::play || m_status == GameStatus::vote)
     {
-        for (PlayInfo& info : m_players)
+        for (const PlayerInfo& info : m_players)
         {
             //同步手牌到端
             PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
-            std::string cardsStr;
-            cardsStr.reserve(42);
             for (auto card : info.cards)
-            {
-                cardsStr.append(std::to_string(card));
-                cardsStr.append(",");
                 snd2.add_cards(card);
-            }
             client->sendToMe(snd2Code, snd2);
+
+            auto voteInfo = snd3.add_votes();
+            voteInfo->set_cuid(info.cuid);
+            voteInfo->set_vote(info.vote);
         }
     }
-
+    if (m_status == GameStatus::vote)
+    {
+        client->sendToMe(snd3Code, snd3);
+    }
 }
 
 void Game13::sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto)
 {
-    for(const PlayInfo& info : m_players)
+    for(const PlayerInfo& info : m_players)
     {
         if (info.cuid == 0)
             continue;
@@ -475,7 +494,7 @@ void Game13::sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto)
 
 void Game13::sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto)
 {
-    for(const PlayInfo& info : m_players)
+    for(const PlayerInfo& info : m_players)
     {
         if (info.cuid == 0 || info.cuid == cuid)
             continue;
@@ -489,7 +508,7 @@ void Game13::sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMs
 void Game13::syncAllPlayersInfoToAllClients()
 {
     PROTO_VAR_PUBLIC(S_G13_PlayersInRoom, snd)
-    for(const PlayInfo& info : m_players)
+    for(const PlayerInfo& info : m_players)
     {
         using namespace PublicProto;
         auto player = snd.add_players();
@@ -524,78 +543,37 @@ void Game13::removePlayer(ClientPtr client)
 
 void Game13::abortGame()
 {
-    //退钱
-    //if (m_status == GameStatus::prepare) //只有准备阶段退钱, 其实就是不用退钱, 还没扣~~
-    //{
-    //    switch (m_attr.payor)
-    //    {
-    //    case PAY_BANKER:
-    //        {
-    //            auto roomOwner = ClientManager::me().getByCuid(ownerCuid());
-    //            if (roomOwner == nullptr)
-    //            {
-    //                LOG_ERROR("开始前解散房间, 房主模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
-    //                break;
-    //            }
-    //            roomOwner->addMoney(10);
-    //            LOG_TRACE("解开始前散房间, 房主模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 10, getId());
-    //        }
-    //        break;
-    //    case PAY_SHARE_EQU:
-    //        {
-    //            for(const PlayInfo& info : m_players)
-    //            {
-    //                Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
-    //                if (client == nullptr)
-    //                {
-    //                    LOG_ERROR("解开始前散房间, AA模式, 退款时不在线, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
-    //                    continue;
-    //                }
-    //                client->addMoney(5);
-    //                LOG_TRACE("开始前解散房间, AA模式, 退款成功, cuid={}, money={}, roomId={}", ownerCuid(), 5, getId());
-    //                //顺带发送踢掉通知
-    //                client->afterLeaveRoom();
-    //                LOG_TRACE("Game13, abortGame, 踢人, roomid={}, ccid={}, cuid={}, openid={}",
-    //                          getId(), client->ccid(), client->cuid(), client->openid());
-    //            }
-    //            m_players.clear();
-    //            m_players.resize(m_attr.playerSize);
-    //            m_status = GameStatus::closed;
-    //            return;
-    //        }
-    //        break;
-    //    case PAY_WINNER:
-    //        //没结束, 所以没人付钱, 不用退
-    //        break;
-    //    default:
-    //        break;
-    //    }
-    //}
-
     //踢所有人
-    for (const PlayInfo& info : m_players)
+    for (const PlayerInfo& info : m_players)
     {
-        LOG_TRACE("Game13, abortGame, 踢人, roomid={}, cuid={}", getId(), info.cuid());
+        LOG_TRACE("Game13, abortGame, 踢人, roomid={}, cuid={}", getId(), info.cuid);
         Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
-        if (client == nullptr)
-            continue;
-        client->afterLeaveRoom();
+        if (client != nullptr)
+            client->afterLeaveRoom();
     }
     m_players.clear();
-    m_players.resize(m_attr.playerSize);
     m_status = GameStatus::closed;
+    destroyLater();
 }
 
 void Game13::tryStartRound()
 {
-    if (m_status != GameStatus::prepare && m_status != GameStatus::settle)
-        return;
-
     //everyone ready
-    for (const PlayInfo& info : m_players)
+    if (m_status == GameStatus::prepare)
     {
-        if (info.cuid == 0 || info.status != PublicProto::S_G13_PlayersInRoom::READY)
-            return;
+        for (const PlayerInfo& info : m_players)
+        {
+            if (info.cuid == 0 || info.status != PublicProto::S_G13_PlayersInRoom::READY)
+                return;
+        }
+    }
+    else if(m_status != GameStatus::settle)
+    {
+        for (const PlayerInfo& info : m_players)
+        {
+            if (info.cuid == 0 || info.status != PublicProto::S_G13_PlayersInRoom::COMPARE)
+                return;
+        }
     }
 
     //牌局开始
@@ -611,7 +589,7 @@ void Game13::tryStartRound()
     PROTO_VAR_PUBLIC(S_G13_PlayersInRoom, snd1)
     snd1.set_rounds(m_rounds);
     uint32_t index = 0;
-    for (PlayInfo& info : m_players)
+    for (PlayerInfo& info : m_players)
     {
         //发牌
         for (uint32_t i = 0; i < info.cards.size(); ++i)
@@ -681,22 +659,21 @@ void Game13::trySettleGame()
         return;
 
     //everyone compare
-    for (const PlayInfo& info : m_players)
+    for (const PlayerInfo& info : m_players)
     {
         if (info.cuid == 0 || info.status != PublicProto::S_G13_PlayersInRoom::COMPARE)
             return;
     }
 
-
     //TODO 比牌型, 算的分
-    for (PlayInfo& info : m_players)
+    for (PlayerInfo& info : m_players)
     {
         info.rank += 0;
     }
 
     //发结果
     PROTO_VAR_PUBLIC(S_G13_AllHands, snd)
-    for (const PlayInfo& info : m_players)
+    for (const PlayerInfo& info : m_players)
     {
         auto player = snd.add_players();
         player->set_cuid(info.cuid);
@@ -706,8 +683,9 @@ void Game13::trySettleGame()
     }
     sendToAll(sndCode, snd);
 
-    //局数计数器, 并更新游戏装态
-    m_status = (m_rounds < m_attr.rounds) ? GameStatus::settle : GameStatus::closed;
+    //总结算
+    if (m_rounds >= m_attr.rounds)
+        abortGame();
 }
 
 uint32_t Game13::getEmptySeatIndex()
@@ -720,8 +698,103 @@ uint32_t Game13::getEmptySeatIndex()
     return NO_POS;
 }
 
+Game13::PlayerInfo* Game13::getPlayerInfoByCuid(ClientUniqueId cuid)
+{
+    for (PlayerInfo& info : m_players)
+    {
+        if (info.cuid == cuid)
+            return &info;
+    }
+    return nullptr;
+}
+
+void Game13::checkAllVotes()
+{
+    if (m_status != GameStatus::vote)
+        return;
+
+    PROTO_VAR_PUBLIC(S_G13_AbortGameOrNot, snd);
+    time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
+    snd.set_remain_seconds(300 > elapse ? 300 - elapse : 0);
+    uint32_t ayeSize = 0;
+    uint32_t naySize = 0;
+    std::string oppositionName;
+    for (PlayerInfo& info : m_players)
+    {
+        if (info.vote == PublicProto::VT_AYE)
+        {
+            ++ayeSize;
+        }
+        else if (info.vote == PublicProto::VT_NAY)
+        {
+            ++naySize;
+            oppositionName = info.name;
+        }
+        auto voteInfo = snd.add_votes();
+        voteInfo->set_vote(info.vote);
+        voteInfo->set_cuid(info.cuid);
+    }
+    if (ayeSize == m_players.size()) //全同意
+    {
+        //结束投票, 并终止游戏
+        for (PlayerInfo& info : m_players)
+        {
+            info.vote = PublicProto::VT_NONE;
+            auto client = ClientManager::me().getByCuid(info.cuid);
+            if (client != nullptr)
+                client->noticeMessageBox("全体通过, 游戏解散!");
+        }
+        m_startVoteTime = 0;
+        abortGame();
+    }
+    else if (naySize > 0) //有反对
+    {
+        //结束投票, 并继续游戏
+        for (PlayerInfo& info : m_players)
+        {
+            info.vote = PublicProto::VT_NONE;
+            auto client = ClientManager::me().getByCuid(info.cuid);
+            if (client != nullptr)
+                client->noticeMessageBox("{} 想要接着玩儿, 游戏继续!", oppositionName);
+        }
+        m_startVoteTime = 0;
+        m_status = GameStatus::play;
+    }
+    else
+    {
+        //更新投票情况, 等待继续投票
+        for (PlayerInfo& info : m_players)
+        {
+            auto client = ClientManager::me().getByCuid(info.cuid);
+            if (client != nullptr)
+                client->sendToMe(sndCode, snd);
+        }
+    }
+}
+
 void Game13::timerExec(componet::TimePoint now)
 {
+    if (m_status == GameStatus::vote)
+    {
+        time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
+        if (elapse >= 300)
+        {
+            for (PlayerInfo& info : m_players)
+            {
+                auto client = ClientManager::me().getByCuid(info.cuid);
+                if (client != nullptr)
+                    client->noticeMessageBox("投票结束, 游戏解散!");
+                info.vote = PublicProto::VT_NONE;
+            }
+            m_startVoteTime = 0;
+            abortGame();
+        }
+    }
+    else if (m_status == GameStatus::closed)
+    {
+        destroyLater();
+    }
+    
     return;
 }
 

@@ -1,6 +1,7 @@
 objects = \
 		  main.o\
           lobby.o\
+		  deck.o\
           room.o\
           game13.o\
 		  client_manager.o\

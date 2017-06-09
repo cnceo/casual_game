@@ -36,6 +36,7 @@ public:
 */
 protected:
     Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
+    void destroyLater();
 
 public:
     virtual void timerExec(componet::TimePoint now) = 0;
@@ -56,11 +57,13 @@ public:
 protected:
     static RoomId getRoomId();
     static bool add(Room::Ptr);
-    static void del(Room::Ptr);
+    static void delLater(Room::Ptr);
 private:
     static RoomId s_lastRoomId;
     static std::list<RoomId> s_expiredIds;
     static std::unordered_map<RoomId, Room::Ptr> s_rooms;
+protected:
+    static componet::TimePoint s_timerTime;
 };
 
 inline RoomId Room::getId() const

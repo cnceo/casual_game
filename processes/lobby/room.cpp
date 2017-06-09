@@ -5,6 +5,8 @@ namespace lobby{
 RoomId Room::s_lastRoomId = 100000;
 std::list<RoomId> Room::s_expiredIds;
 std::unordered_map<RoomId, Room::Ptr> Room::s_rooms;
+componet::TimePoint Room::s_timerTime;
+
 
 RoomId Room::getRoomId()
 {
@@ -19,6 +21,11 @@ RoomId Room::getRoomId()
     return id;
 }
 
+void Room::destroyLater()
+{
+    m_id = 0;
+}
+
 bool Room::add(Room::Ptr room)
 {
     if (room == nullptr)
@@ -26,12 +33,11 @@ bool Room::add(Room::Ptr room)
     return s_rooms.insert(std::make_pair(room->getId(), room)).second;
 }
 
-void Room::del(Room::Ptr room)
+void Room::delLater(Room::Ptr room)
 {
     if (room == nullptr)
         return;
-    s_rooms.erase(room->getId());
-    //s_expiredIds.push_back(m_id); //暂不回收, 要解决ABA问题才能用回收机制
+    room->destroyLater();
 }
 
 Room::Ptr Room::get(RoomId roomId)
@@ -44,8 +50,16 @@ Room::Ptr Room::get(RoomId roomId)
 
 void Room::timerExecAll(componet::TimePoint now)
 {
-    for (auto iter = s_rooms.begin(); iter != s_rooms.end(); ++iter)
+    s_timerTime = now;
+    auto iter = s_rooms.begin();
+    while (iter != s_rooms.end())
     {
+        if (iter->second->getId() == 0)
+        {
+            iter = s_rooms.erase(iter);
+            //s_expiredIds.push_back(iter->first); //暂不回收, 要解决ABA问题才能用回收机制
+            break;
+        }
         iter->second->timerExec(now);
     }
 }

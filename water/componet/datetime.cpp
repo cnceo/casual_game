@@ -9,7 +9,7 @@ namespace componet{
 using namespace std::chrono;
 const TimePoint EPOCH;
 
-uint32_t toUnixTime(const TimePoint& tp)
+time_t toUnixTime(const TimePoint& tp)
 {
     return Clock::to_time_t(tp);
 }

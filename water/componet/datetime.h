@@ -20,7 +20,7 @@ typedef std::chrono::system_clock Clock;
 typedef Clock::time_point TimePoint;
 
 //toUnixTime
-uint32_t toUnixTime(const TimePoint& tp);
+time_t toUnixTime(const TimePoint& tp);
 
 //获取当前系统日期(年月日)
 std::string date();

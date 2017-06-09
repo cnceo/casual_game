@@ -2,6 +2,8 @@
 #include <string>
 #include <algorithm>
 
+#include <assert.h>
+
 namespace lobby{
 
 class Deck
@@ -37,76 +39,63 @@ class Deck
 
     enum class Brand : uint16_t //枚举还是取德州的叫法了, 规则是一样的
     {
+        fiveOfKind      = 0x0200,  //五同(类似4条, 5张同点数的)
         straightFlush   = 0x0100,  //同花顺
         fourOfKind      = 0x0080,  //四条, 铁支
-        fullHouse       = 0x0040,  //葫芦, 满堂红, 三代二
+        fullHouse       = 0x0040,  //葫芦, 满堂红, 三带二
         flush           = 0x0020,  //同花
         straight        = 0x0010,  //顺子
         threeOfKind     = 0x0008,  //三条, 三一一
         twoPairs        = 0x0004,  //双对, 两对
-        onwPair         = 0x0002,  //单对, 对子, 一对
-        hightCard       = 0x0001,  //散牌, 高牌
+        onePair         = 0x0002,  //单对, 对子, 一对
+        hightCard       = 0x0001,  //乌龙, 高牌, 散牌
     };
 
 
-    Suit suit(Card card)
-    {
-        //定义牌组数值时, 端要求[1, 52], 不是从0开始, 所以数值算法要 (c-1) 然后再整除或取余 ╮(╯▽╰)╭
-        assert(card >= 1 && card <= 52);
-        return static_cast<Suit>((card - 1) / 13);
-    }
+    static Suit suit(Card card);
 
-    Rank rank(Card card)
-    {
-        assert(card >= 1 && card <= 52);
-        return static_cast<Rank>((card - 1) % 13);
-    }
+    static Rank rank(Card card);
 
-    bool cmpBySuit(Card c1, Card c2)
-    {
-        return suit(c1) < suit(c2);
-    }
+    static bool cmpSuit(Card c1, Card c2);
 
-    bool cmpByRank(Card c1, Card c2)
-    {
-        return rank(c1) < rank(c2);
-    }
+    static bool cmpRank(Card c1, Card c2);
+
+    static bool cmp(Card c1, Card c2);
 
 
-    Brand brand(Card* begin, uint32_t size)
-    {
-        Card* end = begin + size;
-        if (size == 5)
-        {
-            {//staright
-                bool sameSuit  = true;
-                bool isStright = true;
-                std::sort(begin, end, &Deck::cmpByRank);
-
-                Suit s = suit(*begin);
-                auto last = begin;
-                auto cur = last + 1;
-                do{
-                    if (s != suit(cur)) //同花
-                    if (rank(*last) + 1 != rank(*cur))
-                        isStright = false;
-                        break;
-                } while (cur != end);
-
-                //特殊的顺子, a1234
-                if (rank(begin[0]) == Rank::r2 &&
-                    rank(begin[1]) == Rank::r3 &&
-                    rank(begin[2]) == Rank::r4 &&
-                    rank(begin[3]) == Rank::r5 &&
-                    rank(begin[4]) == Rank::rA)
-                    isStright = true;
-                if (isStright
-
-            } 
-        }
-    }
+    Brand brand(Card* begin, uint32_t size);
+    Brand brand3(Card* begin);
+    Brand brand5(Card* begin);
 
     std::vector<Card> cards;
 };
+
+inline Deck::Suit Deck::suit(Card card)
+{
+    //定义牌组数值时, 端要求[1, 52], 不是从0开始, 所以数值算法要 (c-1) 然后再整除或取余 ╮(╯▽╰)╭
+    assert(card >= 1 && card <= 52);
+    return static_cast<Suit>((card - 1) / 13);
+}
+
+inline Deck::Rank Deck::rank(Card card)
+{
+    assert(card >= 1 && card <= 52);
+    return static_cast<Rank>((card - 1) % 13);
+}
+
+inline bool Deck::cmpSuit(Card c1, Card c2)
+{
+    return suit(c1) < suit(c2);
+}
+
+inline bool Deck::cmpRank(Card c1, Card c2)
+{
+    return rank(c1) < rank(c2);
+}
+
+inline bool Deck::cmp(Card c1, Card c2)
+{
+    return (rank(c1) != rank(c2)) ? cmpRank(c1, c2) : cmpSuit(c1, c2);
+}
 
 }
