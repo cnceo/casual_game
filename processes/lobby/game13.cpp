@@ -59,7 +59,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     //初始化游戏信息
     auto& attr      = game->m_attr;
     attr.roomId     = game->getId();
-    attr.playType   = rcv->play_type();
+    attr.playType   = rcv->play_type() > GP_52 ? GP_65 : GP_52;
     attr.rounds     = rcv->rounds();
     attr.payor      = rcv->payor();
     attr.daQiang    = rcv->da_qiang();
@@ -70,29 +70,6 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     //依据属性检查创建资格,并初始化游戏的动态数据
     {
         LOG_DEBUG("init deck,  rcv_play_type={}", rcv->play_type());
-        //初始化元牌
-        if (attr.playType == GP_52)
-        {
-            Game13::s_deck.cards.reserve(52);
-            for (int32_t i = 0; i < 52; ++i)
-                Game13::s_deck.cards.emplace_back(i + 1);
-        }
-        else// if(attr.playType == GP_65)
-        {
-            Game13::s_deck.cards.reserve(65);
-            for (int32_t i = 0; i < 52; ++i)
-                Game13::s_deck.cards.emplace_back(i + 1);
-            for (int32_t i = 0; i < 13; ++i)
-                Game13::s_deck.cards.emplace_back(i + 39 + 1);
-        }
-
-        std::string deckStr;
-        for (auto c : Game13::s_deck.cards)
-        {
-            deckStr.append(std::to_string(c));
-            deckStr.append(",");
-        }
-        LOG_DEBUG("init deck cards, rounds={}/{}, roomid={}, deckSize={}, deck={}", game->m_rounds, game->m_attr.rounds, game->getId(), Game13::s_deck.cards.size(), deckStr);
 
         //玩家座位数量
         game->m_players.resize(attr.playerSize);
@@ -597,6 +574,22 @@ void Game13::tryStartRound()
 
     //shuffle
     {
+        //初始化牌组
+        if (m_attr.playType == GP_52)
+        {
+            Game13::s_deck.cards.resize(52);
+            for (int32_t i = 0; i < 52; ++i)
+                Game13::s_deck.cards[i] = i + 1;
+        }
+        else// if(m_attr.playType == GP_65)
+        {
+            Game13::s_deck.cards.reserve(65);
+            for (int32_t i = 0; i < 52; ++i)
+                Game13::s_deck.cards[i] = i + 1;
+            for (int32_t i = 0; i < 13; ++i)
+                Game13::s_deck.cards[i] = i + 39 + 1;
+        }
+
         std::string deckStr;
         for (auto c : Game13::s_deck.cards)
         {
