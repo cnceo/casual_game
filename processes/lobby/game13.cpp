@@ -149,13 +149,6 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
         break;
     case GameStatus::play:
         { //临时处理， 要改成投票
-            /*
-            client->noticeMessageBox("游戏进行中, 离开解散房间");
-            game->abortGame();
-            Room::del(game);
-            LOG_TRACE("游戏进行期间离开， 终止游戏");
-            */
-
             game->m_startVoteTime = componet::toUnixTime(s_timerTime);
             game->m_voteSponsorCuid = info->cuid;
             game->m_status = GameStatus::vote;
@@ -210,8 +203,13 @@ void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId c
 
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_VoteFoAbortGame, proto);
     info->vote = rcv->vote();
-    if (rcv->vote() == PublicProto::VT_NONE) //因为弃权最后等于赞同, 所以投弃权等于投赞同
-        info->vote = (PublicProto::VT_AYE);
+
+    LOG_TRACE("voteForAbortGame, 收到投票, vote={}, roomId={}, ccid={}, cuid={}, openid={}",
+              info->vote, client->roomId(), client->ccid(), client->cuid(), client->openid());
+
+    if (rcv->vote() == PublicProto::VT_NONE) //弃权的不处理
+        return;
+    
 
     game->checkAllVotes();
     return;
@@ -352,12 +350,7 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     LOG_TRACE("BringOut, roomId={}, ccid={}, cuid={}, openid={}, cards=[{}]",
              client->roomId(), client->ccid(), client->cuid(), client->openid(), cardsStr);
 
-    PROTO_VAR_PUBLIC(S_G13_PlayersInRoom, snd)
-    auto player = snd.add_players();
-    player->set_status(info->status);
-    player->set_cuid(info->cuid);
-    player->set_name(info->name);
-    game->sendToAll(sndCode, snd);
+    game->syncAllPlayersInfoToAllClients();
 
     game->trySettleGame();
 
@@ -720,7 +713,6 @@ void Game13::checkAllVotes()
     time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
     snd.set_remain_seconds(MAX_VOTE_DURATION > elapse ? MAX_VOTE_DURATION - elapse : 0);
     uint32_t ayeSize = 0;
-    uint32_t naySize = 0;
     ClientUniqueId oppositionCuid = 0;
     for (PlayerInfo& info : m_players)
     {
@@ -730,28 +722,14 @@ void Game13::checkAllVotes()
         }
         else if (info.vote == PublicProto::VT_NAY)
         {
-            ++naySize;
             oppositionCuid = info.cuid;
+            break;
         }
         auto voteInfo = snd.add_votes();
         voteInfo->set_vote(info.vote);
         voteInfo->set_cuid(info.cuid);
     }
-    if (ayeSize == m_players.size()) //全同意
-    {
-        //结束投票, 并终止游戏
-        for (PlayerInfo& info : m_players)
-        {
-            info.vote = PublicProto::VT_NONE;
-            auto client = ClientManager::me().getByCuid(info.cuid);
-            if (client != nullptr)
-                client->noticeMessageBox("全体通过, 游戏解散!");
-        }
-        m_startVoteTime = 0;
-        m_voteSponsorCuid = 0;
-        abortGame();
-    }
-    else if (naySize > 0) //有反对
+    if (oppositionCuid != 0) //有反对
     {
         //结束投票, 并继续游戏
         PROTO_VAR_PUBLIC(S_G13_VoteFailed, snd1);
@@ -766,6 +744,22 @@ void Game13::checkAllVotes()
         m_startVoteTime = 0;
         m_voteSponsorCuid = 0;
         m_status = GameStatus::play;
+        LOG_TRACE("投票失败, 游戏继续, 反对派cuid={}, roomId={}", oppositionCuid, getId());
+    }
+    else if (ayeSize == m_players.size()) //全同意
+    {
+        //结束投票, 并终止游戏
+        for (PlayerInfo& info : m_players)
+        {
+            info.vote = PublicProto::VT_NONE;
+            auto client = ClientManager::me().getByCuid(info.cuid);
+            if (client != nullptr)
+                client->noticeMessageBox("全体通过, 游戏解散!");
+        }
+        m_startVoteTime = 0;
+        m_voteSponsorCuid = 0;
+        LOG_TRACE("投票成功, 游戏终止, roomid={}", getId());
+        abortGame();
     }
     else
     {
@@ -786,6 +780,7 @@ void Game13::timerExec(componet::TimePoint now)
         time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
         if (elapse >= MAX_VOTE_DURATION)
         {
+            LOG_TRACE("投票超时, 游戏终止, roomid={}", getId());
             for (PlayerInfo& info : m_players)
             {
                 auto client = ClientManager::me().getByCuid(info.cuid);
