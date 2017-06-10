@@ -557,6 +557,8 @@ void Game13::tryStartRound()
         {
             if (info.cuid == 0 || info.status != PublicProto::S_G13_PlayersInRoom::READY)
                 return;
+            if (ClientManager::me().getByCuid(info.cuid) == nullptr) //必须都在线, 因为第一局要扣钱
+                return;
         }
     }
     else if(m_status != GameStatus::settle)
@@ -590,23 +592,24 @@ void Game13::tryStartRound()
                 Game13::s_deck.cards[i] = i + 39 + 1;
         }
 
-        std::string deckStr;
-        for (auto c : Game13::s_deck.cards)
-        {
-            deckStr.append(std::to_string(c));
-            deckStr.append(",");
-        }
-        LOG_DEBUG("before shuffle, rounds={}/{}, roomid={}, deck={}", m_rounds, m_attr.rounds, getId(), deckStr);
+        //std::string deckStr;
+        //for (auto c : Game13::s_deck.cards)
+        //{
+        //    deckStr.append(std::to_string(c));
+        //    deckStr.append(",");
+        //}
+        //LOG_DEBUG("init deck, rounds={}/{}, roomid={}, deck={}", m_rounds, m_attr.rounds, getId(), deckStr);
 
-        std::random_device rd;
-        std::shuffle(Game13::s_deck.cards.begin(), Game13::s_deck.cards.end(), std::mt19937(rd()));
-        deckStr.clear();
-        for (auto c : Game13::s_deck.cards)
-        {
-            deckStr.append(std::to_string(c));
-            deckStr.append(",");
-        }
-        LOG_DEBUG("shuffle before deal, rounds={}/{}, roomid={}, deck={}", m_rounds, m_attr.rounds, getId(), deckStr);
+        static std::random_device rd;
+        static std::mt19937 rg(rd());
+        std::shuffle(Game13::s_deck.cards.begin(), Game13::s_deck.cards.end(), rg);
+        //deckStr.clear();
+        //for (auto c : Game13::s_deck.cards)
+        //{
+        //    deckStr.append(std::to_string(c));
+        //    deckStr.append(",");
+        //}
+        //LOG_DEBUG("shuffle deck, rounds={}/{}, roomid={}, deck={}", m_rounds, m_attr.rounds, getId(), deckStr);
     }
 
     //deal cards, then update player status and send to client
@@ -632,14 +635,11 @@ void Game13::tryStartRound()
             cardsStr.append(",");
             snd2.add_cards(card);
         }
+        LOG_TRACE("deal deck, roomid={}, ccid={}, name={}, cards=[{}]", getId(), info.cuid, info.name, cardsStr);
         auto client = ClientManager::me().getByCuid(info.cuid);
-        if (client == nullptr)
+        if (client != nullptr)
         {
-            LOG_TRACE("发牌, 玩家不在线, roomid={}, ccid={}, cards=[{}]", getId(), info.cuid, cardsStr);
-        }
-        else
-        {
-            if (m_rounds == 1) //第一局
+            if (m_rounds == 1) //第一局, 要扣钱
             {
                 if(m_attr.payor == PAY_BANKER && client->cuid() == ownerCuid())
                 {
@@ -657,9 +657,12 @@ void Game13::tryStartRound()
                 }
             }
 
-            LOG_TRACE("发牌, roomid={}, ccid={}, cuid={}, openid={}, cards=[{}]",
-                      getId(), client->ccid(), info.cuid, client->openid(), cardsStr);
             client->sendToMe(snd2Code, snd2);
+        }
+        else
+        {
+            if (m_rounds == 1) //函数开头检查过所有乘员都可以获取Client::Ptr成功, 正常情况这里不会被执行才对
+                LOG_ERROR("游戏开始, 需要扣费但是玩家不在线, payor={}, roomid={}, cuid={}", m_attr.payor, getId(), info.cuid);
         }
 
         //玩家状态改变
@@ -817,28 +820,42 @@ void Game13::checkAllVotes()
 
 void Game13::timerExec(componet::TimePoint now)
 {
-    if (m_status == GameStatus::vote)
+    switch (m_status)
     {
-        time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
-        if (elapse >= MAX_VOTE_DURATION)
+    case GameStatus::prepare:
         {
-            LOG_TRACE("投票超时, 游戏终止, roomid={}", getId());
-            for (PlayerInfo& info : m_players)
+            tryStartRound(); //全就绪可能因为某人不在线而无法开始游戏, 这里需要自动重试
+        }
+        break;
+    case GameStatus::play:
+        {
+        }
+        break;
+    case GameStatus::vote:
+        {
+            time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
+            if (elapse >= MAX_VOTE_DURATION)
             {
-                auto client = ClientManager::me().getByCuid(info.cuid);
-                if (client != nullptr)
-                    client->noticeMessageBox("投票结束, 游戏解散!");
-                info.vote = PublicProto::VT_NONE;
+                LOG_TRACE("投票超时, 游戏终止, roomid={}", getId());
+                for (PlayerInfo& info : m_players)
+                {
+                    auto client = ClientManager::me().getByCuid(info.cuid);
+                    if (client != nullptr)
+                        client->noticeMessageBox("投票结束, 游戏解散!");
+                    info.vote = PublicProto::VT_NONE;
+                }
+                m_startVoteTime = 0;
+                abortGame();
             }
-            m_startVoteTime = 0;
-            abortGame();
+        }
+        break;
+    case GameStatus::settle:
+        break;
+    case GameStatus::closed:
+        {
+            destroyLater();
         }
     }
-    else if (m_status == GameStatus::closed)
-    {
-        destroyLater();
-    }
-    
     return;
 }
 
