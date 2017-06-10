@@ -183,11 +183,20 @@ message C_G13_BringOut
 // 此消息发完后30s游戏自动解散, 期间可以自由离开
 message S_G13_AllHands
 {
+    message BrandInfo //牌型信息
+    {
+        required int32 brand = 1; //牌型枚举
+        required int32 point = 2; //同牌型比大小的点数, 特殊牌型全为0, 等策划补文档
+    }
     message Player
     {
-        required int64 cuid  = 1;
-        repeated int32 cards = 2;
-        required int32 rank  = 3; //得分, 暂时服务器没有计算，客户端直接按照自己算的结果播动画吧
+        required int64      cuid  = 1;
+        repeated int32      cards = 2; //牌组
+        required int32      rank  = 3; //单局得分
+        required BrandInfo  dun0  = 4; //头墩
+        required BrandInfo  dun1  = 5; //中墩
+        required BrandInfo  dun2  = 6; //尾墩
+        required BrandInfo  spec  = 7; //特殊牌型
     }
     repeated Player players = 1;
 }

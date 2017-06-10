@@ -59,6 +59,9 @@ private:
 
     void syncAllPlayersInfoToAllClients(); //这个有空可以拆成 sendAllToMe和sendMeToAll, 现在懒得搞了
 
+    struct RoundSettleData;
+    std::shared_ptr<RoundSettleData> calcRound();
+
     const uint32_t NO_POS = -1;
     uint32_t getEmptySeatIndex();
     struct PlayerInfo;
@@ -91,13 +94,11 @@ private:
             name.clear();
             status = 0;
             money = 0;
-            rank = 0;
         }
         ClientUniqueId cuid;
         std::string name;
         int32_t status;
         int32_t money;
-        int16_t rank = 0;
         std::array<Deck::Card, 13> cards;
         int32_t vote = 0;
     };
@@ -106,6 +107,24 @@ private:
     GameStatus m_status = GameStatus::prepare;
     int32_t m_rounds = 0;
     time_t m_startVoteTime = 0;
+
+    struct RoundSettleData
+    {
+        TYPEDEF_PTR(RoundSettleData)
+        CREATE_FUN_MAKE(RoundSettleData)
+
+        struct PlayerData
+        {
+            ClientUniqueId cuid;
+            std::string name;
+            std::array<Deck::Card, 13> cards;   //所有牌
+            std::array<Deck::BrandInfo, 3> dun; //3墩牌型
+            Deck::G13SpecialBrand spec;         //特殊牌型
+            int32_t prize = 0;
+        };
+        std::vector<PlayerData> players;
+    };
+    std::vector<RoundSettleData::Ptr> m_settleData;
 
 private://消息处理
     static void proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid);

@@ -670,16 +670,30 @@ void Game13::trySettleGame()
 
     //TODO 比牌型, 算的分
     //先算牌型
+    auto data = calcRound();
+    for (uint32_t i = 0; i < m_players.size(); ++i)
+    {
+        data->players[i].cards = m_players[i].cards;
+    }
+    m_settleData.push_back(data);
 
     //发结果
     PROTO_VAR_PUBLIC(S_G13_AllHands, snd)
-    for (const PlayerInfo& info : m_players)
+    for (const auto& pd : data->players)
     {
         auto player = snd.add_players();
-        player->set_cuid(info.cuid);
-        for (Deck::Card crd : info.cards)
+        player->set_cuid(pd.cuid);
+        for (Deck::Card crd : pd.cards)
             player->add_cards(crd);
-        player->set_rank(info.rank);
+        player->set_rank(pd.prize);
+        player->mutable_dun0()->set_brand(static_cast<int32_t>(pd.dun[0].b));
+        player->mutable_dun0()->set_point(static_cast<int32_t>(pd.dun[0].point));
+        player->mutable_dun1()->set_brand(static_cast<int32_t>(pd.dun[1].b));
+        player->mutable_dun1()->set_point(static_cast<int32_t>(pd.dun[1].point));
+        player->mutable_dun2()->set_brand(static_cast<int32_t>(pd.dun[2].b));
+        player->mutable_dun2()->set_point(static_cast<int32_t>(pd.dun[2].point));
+        player->mutable_spec()->set_brand(static_cast<int32_t>(pd.spec));
+        player->mutable_spec()->set_brand(static_cast<int32_t>(0));
     }
     sendToAll(sndCode, snd);
 
@@ -799,49 +813,202 @@ void Game13::timerExec(componet::TimePoint now)
     
     return;
 }
-/*
-struct RoundSettleData
-{
-    TYPEDEF_PTR(RoundSettleData)
-    CREATE_FUN_MAKE(RoundSettleData)
 
-    struct PlayerData
-    {
-        ClientUniqueId cuid;
-        std::string name;
-        std::array<Deck::Card, 13> cards;
-        std::array<Brand, 3> brands;
-        std::array<G13SpecialBrand, 3> brands;
-    };
-    std::vector<PlayerData> players;
-};
-
-void Game13::settleRound()
+Game13::RoundSettleData::Ptr Game13::calcRound()
 {
     auto rsd = RoundSettleData::create();
     for (PlayerInfo& info : m_players)
     {
-        rsd.players.emplace_back();
-        auto& data = rsd.players.back();
+        rsd->players.emplace_back();
+        auto& data = rsd->players.back();
         data.cuid = info.cuid;
         data.name = info.name;
         data.cards = info.cards;
 
         //1墩
-        data.brands[0] = Deck::brand(brand
+        data.dun[0] = Deck::brandInfo(data.cards.data(), 3);
+        data.dun[1] = Deck::brandInfo(data.cards.data() + 3, 5);
+        data.dun[2] = Deck::brandInfo(data.cards.data() + 8, 5);
+        data.spec = Deck::g13SpecialBrand(data.cards.data(), data.dun[1].b, data.dun[2].b);
+        data.prize = 0;
     }
 
-    auto& datas = rsd.players;
-    for (uint32_t i = 0; i < data.size(); ++i)
+    auto& datas = rsd->players;
+    for (uint32_t i = 0; i < datas.size(); ++i)
     {
-        
-        for (uint32_t j = i + 1; j < data.size(); ++j)
+        auto& dataI = datas[i];
+        for (uint32_t j = i + 1; j < datas.size(); ++j)
         {
-            a
+            auto& dataJ = datas[j];
+
+            int32_t dunCmps[] = 
+            {
+                Deck::cmpBrandInfo(dataI.dun[0], dataJ.dun[0]),
+                Deck::cmpBrandInfo(dataI.dun[1], dataJ.dun[2]),
+                Deck::cmpBrandInfo(dataI.dun[1], dataJ.dun[2]),
+            };
+            // rule 1, 同一墩赢1个玩家1水 +1分
+            // rule 2, 同一墩输1个玩家1水 -1分
+            // rule 3, 同一墩和其它玩家打和（牌型大小一样）0分
+            for (uint32_t d = 0; d < 3; ++d)
+            {
+                switch (dunCmps[d])
+                {
+                case 1: //I赢
+                    dataI.prize += 1;
+                    dataJ.prize -= 1;
+                    break;
+                case 2: //J赢
+                    dataI.prize -= 1;
+                    dataJ.prize += 1;
+                    break;
+                case 0: //平
+                default:
+                    break;
+                }
+            }
+            {// rule 4.  冲三：头墩为三张点数一样的牌且大于对手，记1分+2分奖励，共3分
+                const uint32_t d = 0;
+                if (dunCmps[d] != 0)
+                {
+                    const uint32_t extra = 2;
+                    if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::threeOfKind)
+                        dataI.prize += extra;
+                    else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::threeOfKind)
+                        dataJ.prize += extra;
+                }
+            }
+            {// 5, 中墩葫芦：中墩为葫芦且大于对手，记1分+1分奖励，共2分
+                const uint32_t d = 1;
+                if (dunCmps[d] != 0)
+                {
+                    const uint32_t extra = 1;
+                    if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fullHouse)
+                        dataI.prize += extra;
+                    else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fullHouse)
+                        dataJ.prize += extra;
+                }
+            }
+            {//6, 五同：
+                //中墩为五同且大于对手，记1分+19分奖励，共20分
+                uint32_t d = 1;
+                if (dunCmps[d] != 0)
+                {
+                    const uint32_t extra = 19;
+                    if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fiveOfKind)
+                        dataI.prize += extra;
+                    else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fiveOfKind)
+                        dataJ.prize += extra;
+                }
+
+                //尾墩为五同且大于对手，记1分+9分奖励，共10分
+                d = 2;
+                if (dunCmps[d] != 0)
+                {
+                    const uint32_t extra = 9;
+                    if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fiveOfKind)
+                        dataI.prize += extra;
+                    else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fiveOfKind)
+                        dataJ.prize += extra;
+                }
+
+            }
+            
+            {//7.   同花顺
+                //中墩为同花顺且大于对手，记1分+9分奖励，共10分
+                uint32_t d = 1;
+                if (dunCmps[d] != 0)
+                {
+                    const uint32_t extra = 9;
+                    if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::straightFlush)
+                        dataI.prize += extra;
+                    else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::straightFlush)
+                        dataJ.prize += extra;
+                }
+
+                //尾墩为同花顺且大于对手，记1分+4分奖励，共5分
+                d = 2;
+                if (dunCmps[d] != 0)
+                {
+                    const uint32_t extra = 4;
+                    if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::straightFlush)
+                        dataI.prize += extra;
+                    else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::straightFlush)
+                        dataJ.prize += extra;
+                }
+            }
+            {//8.   铁支, 四条
+                //中墩为铁支且大于对手，记1分+7分奖励，共8分
+                uint32_t d = 1;
+                if (dunCmps[d] != 0)
+                {
+                    const uint32_t extra = 7;
+                    if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fourOfKind)
+                        dataI.prize += extra;
+                    else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fourOfKind)
+                        dataJ.prize += extra;
+                }
+
+                //尾墩为为铁支且大于对手，记1分+3分奖励，共4分
+                d = 2;
+                if (dunCmps[d] != 0)
+                {
+                    const uint32_t extra = 3;
+                    if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fourOfKind)
+                        dataI.prize += extra;
+                    else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fourOfKind)
+                        dataJ.prize += extra;
+                }
+            }
+            //9, 打枪
+            //如果三墩都比一个玩家打的话，向该玩家收取分数*2,包含特殊分
+            //诸如冲三后打枪一个玩家，为5分+5分，共对该玩家收取10分
+            if (m_attr.daQiang)
+            {
+                //这个看不懂, 先跳过
+                //但是可以肯定很恶心   
+            }
+            //10, 全垒打, 计算完每家打枪的分数后，再*2，也就是总分X分+X分
+            {
+                //同上, 一样跳过
+            }
+            ///////////////////////////////以下为特殊牌型//////////////////////////
+            if (dataI.spec != dataJ.spec)
+            {
+                auto& specWinner = (dataI.spec > dataJ.spec) ?  dataI : dataJ;
+                switch (specWinner.spec)
+                {
+                case Deck::G13SpecialBrand::flushStriaght: //11.   清龙（同花十三水）：若大于其他玩家，每家赢取104分
+                    specWinner.prize += 104;
+                    break;
+                case Deck::G13SpecialBrand::straight:
+                    specWinner.prize += 52;
+                    break;
+                case Deck::G13SpecialBrand::royal:
+                case Deck::G13SpecialBrand::tripleStraightFlush:
+                case Deck::G13SpecialBrand::tripleBombs:
+                    specWinner.prize += 26;
+                    break;
+                case Deck::G13SpecialBrand::allBig:
+                case Deck::G13SpecialBrand::allLittle:
+                case Deck::G13SpecialBrand::redOrBlack:
+                case Deck::G13SpecialBrand::quradThreeOfKind:
+                case Deck::G13SpecialBrand::pentaPairsAndThreeOfKind:
+                case Deck::G13SpecialBrand::sixPairs:
+                case Deck::G13SpecialBrand::tripleStraight:
+                case Deck::G13SpecialBrand::tripleFlush:
+                    specWinner.prize += 6;
+                    break;
+                case Deck::G13SpecialBrand::none:
+                default:
+                    specWinner.prize += 0;
+                    break;
+                }
+            }
         }
     }
+    return rsd;
 }
-*/
 
 
 }
