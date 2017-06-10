@@ -381,7 +381,7 @@ Deck::G13SpecialBrand Deck::g13SpecialBrandByAll(Card* c, G13SpecialBrand dun)
 
     //对子的数量 以及是否含三条 ??? 2个四条算不算4个对子, 现在做了剔除
     bool have3Kind = false;
-    uint32_t pairSize = (r[11] == r[12]) ? 1 : 0; //先检查最后两个是否是对子
+    uint32_t pairSize = (r[11] == r[12] && r[10] != r[12]) ? 1 : 0; //先检查最后两个是否是对子
     for (uint32_t i = 1; i < size - 1; )          //接下来的对子检查中, 不检查最后一张牌
     {
         if (r[i - 1] == r[i])    //前一张相同
@@ -481,7 +481,7 @@ void table()
 std::string suitsName[] = {"♦", "♣", "♥", "♠"};
 std::string ranksName[] = {"2", "3", "4", "5", "6", "7", "8", "9", "X", "J", "Q", "K", "A"};
 
-using Card = uint8_t;
+using Card = Deck::Card;
 using H = std::vector<Card>;
 
 string cardName(Card c)
@@ -505,6 +505,13 @@ string strH(const H& h)
     return ss.str();
 }
 
+string strBrandInfo(const Deck::BrandInfo& bi)
+{
+    stringstream ss;
+    ss << (int)(bi.b) <<  ", " << bi.point;
+    return ss.str();
+}
+
 string detailH(const H& h)
 {
     string ret = strH(h) + "   " + readAbleH(h);
@@ -523,7 +530,7 @@ void showDeck()
 }
 
 
-H hArr[] = 
+H dunArr[] = 
 {
     {6, 19, 32, 45, 45},  //9
     {34, 35, 36 ,37, 38}, //8
@@ -552,24 +559,54 @@ H hArr[] =
     {10, 37, 52}, //0
 };
 
+H allArr[] =
+{
+    {27,28,29,30,31,32,33,34,35,36,37,38,39}, //青龙
+    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,50}, //6对 + 1
+    { 1,14, 2,15, 3,16, 4,43, 5,44,50,11,52}, //6对 + 1
+    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,13}, //5对 + 3条
+    {14, 2,15, 3,16,17, 4,43, 5,40,44,39,52}, //5对 + 3条
+    { 1, 2,15, 3,16,17,30, 4,43, 5,44,39,52}, //0,  (4条 + 3对 + 1)
+};
 
-void test(H& h)
+
+void testBrand(H& h)
 {
     cout << "--------------------------" << endl;
     cout << "收到: " << detailH(h) << endl;
     std::shuffle(h.begin(), h.end(), std::default_random_engine(::time(0)));
     cout << "洗牌: " << detailH(h) << endl;
-    auto info = (Deck::brandInfo(h.data(), h.size()));
+    auto info = Deck::brandInfo(h.data(), h.size());
     cout << "整理: " << detailH(h) << endl;
     cout << "牌型:  " << (int)(info.b) <<  ", " << info.point << endl;
     Deck::cmpBrandInfo(info, info);
 }
 
-
 void testAll()
 {
-    for (auto& h : hArr)
-        test(h);
+    for(auto& h : allArr)
+    {
+        cout << "--------------------------" << endl;
+        cout << "收到: " << detailH(h) << endl;
+        std::shuffle(h.begin(), h.end(), std::default_random_engine(::time(0)));
+        cout << "洗牌: " << detailH(h) << endl;
+        auto d1 = Deck::brandInfo(h.data(), 3);
+        auto d2 = Deck::brandInfo(h.data() + 3, 5);
+        auto d3 = Deck::brandInfo(h.data() + 8, 5);
+        auto s = Deck::g13SpecialBrand(h.data(), d2.b, d3.b);
+        cout << "头墩: " << strBrandInfo(d1) << endl;
+        cout << "中墩: " << strBrandInfo(d2) << endl;
+        cout << "尾墩: " << strBrandInfo(d3) << endl;
+        cout << "全序: " << detailH(h) << endl;
+        cout << "特殊: " << (int)s << endl;
+    }
+}
+
+
+void testDun()
+{
+    for (auto& h : dunArr)
+        testBrand(h);
 }
 
 }
@@ -578,6 +615,7 @@ int main()
 {
     using namespace deck_unit_test;
  //   table();
+    
     testAll();
     return 0;
 
