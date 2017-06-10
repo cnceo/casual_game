@@ -576,11 +576,19 @@ void Game13::tryStartRound()
 
     //牌局开始
     ++m_rounds;
+    LOG_TRACE("新一轮开始, rounds={}/{}, roomId={}", m_rounds, m_attr.rounds, getId());
 
     //shuffle
     {
         std::random_device rd;
         std::shuffle(Game13::s_deck.cards.begin(), Game13::s_deck.cards.end(), std::mt19937(rd()));
+        std::string deckStr;
+        for (auto c : Game13::s_deck.cards)
+        {
+            deckStr.append(std::to_string(c));
+            deckStr.append(",");
+        }
+        LOG_DEBUG("shuffle before deal, rounds={}/{}, roomid={}, deck={}", m_rounds, m_attr.rounds, getId(), deckStr);
     }
 
     //deal cards, then update player status and send to client
@@ -691,6 +699,7 @@ void Game13::trySettleGame()
         player->mutable_spec()->set_brand(static_cast<int32_t>(0));
     }
     sendToAll(sndCode, snd);
+    LOG_TRACE("单轮结算结束, round={}/{}, roomid={}", m_rounds, m_attr.rounds, getId());
 
     //总结算
     if (m_rounds >= m_attr.rounds)

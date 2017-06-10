@@ -26,7 +26,7 @@ static Info info[2] =
 {
     {
         true,
-        std::string("xxxxx1"),
+        std::string("xxxxx11"),
         std::string("robot1"),
     },
     {

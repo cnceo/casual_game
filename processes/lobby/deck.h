@@ -15,7 +15,7 @@ class Deck
 public:
     friend class Game13;
 
-    using Card = uint8_t;
+    using Card = uint16_t;
 
     enum class Suit : uint8_t
     {
