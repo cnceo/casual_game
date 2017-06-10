@@ -77,6 +77,14 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
         for (uint32_t i = 0; i < Game13::s_deck.cards.size(); ++i)
             Game13::s_deck.cards[i] = (i % 52) + 1;
 
+        std::string deckStr;
+        for (auto c : Game13::s_deck.cards)
+        {
+            deckStr.append(std::to_string(c));
+            deckStr.append(",");
+        }
+        LOG_DEBUG("init deck cards, rounds={}/{}, roomid={}, deck={}", game->m_rounds, game->m_attr.rounds, game->getId(), deckStr);
+
         //玩家座位数量
         game->m_players.resize(attr.playerSize);
     }
@@ -580,9 +588,17 @@ void Game13::tryStartRound()
 
     //shuffle
     {
+        std::string deckStr;
+        for (auto c : Game13::s_deck.cards)
+        {
+            deckStr.append(std::to_string(c));
+            deckStr.append(",");
+        }
+        LOG_DEBUG("before shuffle, rounds={}/{}, roomid={}, deck={}", m_rounds, m_attr.rounds, getId(), deckStr);
+
         std::random_device rd;
         std::shuffle(Game13::s_deck.cards.begin(), Game13::s_deck.cards.end(), std::mt19937(rd()));
-        std::string deckStr;
+        deckStr.clear();
         for (auto c : Game13::s_deck.cards)
         {
             deckStr.append(std::to_string(c));
