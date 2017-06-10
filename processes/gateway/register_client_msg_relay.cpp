@@ -30,7 +30,7 @@ void ClientManager::regClientMsgRelay()
     PUBLIC_MSG_TO_LOBBY(C_G13_CreateGame)
     PUBLIC_MSG_TO_LOBBY(C_G13_JionGame)
     PUBLIC_MSG_TO_LOBBY(C_G13_GiveUp)
-    PUBLIC_MSG_TO_CLIENT(C_G13_VoteFoAbortGame)
+    PUBLIC_MSG_TO_LOBBY(C_G13_VoteFoAbortGame)
     PUBLIC_MSG_TO_LOBBY(C_G13_ReadyFlag)
     PUBLIC_MSG_TO_LOBBY(C_G13_BringOut)
 
