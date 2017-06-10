@@ -9,6 +9,7 @@
 
 namespace lobby{
 
+const time_t MAX_VOTE_DURATION = 300;
 
 Deck Game13::s_deck;
 
@@ -337,7 +338,7 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         return;
     }
     
-    //改变状态
+    //改变玩家状态, 接收玩家牌型数据
     info->status = PublicProto::S_G13_PlayersInRoom::COMPARE;
     std::string cardsStr;
     cardsStr.reserve(42);
@@ -458,7 +459,8 @@ void Game13::playerOnLine(Client::Ptr client)
 
     //给进入者发送他自己的牌信息
     PROTO_VAR_PUBLIC(S_G13_AbortGameOrNot, snd3);
-    snd3.set_remain_seconds(componet::toUnixTime(s_timerTime) - m_startVoteTime);
+    time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
+    snd3.set_remain_seconds(MAX_VOTE_DURATION > elapse ? MAX_VOTE_DURATION - elapse : 0);
     if (m_status == GameStatus::play || m_status == GameStatus::vote)
     {
         for (const PlayerInfo& info : m_players)
@@ -667,10 +669,7 @@ void Game13::trySettleGame()
     }
 
     //TODO 比牌型, 算的分
-    for (PlayerInfo& info : m_players)
-    {
-        info.rank += 0;
-    }
+    //先算牌型
 
     //发结果
     PROTO_VAR_PUBLIC(S_G13_AllHands, snd)
@@ -716,10 +715,10 @@ void Game13::checkAllVotes()
 
     PROTO_VAR_PUBLIC(S_G13_AbortGameOrNot, snd);
     time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
-    snd.set_remain_seconds(300 > elapse ? 300 - elapse : 0);
+    snd.set_remain_seconds(MAX_VOTE_DURATION > elapse ? MAX_VOTE_DURATION - elapse : 0);
     uint32_t ayeSize = 0;
     uint32_t naySize = 0;
-    std::string oppositionName;
+    ClientUniqueId oppositionCuid = 0;
     for (PlayerInfo& info : m_players)
     {
         if (info.vote == PublicProto::VT_AYE)
@@ -729,7 +728,7 @@ void Game13::checkAllVotes()
         else if (info.vote == PublicProto::VT_NAY)
         {
             ++naySize;
-            oppositionName = info.name;
+            oppositionCuid = info.cuid;
         }
         auto voteInfo = snd.add_votes();
         voteInfo->set_vote(info.vote);
@@ -751,12 +750,14 @@ void Game13::checkAllVotes()
     else if (naySize > 0) //有反对
     {
         //结束投票, 并继续游戏
+        PROTO_VAR_PUBLIC(S_G13_VoteFailed, snd1);
+        snd1.set_opponent(oppositionCuid);
         for (PlayerInfo& info : m_players)
         {
             info.vote = PublicProto::VT_NONE;
             auto client = ClientManager::me().getByCuid(info.cuid);
             if (client != nullptr)
-                client->noticeMessageBox("{} 想要接着玩儿, 游戏继续!", oppositionName);
+                client->sendToMe(snd1Code, snd1);
         }
         m_startVoteTime = 0;
         m_status = GameStatus::play;
@@ -778,7 +779,7 @@ void Game13::timerExec(componet::TimePoint now)
     if (m_status == GameStatus::vote)
     {
         time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
-        if (elapse >= 300)
+        if (elapse >= MAX_VOTE_DURATION)
         {
             for (PlayerInfo& info : m_players)
             {
@@ -798,6 +799,50 @@ void Game13::timerExec(componet::TimePoint now)
     
     return;
 }
+/*
+struct RoundSettleData
+{
+    TYPEDEF_PTR(RoundSettleData)
+    CREATE_FUN_MAKE(RoundSettleData)
+
+    struct PlayerData
+    {
+        ClientUniqueId cuid;
+        std::string name;
+        std::array<Deck::Card, 13> cards;
+        std::array<Brand, 3> brands;
+        std::array<G13SpecialBrand, 3> brands;
+    };
+    std::vector<PlayerData> players;
+};
+
+void Game13::settleRound()
+{
+    auto rsd = RoundSettleData::create();
+    for (PlayerInfo& info : m_players)
+    {
+        rsd.players.emplace_back();
+        auto& data = rsd.players.back();
+        data.cuid = info.cuid;
+        data.name = info.name;
+        data.cards = info.cards;
+
+        //1墩
+        data.brands[0] = Deck::brand(brand
+    }
+
+    auto& datas = rsd.players;
+    for (uint32_t i = 0; i < data.size(); ++i)
+    {
+        
+        for (uint32_t j = i + 1; j < data.size(); ++j)
+        {
+            a
+        }
+    }
+}
+*/
+
 
 }
 

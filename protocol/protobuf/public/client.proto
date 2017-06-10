@@ -107,7 +107,7 @@ message S_G13_PlayersInRoom
     {
         required int64 cuid     = 1; //cuid
         required int32 status   = 2; //具体值见上面的枚举定义中的注释
-        required string name    = 3; //
+        required string name    = 3; //名字
         required int32 money    = 4; //金币数量
     }
     repeated PlayerStatus players   = 1;
@@ -126,7 +126,7 @@ enum G13_VoteOfAbort
 {
     VT_NONE = 0;  //未投
     VT_AYE  = 1;  //赞同
-    VT_NAY  = 2;  //支持
+    VT_NAY  = 2;  //反对
 };
 
 // 关于退出游戏投票的更新和通知
@@ -139,13 +139,20 @@ message S_G13_AbortGameOrNot
         required int32  vote = 2;
     }
     required int32 remain_seconds   = 1;//剩余秒数
-    repeated Vote  votes            = 2;//当前票列表
+    required int64 sponsor          = 2;//发起者的cuid
+    repeated Vote  votes            = 3;//当前票列表
 }
 
 // 投票表决是否赞同终止游戏
 message C_G13_VoteFoAbortGame
 {
      required G13_VoteOfAbort vote = 1;
+}
+
+// 投票失败, 游戏继续
+message S_G13_VoteFailed
+{
+    required int64 opponent = 1; //反对者的cuid
 }
 
 //玩家已离开游戏, 仅发给自己
