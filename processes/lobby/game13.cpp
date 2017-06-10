@@ -71,11 +71,19 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     {
         //初始化元牌
         if (attr.playType == GP_52)
-            Game13::s_deck.cards.resize(52);
+        {
+            Game13::s_deck.cards.reserve(52);
+            for (int32_t i = 0; i < 52; ++i)
+                Game13::s_deck.cards.emplace_back(i + 1);
+        }
         else// if(attr.playType == GP_65)
-            Game13::s_deck.cards.resize(65);
-        for (uint32_t i = 0; i < Game13::s_deck.cards.size(); ++i)
-            Game13::s_deck.cards[i] = (i % 52) + 1;
+        {
+            Game13::s_deck.cards.reserve(65);
+            for (int32_t i = 0; i < 52; ++i)
+                Game13::s_deck.cards.emplace_back(i + 1);
+            for (int32_t i = 0; i < 13; ++i)
+                Game13::s_deck.cards.emplace_back(i + 39 + 1);
+        }
 
         std::string deckStr;
         for (auto c : Game13::s_deck.cards)
@@ -712,7 +720,7 @@ void Game13::trySettleGame()
         player->mutable_dun2()->set_brand(static_cast<int32_t>(pd.dun[2].b));
         player->mutable_dun2()->set_point(static_cast<int32_t>(pd.dun[2].point));
         player->mutable_spec()->set_brand(static_cast<int32_t>(pd.spec));
-        player->mutable_spec()->set_brand(static_cast<int32_t>(0));
+        player->mutable_spec()->set_point(static_cast<int32_t>(0));
     }
     sendToAll(sndCode, snd);
     LOG_TRACE("单轮结算结束, round={}/{}, roomid={}", m_rounds, m_attr.rounds, getId());
