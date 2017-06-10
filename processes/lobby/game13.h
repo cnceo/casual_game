@@ -107,6 +107,7 @@ private:
     GameStatus m_status = GameStatus::prepare;
     int32_t m_rounds = 0;
     time_t m_startVoteTime = 0;
+    ClientUniqueId m_voteSponsorCuid = 0;
 
     struct RoundSettleData
     {
