@@ -157,6 +157,7 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
             */
 
             game->m_startVoteTime = componet::toUnixTime(s_timerTime);
+            game->m_voteSponsorCuid = info->cuid;
             game->m_status = GameStatus::vote;
         }
         //no break
@@ -459,6 +460,7 @@ void Game13::playerOnLine(Client::Ptr client)
 
     //给进入者发送他自己的牌信息
     PROTO_VAR_PUBLIC(S_G13_AbortGameOrNot, snd3);
+    snd3.set_sponsor(m_voteSponsorCuid);
     time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
     snd3.set_remain_seconds(MAX_VOTE_DURATION > elapse ? MAX_VOTE_DURATION - elapse : 0);
     if (m_status == GameStatus::play || m_status == GameStatus::vote)
@@ -714,6 +716,7 @@ void Game13::checkAllVotes()
         return;
 
     PROTO_VAR_PUBLIC(S_G13_AbortGameOrNot, snd);
+    snd.set_sponsor(m_voteSponsorCuid);
     time_t elapse = componet::toUnixTime(s_timerTime) - m_startVoteTime;
     snd.set_remain_seconds(MAX_VOTE_DURATION > elapse ? MAX_VOTE_DURATION - elapse : 0);
     uint32_t ayeSize = 0;
@@ -745,6 +748,7 @@ void Game13::checkAllVotes()
                 client->noticeMessageBox("全体通过, 游戏解散!");
         }
         m_startVoteTime = 0;
+        m_voteSponsorCuid = 0;
         abortGame();
     }
     else if (naySize > 0) //有反对
@@ -760,6 +764,7 @@ void Game13::checkAllVotes()
                 client->sendToMe(snd1Code, snd1);
         }
         m_startVoteTime = 0;
+        m_voteSponsorCuid = 0;
         m_status = GameStatus::play;
     }
     else
