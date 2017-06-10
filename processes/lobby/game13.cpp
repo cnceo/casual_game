@@ -69,6 +69,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     //依据属性检查创建资格,并初始化游戏的动态数据
     {
+        LOG_DEBUG("init deck,  rcv_play_type={}", rcv->play_type());
         //初始化元牌
         if (attr.playType == GP_52)
         {
@@ -91,7 +92,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
             deckStr.append(std::to_string(c));
             deckStr.append(",");
         }
-        LOG_DEBUG("init deck cards, rounds={}/{}, roomid={}, deck={}", game->m_rounds, game->m_attr.rounds, game->getId(), deckStr);
+        LOG_DEBUG("init deck cards, rounds={}/{}, roomid={}, deckSize={}, deck={}", game->m_rounds, game->m_attr.rounds, game->getId(), Game13::s_deck.cards.size(), deckStr);
 
         //玩家座位数量
         game->m_players.resize(attr.playerSize);
