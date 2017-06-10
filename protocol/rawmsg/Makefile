@@ -28,7 +28,7 @@ private_msgcodedef_list = \
 CC = g++
 cc = g++
 
-cc_flags = -std=c++11 -ggdb -Wall -Werror\
+cc_flags = $(CPP_STD_VER) -ggdb -Wall -Werror \
 		   $(optimization_flag)\
 		   -I$(ROOT_DIR)
 

@@ -24,8 +24,8 @@ objects = \
 CC = g++
 cc = g++
 
-#cc_flags = -std=c++11 -fPIC -ggdb -Wall -Werror
-cc_flags = -std=c++11 -g -Wall -Werror $(optimization_flag)
+cc_flags = $(CPP_STD_VER) -ggdb -Wall -Werror \
+		   $(optimization_flag)
 
 target = libcomponet
 

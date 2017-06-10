@@ -13,7 +13,8 @@ include_flags        = $(shell $(MYSQL_CONFIG_CMD) --include) \
 lib_flags            = $(shell $(MYSQL_CONFIG_CMD) --libs_r)\
 					   -L$(LIBS_DIR)/mysql++/installed/lib -lmysqlpp
 
-cc_flags = -std=c++11 -ggdb -Wall -Werror $(optimization_flag)\
+cc_flags = $(CPP_STD_VER) -ggdb -Wall -Werror \
+		   $(optimization_flag)\
 		   $(include_flags)
 
 ln_flags = -lpthread $(lib_flags)

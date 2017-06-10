@@ -15,6 +15,8 @@ export MYSQL_CONFIG_CMD = mysql_config
 
 export optimization_flag = -O0
 
+export CPP_STD_VER = -std=c++14
+
 
 SUBDIR =  \
 		  water\

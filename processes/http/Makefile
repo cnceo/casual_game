@@ -9,7 +9,7 @@ objects = http_callback.o\
 CC = g++
 cc = g++
 
-cc_flags = -std=c++11 -ggdb -Wall -Werror \
+cc_flags = $(CPP_STD_VER) -ggdb -Wall -Werror \
 		   $(optimization_flag)\
 		   $(google_protobuf_cc_flag)\
 		   $(base_cc_flag)\
