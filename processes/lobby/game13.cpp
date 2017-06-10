@@ -677,7 +677,7 @@ void Game13::tryStartRound()
 
 void Game13::trySettleGame()
 {
-    if (m_status != GameStatus::prepare)
+    if (m_status != GameStatus::play)
         return;
 
     //everyone compare
@@ -720,6 +720,7 @@ void Game13::trySettleGame()
     //总结算
     if (m_rounds >= m_attr.rounds)
         abortGame();
+    m_status = GameStatus::settle;
 }
 
 uint32_t Game13::getEmptySeatIndex()
