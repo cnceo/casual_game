@@ -885,7 +885,50 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
         for (uint32_t j = i + 1; j < datas.size(); ++j)
         {
             auto& dataJ = datas[j];
+            ///////////////////////////////以下为特殊牌型//////////////////////////
+            if (dataI.spec != dataJ.spec)
+            {
+                auto& specWinner = (dataI.spec > dataJ.spec) ?  dataI : dataJ;
+                auto& specLoser  = (dataI.spec < dataJ.spec) ?  dataI : dataJ;
+                switch (specWinner.spec)
+                {
+                case Deck::G13SpecialBrand::flushStriaght: //11.   清龙（同花十三水）：若大于其他玩家，每家赢取104分
+                    specWinner.prize += 104;
+                    specLoser.prize  -= 104;
+                    break;
+                case Deck::G13SpecialBrand::straight:
+                    specWinner.prize += 52;
+                    specLoser.prize  -= 52;
+                    break;
+                case Deck::G13SpecialBrand::royal:
+                case Deck::G13SpecialBrand::tripleStraightFlush:
+                case Deck::G13SpecialBrand::tripleBombs:
+                    specWinner.prize += 26;
+                    specLoser.prize  -= 26;
+                    break;
+                case Deck::G13SpecialBrand::allBig:
+                case Deck::G13SpecialBrand::allLittle:
+                case Deck::G13SpecialBrand::redOrBlack:
+                case Deck::G13SpecialBrand::quradThreeOfKind:
+                case Deck::G13SpecialBrand::pentaPairsAndThreeOfKind:
+                case Deck::G13SpecialBrand::sixPairs:
+                case Deck::G13SpecialBrand::tripleStraight:
+                case Deck::G13SpecialBrand::tripleFlush:
+                    specWinner.prize += 6;
+                    specLoser.prize  -= 6;
+                    break;
+                case Deck::G13SpecialBrand::none:
+                    break;
+                default:
+                    break;
+                }
 
+                //本轮已经不用再比了, 因为有特殊牌型, 特殊的都大于一般的
+                continue;
+            }
+
+
+            /////////////////////////////////////以下为一般牌型//////////////////////
             int32_t dunCmps[] = 
             {
                 Deck::cmpBrandInfo(dataI.dun[0], dataJ.dun[0]),
@@ -918,9 +961,15 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 {
                     const uint32_t extra = 2;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::threeOfKind)
+                    {
                         dataI.prize += extra;
+                        dataJ.prize -= extra;
+                    }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::threeOfKind)
+                    {
+                        dataI.prize -= extra;
                         dataJ.prize += extra;
+                    }
                 }
             }
             {// 5, 中墩葫芦：中墩为葫芦且大于对手，记1分+1分奖励，共2分
@@ -929,9 +978,15 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 {
                     const uint32_t extra = 1;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fullHouse)
+                    {
                         dataI.prize += extra;
+                        dataJ.prize -= extra;
+                    }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fullHouse)
+                    {
+                        dataI.prize -= extra;
                         dataJ.prize += extra;
+                    }
                 }
             }
             {//6, 五同：
@@ -941,9 +996,15 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 {
                     const uint32_t extra = 19;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fiveOfKind)
+                    {
                         dataI.prize += extra;
+                        dataJ.prize -= extra;
+                    }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fiveOfKind)
+                    {
+                        dataI.prize -= extra;
                         dataJ.prize += extra;
+                    }
                 }
 
                 //尾墩为五同且大于对手，记1分+9分奖励，共10分
@@ -952,9 +1013,15 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 {
                     const uint32_t extra = 9;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fiveOfKind)
+                    {
                         dataI.prize += extra;
+                        dataJ.prize -= extra;
+                    }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fiveOfKind)
+                    {
+                        dataI.prize -= extra;
                         dataJ.prize += extra;
+                    }
                 }
 
             }
@@ -966,9 +1033,15 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 {
                     const uint32_t extra = 9;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::straightFlush)
+                    {
                         dataI.prize += extra;
+                        dataJ.prize -= extra;
+                    }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::straightFlush)
+                    {
+                        dataI.prize -= extra;
                         dataJ.prize += extra;
+                    }
                 }
 
                 //尾墩为同花顺且大于对手，记1分+4分奖励，共5分
@@ -977,9 +1050,15 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 {
                     const uint32_t extra = 4;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::straightFlush)
+                    {
                         dataI.prize += extra;
+                        dataJ.prize -= extra;
+                    }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::straightFlush)
+                    {
+                        dataI.prize -= extra;
                         dataJ.prize += extra;
+                    }
                 }
             }
             {//8.   铁支, 四条
@@ -989,9 +1068,15 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 {
                     const uint32_t extra = 7;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fourOfKind)
+                    {
                         dataI.prize += extra;
+                        dataJ.prize -= extra;
+                    }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fourOfKind)
+                    {
+                        dataI.prize -= extra;
                         dataJ.prize += extra;
+                    }
                 }
 
                 //尾墩为为铁支且大于对手，记1分+3分奖励，共4分
@@ -1000,9 +1085,15 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 {
                     const uint32_t extra = 3;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fourOfKind)
+                    {
                         dataI.prize += extra;
+                        dataJ.prize -= extra;
+                    }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fourOfKind)
+                    {
+                        dataI.prize -= extra;
                         dataJ.prize += extra;
+                    }
                 }
             }
             //9, 打枪
@@ -1016,39 +1107,6 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             //10, 全垒打, 计算完每家打枪的分数后，再*2，也就是总分X分+X分
             {
                 //同上, 一样跳过
-            }
-            ///////////////////////////////以下为特殊牌型//////////////////////////
-            if (dataI.spec != dataJ.spec)
-            {
-                auto& specWinner = (dataI.spec > dataJ.spec) ?  dataI : dataJ;
-                switch (specWinner.spec)
-                {
-                case Deck::G13SpecialBrand::flushStriaght: //11.   清龙（同花十三水）：若大于其他玩家，每家赢取104分
-                    specWinner.prize += 104;
-                    break;
-                case Deck::G13SpecialBrand::straight:
-                    specWinner.prize += 52;
-                    break;
-                case Deck::G13SpecialBrand::royal:
-                case Deck::G13SpecialBrand::tripleStraightFlush:
-                case Deck::G13SpecialBrand::tripleBombs:
-                    specWinner.prize += 26;
-                    break;
-                case Deck::G13SpecialBrand::allBig:
-                case Deck::G13SpecialBrand::allLittle:
-                case Deck::G13SpecialBrand::redOrBlack:
-                case Deck::G13SpecialBrand::quradThreeOfKind:
-                case Deck::G13SpecialBrand::pentaPairsAndThreeOfKind:
-                case Deck::G13SpecialBrand::sixPairs:
-                case Deck::G13SpecialBrand::tripleStraight:
-                case Deck::G13SpecialBrand::tripleFlush:
-                    specWinner.prize += 6;
-                    break;
-                case Deck::G13SpecialBrand::none:
-                default:
-                    specWinner.prize += 0;
-                    break;
-                }
             }
         }
     }
