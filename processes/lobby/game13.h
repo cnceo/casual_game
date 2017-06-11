@@ -39,9 +39,6 @@ class Game13 : public Room
         DQ_SHUANG_BEI   = 2,  //打枪，双倍
     };
 
-public:
-    void playerOnLine(ClientPtr client);
-
 private:
     CREATE_FUN_NEW(Game13);
     TYPEDEF_PTR(Game13);
@@ -53,9 +50,12 @@ private:
     void abortGame();
 
     void removePlayer(ClientPtr client);
+    void afterEnterRoom(ClientPtr client);
+
     virtual void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto) override;
     virtual void sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto) override;
     virtual void timerExec(componet::TimePoint now) override;
+    virtual void clientOnlineExec(ClientPtr) override;
 
     void syncAllPlayersInfoToAllClients(); //这个有空可以拆成 sendAllToMe和sendMeToAll, 现在懒得搞了
 

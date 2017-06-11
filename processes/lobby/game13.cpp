@@ -128,8 +128,8 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
             {
                 LOG_TRACE("准备期间房主离开房间, roomId={}, ccid={}, cuid={}, openid={}",
                           client->roomId(), client->ccid(), client->cuid(), client->openid()); 
+                LOG_TRACE("准备期间终止游戏, 销毁房间, roomId={}", game->getId());
                 game->abortGame();
-                LOG_TRACE("准备期间终止游戏, 房间已销毁, roomId={}", game->getId());
                 return;
             }
             else
@@ -417,17 +417,31 @@ bool Game13::enterRoom(Client::Ptr client)
 
     client->setRoomId(getId());
 
-    playerOnLine(client);
+    afterEnterRoom(client);
 
     LOG_TRACE("G13, {}房间成功, roomId={}, ccid={}, cuid={}, openid={}", (ownerCuid() != client->cuid()) ? "进入" : "创建",
               client->roomId(), client->ccid(), client->cuid(), client->openid());
     return true;
 }
 
-void Game13::playerOnLine(Client::Ptr client)
+void Game13::clientOnlineExec(Client::Ptr client)
 {
     if (client == nullptr)
         return;
+    if (client->roomId() == getId() && getPlayerInfoByCuid(client->cuid()) == nullptr)
+    {
+        LOG_TRACE("玩家上线, 房间号已被复用, roomId={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
+        client->setRoomId(0);
+        return;
+    }
+    afterEnterRoom(client);
+}
+
+void Game13::afterEnterRoom(ClientPtr client)
+{
+    if (client == nullptr)
+        return;
+
     {//给进入者发送房间基本属性
         PROTO_VAR_PUBLIC(S_G13_RoomAttr, snd)
         snd.set_room_id(m_attr.roomId);

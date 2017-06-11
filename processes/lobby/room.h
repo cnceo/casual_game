@@ -22,8 +22,10 @@ enum class GameType
 
 using RoomId = uint32_t;
 
+class Client;
 class Room : public std::enable_shared_from_this<Room>
 {
+    using ClientPtr = std::shared_ptr<Client>;
 public:
     TYPEDEF_PTR(Room)
     virtual ~Room();
@@ -39,6 +41,7 @@ protected:
     void destroyLater();
 
 public:
+    virtual void clientOnlineExec(ClientPtr client) = 0;
     virtual void timerExec(componet::TimePoint now) = 0;
     virtual void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto) = 0;
     virtual void sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto) = 0;
@@ -53,6 +56,7 @@ private:
 public:
     static Room::Ptr get(RoomId);
     static void timerExecAll(componet::TimePoint now);
+    static void clientOnline(ClientPtr client);
 
 protected:
     static RoomId getRoomId();

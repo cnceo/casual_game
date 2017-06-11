@@ -1,4 +1,5 @@
 #include "room.h"
+#include "client.h"
 
 namespace lobby{
 
@@ -63,6 +64,19 @@ void Room::timerExecAll(componet::TimePoint now)
         iter->second->timerExec(now);
         ++iter;
     }
+}
+
+void Room::clientOnline(ClientPtr client)
+{
+    if (client == nullptr || client->roomId() == 0)
+        return;
+    auto room = Room::get(client->roomId());
+    if (room == nullptr)
+    {
+        client->setRoomId(0);
+        return;
+    }
+    room->clientOnlineExec(client);
 }
 
 /**********************************non static**************************************/
