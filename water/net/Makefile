@@ -8,6 +8,10 @@ objects = \
     epoller.o\
     packet.o\
     packet_connection.o\
+	http_parser.o\
+
+clang_objects: \
+	http-parser/http_parser.o
 
 CC = g++
 cc = g++
@@ -23,11 +27,14 @@ target = libnet
 all: $(target).a
 
 
-$(target).a : $(objects)
-	ar rs $(target).a $(objects)
+$(target).a : $(objects) $(clang_objects)
+	ar rs $(target).a $(objects) $(clang_objects)
 
 $(objects): %.o: %.cpp
 	$(cc) $(cc_flags) -c $< -o $@
+
+$(clang_objects): %o: %.c
+	$(cc) $(cc_flags) -c $< -o $@ 
 
 
 %.d: %.cpp
