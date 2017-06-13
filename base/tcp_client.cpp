@@ -3,7 +3,7 @@
 #include <iostream>
 #include <thread>
 
-#include "net/connector.h"
+#include "net/connection.h"
 #include "componet/logger.h"
 
 namespace water{
@@ -52,8 +52,7 @@ bool TcpClient::exec()
             {
                 LOG_TRACE("发起到{}的tcp连接", ep);
 
-                auto connector = net::TcpConnector::create(ep);
-                net::TcpConnection::Ptr conn = connector->connect(std::chrono::milliseconds(1000 * 5)); //5s超时
+                net::TcpConnection::Ptr conn = net::TcpConnection::connect(ep, std::chrono::milliseconds(1000 * 5)); //5s超时
                 if(conn != nullptr)
                 {
                     LOG_TRACE("已建立到{}的tcp连接", ep);

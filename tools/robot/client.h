@@ -1,4 +1,4 @@
-#include "net/connector.h"
+#include "net/connection.h"
 #include "net/packet_connection.h"
 #include "net/epoller.h"
 #include "base/tcp_packet.h"
@@ -34,7 +34,6 @@ private:
     ProtoMsgPtr tryRecvMsg(TcpMsgCode msgCode);
 
 private:
-    net::TcpConnector m_conntor;
     net::PacketConnection::Ptr m_conn;
     net::Epoller m_epoller;
     componet::Timer m_timer;
@@ -45,6 +44,7 @@ public:
     static Client& me();
 private:
     static Client s_me;
+    net::Endpoint m_serverEp;
 };
 
 #define SEND_MSG(msgName, proto) Client::me().sendMsg(PROTO_CODE_PUBLIC(msgName), proto);

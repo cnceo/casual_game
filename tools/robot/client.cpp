@@ -14,7 +14,7 @@ Client Client::s_me;
 
 
 Client::Client()
-    : m_conntor(serverAddr)
+    : m_serverEp(serverAddr)
 {
 }
 
@@ -26,7 +26,7 @@ void Client::run()
         m_timer.regEventHandler(std::chrono::milliseconds(1), std::bind(corot::doSchedule));
         ProtoManager::me().loadConfig(cfgDir);
 
-        auto tcpConn = m_conntor.connect();
+        auto tcpConn = net::TcpConnection::connect(m_serverEp);
         m_conn = net::PacketConnection::create(std::move(*tcpConn));
         m_conn->setRecvPacket(process::TcpPacket::create());
         m_conn->setNonBlocking();

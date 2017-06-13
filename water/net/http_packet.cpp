@@ -1,4 +1,4 @@
-#include "http_parser.h"
+#include "http-parser/http_parser.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
@@ -23,7 +23,7 @@ bool connection::tryRecv()
 
 using HttpParser = http_parser;
 
-class HttpPacket
+class HttpPacket : 
 {
 public:
     HttpPacket();

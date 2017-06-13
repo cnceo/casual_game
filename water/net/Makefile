@@ -1,6 +1,5 @@
 objects = \
     \
-    connector.o\
     listener.o\
     connection.o\
     socket.o\
@@ -8,9 +7,9 @@ objects = \
     epoller.o\
     packet.o\
     packet_connection.o\
-	http_parser.o\
 
-clang_objects: \
+
+clang_objects= \
 	http-parser/http_parser.o
 
 CC = g++
@@ -33,7 +32,7 @@ $(target).a : $(objects) $(clang_objects)
 $(objects): %.o: %.cpp
 	$(cc) $(cc_flags) -c $< -o $@
 
-$(clang_objects): %o: %.c
+$(clang_objects): %.o: %.c
 	$(cc) $(cc_flags) -c $< -o $@ 
 
 
@@ -55,7 +54,7 @@ endif
 
 .PHONY: clean distclean
 clean:
-	rm -f *.o *.d *.d.*
+	rm -f $(objects) $(clang_objects) *.d *.d.* */*.d
 	rm -f $(target).a
 
 distclean: clean

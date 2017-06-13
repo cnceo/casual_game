@@ -12,8 +12,9 @@
 #include "socket.h"
 #include "net_exception.h"
 #include "endpoint.h"
-#include "componet/lock_free_circular_queue_ss.h"
+//#include "componet/lock_free_circular_queue_ss.h"
 
+#include <chrono>
 
 namespace water{ 
 namespace net{
@@ -64,6 +65,14 @@ public://发送与接收
 private:
     Endpoint m_remoteEndpoint;
     ConnState m_state;
+
+public:
+    static TcpConnection::Ptr connect(const std::string& endpointStr); //xxx.xxx.xxx.xxx:prot
+    static TcpConnection::Ptr connect(const std::string& strIp, uint16_t port);
+    static TcpConnection::Ptr connect(const Endpoint& endPoint);
+    static TcpConnection::Ptr connect(const std::string& endpointStr, const std::chrono::milliseconds& timeout);
+    static TcpConnection::Ptr connect(const std::string& strIp, uint16_t port, const std::chrono::milliseconds& timeout);
+    static TcpConnection::Ptr connect(const Endpoint& endPoint, const std::chrono::milliseconds& timeout);
 };
 
 }}
