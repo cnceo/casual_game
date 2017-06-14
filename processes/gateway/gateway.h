@@ -36,7 +36,7 @@ public:
     bool sendToClient(ClientConnectionId ccid, TcpMsgCode code, const void* raw, uint32_t size);
     bool sendToClient(ClientConnectionId ccid, TcpMsgCode code, const ProtoMsg& proto);
 
-    net::PacketConnection::Ptr eraseClientConn(ClientConnectionId ccid);
+    net::BufferedConnection::Ptr eraseClientConn(ClientConnectionId ccid);
 private:
     Gateway(int32_t num, const std::string& configDir, const std::string& logDir);
 
@@ -50,7 +50,7 @@ private:
     void loadConfig();
 
     //处理新接入的客户端连接
-    void newClientConnection(net::PacketConnection::Ptr conn);
+    void newClientConnection(net::BufferedConnection::Ptr conn);
 
     void registerTcpMsgHandler();
     void registerTimerHandler();

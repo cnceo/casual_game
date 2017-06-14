@@ -1,6 +1,7 @@
 #include "tcp_server.h"
 
 #include "componet/logger.h"
+#include "net/buffered_connection.h"
 
 #include <iostream>
 #include <functional>
@@ -88,7 +89,7 @@ void TcpServer::epollEventHandler(int32_t socketFD, net::Epoller::Event event)
                 LOG_TRACE("新呼入连接: {}", ep);
                 conn->e_close.reg([ep](net::TcpSocket*)
                                   {LOG_TRACE("被动tcp连接已断开, remoteEp={}", ep);});
-                e_newConn(net::PacketConnection::create(std::move(*conn)));
+                e_newConn(net::BufferedConnection::create(std::move(*conn)));
             }
             catch (const net::NetException& ex) 
             {   

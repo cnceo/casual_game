@@ -1,6 +1,7 @@
 #include "tcp_connection_manager.h"
 
 #include "process.h"
+#include "tcp_message.h"
 
 #include "componet/other_tools.h"
 #include "componet/logger.h"
@@ -12,7 +13,7 @@ namespace water{
 namespace process{
 
 
-void TcpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn, 
+void TcpConnectionManager::addPrivateConnection(net::BufferedConnection::Ptr conn, 
                                                    ProcessId processId)
 {
     conn->setNonBlocking();
@@ -44,7 +45,6 @@ void TcpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn,
     try
     {
         m_epoller.regSocket(conn->getFD(), net::Epoller::Event::read);
-        conn->setRecvPacket(TcpPacket::create());
     }
     catch (const componet::ExceptionBase& ex)
     {
@@ -60,7 +60,7 @@ void TcpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn,
               conn->getFD(), processId, conn->getRemoteEndpoint());
 }
 
-bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, ClientSessionId clientId)
+bool TcpConnectionManager::addPublicConnection(net::BufferedConnection::Ptr conn, ClientSessionId clientId)
 {
     if (conn == nullptr)
         return false;
@@ -91,7 +91,6 @@ bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, 
     try
     {
         m_epoller.regSocket(conn->getFD(), net::Epoller::Event::read);
-        conn->setRecvPacket(TcpPacket::create());
     }
     catch (const componet::ExceptionBase& ex)
     {
@@ -106,9 +105,9 @@ bool TcpConnectionManager::addPublicConnection(net::PacketConnection::Ptr conn, 
     return true;
 }
 
-net::PacketConnection::Ptr TcpConnectionManager::erasePublicConnection(ClientSessionId clientId)
+net::BufferedConnection::Ptr TcpConnectionManager::erasePublicConnection(ClientSessionId clientId)
 {
-    net::PacketConnection::Ptr ret;
+    net::BufferedConnection::Ptr ret;
 
     {//局部锁, 否则调用eraseConnection会死锁
         std::lock_guard<componet::Spinlock> lock(m_lock);
@@ -122,7 +121,7 @@ net::PacketConnection::Ptr TcpConnectionManager::erasePublicConnection(ClientSes
     return ret;
 }
 
-void TcpConnectionManager::eraseConnection(net::PacketConnection::Ptr conn)
+void TcpConnectionManager::eraseConnection(net::BufferedConnection::Ptr conn)
 {
     std::lock_guard<componet::Spinlock> lock(m_lock);
 
@@ -199,7 +198,7 @@ void TcpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::E
         }
         connHolder = connsIter->second;
     }
-    net::PacketConnection::Ptr conn = connHolder->conn;
+    net::BufferedConnection::Ptr conn = connHolder->conn;
     try
     {
         switch (event)
@@ -208,26 +207,54 @@ void TcpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::E
             {
                 while(conn->tryRecv())
                 {
-                    if(!m_recvQueue.push({connHolder, conn->getRecvPacket()}) )
+                    const auto& rawBuf = conn->recvBuf().readable();
+                    auto packet = net::TcpPacket::tryParse(rawBuf.first, rawBuf.second);
+                    if (packet == nullptr)
+                    {
+                        if (conn->recvBuf().full()) //缓冲区空间不够收一个包
+                        {
+                            if (conn->recvBuf().size() >= 1 * 1024 * 1024)
+                            {
+                                LOG_TRACE("recv tcp packet, 端消息超长, 踢掉, remote={}", conn->getRemoteEndpoint());
+                                eraseConnection(conn);
+                                conn->close();
+                                return;
+                            }
+                            
+                            conn->recvBuf().resize(conn->recvBuf().size() + 1024);//一次增加1k
+                            LOG_TRACE("recv tcp packet, 长消息, remote={}, recved size=", conn->getRemoteEndpoint(), conn->recvBuf().size());
+                            continue;
+                        }
+                        break;
+                    }
+                    if (!m_recvQueue.push({connHolder, packet}) )
                         break;//队列满，停止处理
-                    conn->setRecvPacket(TcpPacket::create()); //这里，接收逻辑按TcpPacket
+                    conn->recvBuf().commitRead(packet->size());
                 }
             }
             break;
         case net::Epoller::Event::write:
             {
                 std::lock_guard<componet::Spinlock> lock(connHolder->sendLock);
-                while(connHolder->conn->trySend())
+                while(connHolder->conn->trySend()) //缓冲区已经发空
                 {
-                    if(connHolder->sendQueue.empty())
+                    if(connHolder->sendQueue.empty()) //累积未发送的消息队列也已经发空
                     {
                         m_epoller.modifySocket(socketFD, net::Epoller::Event::read);
                         break;
                     }
 
-                    net::Packet::Ptr packet = connHolder->sendQueue.front();
-                    connHolder->sendQueue.pop_front();
-                    conn->setSendPacket(packet);
+                    while (!connHolder->sendQueue.empty())
+                    {
+                        net::Packet::Ptr packet = connHolder->sendQueue.front();
+                        const auto& rawBuf = conn->recvBuf().writeable(packet->size());
+                        if (rawBuf.second < packet->size())
+                            break;
+
+                        packet->copy(rawBuf.first, rawBuf.second);
+                        conn->recvBuf().commitWrite(packet->size());
+                        connHolder->sendQueue.pop_front();
+                    }
                 }
             }
             break;
@@ -364,6 +391,13 @@ void TcpConnectionManager::broadcastPacketToPublic(net::Packet::Ptr packet)
 bool TcpConnectionManager::sendPacket(ConnectionHolder::Ptr connHolder, net::Packet::Ptr packet)
 {
     std::lock_guard<componet::Spinlock> lock(connHolder->sendLock);
+
+    if (packet->size() > connHolder->conn->sendBuf().size())
+    {
+        LOG_TRACE("send tcp packet, 发送超大消息, size={}, remote={}", packet->size(), connHolder->conn->getRemoteEndpoint());
+        connHolder->conn->sendBuf().resize(packet->size());
+    }
+
     if(!connHolder->sendQueue.empty()) //待发送队列非空, 直接排队
     {
         if(connHolder->sendQueue.size() > 512)
@@ -374,20 +408,21 @@ bool TcpConnectionManager::sendPacket(ConnectionHolder::Ptr connHolder, net::Pac
         return true;
     }
 
-    if(connHolder->conn->setSendPacket(packet))
+    const auto& rawBuf = connHolder->conn->sendBuf().writeable(packet->size());
+    if (rawBuf.second >= packet->size() )
     {
+        packet->copy(rawBuf.first, rawBuf.second);
+        connHolder->conn->sendBuf().commitWrite(packet->size());
         if(connHolder->conn->trySend())
             return true; //直接发送成功
-
-        //setPaccket成了，但trySend没成，注册epoll_write事件
-        m_epoller.modifySocket(connHolder->conn->getFD(), net::Epoller::Event::read_write);
-        return true;
+    }
+    else
+    {
+        //buf空间不足, 无法放入, 排队, 等epoll_write事件时处理这些未发出的消息
+        connHolder->sendQueue.push_back(packet);
     }
 
-    //setPacket失败，packet未被接受，需要排队
-    connHolder->sendQueue.push_back(packet);
-
-    //注册epoll事件
+    //没有一次性发送成功，注册epoll_write事件
     m_epoller.modifySocket(connHolder->conn->getFD(), net::Epoller::Event::read_write);
     return true;
 }

@@ -9,7 +9,7 @@
 #ifndef WATER_TCP_CONNECTION_MANAGER_H
 #define WATER_TCP_CONNECTION_MANAGER_H
 
-#include "net/packet_connection.h"
+#include "net/buffered_connection.h"
 #include "net/epoller.h"
 #include "net/tcp_packet.h"
 
@@ -43,7 +43,7 @@ public:
         ConnType type;
         int64_t id;
 
-        net::PacketConnection::Ptr conn;
+        net::BufferedConnection::Ptr conn;
 
         //由于socke太忙而暂时无法发出的包，缓存在这里
         std::list<net::Packet::Ptr> sendQueue; 
@@ -57,10 +57,10 @@ public:
 
     bool exec() override;
 
-    void addPrivateConnection(net::PacketConnection::Ptr conn, ProcessId processId);
-    bool addPublicConnection(net::PacketConnection::Ptr conn, ClientSessionId clientId);
+    void addPrivateConnection(net::BufferedConnection::Ptr conn, ProcessId processId);
+    bool addPublicConnection(net::BufferedConnection::Ptr conn, ClientSessionId clientId);
 
-    net::PacketConnection::Ptr erasePublicConnection(ClientSessionId clientId);
+    net::BufferedConnection::Ptr erasePublicConnection(ClientSessionId clientId);
 
     //当前的
     uint32_t totalPrivateConnNum() const;
@@ -86,7 +86,7 @@ public:
 private:
     void epollerEventHandler(int32_t socketFD, net::Epoller::Event event);
     bool sendPacket(ConnectionHolder::Ptr connHolder, net::Packet::Ptr packet);
-    void eraseConnection(net::PacketConnection::Ptr conn);
+    void eraseConnection(net::BufferedConnection::Ptr conn);
 
 private:
     net::Epoller m_epoller;

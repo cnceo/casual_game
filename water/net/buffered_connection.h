@@ -29,7 +29,11 @@ public:
     std::pair<uint8_t*, uint32_t> writeable(uint32_t size = 0);
     bool commitWrite(uint32_t size);
 
+    bool full() const;
     bool empty() const;
+
+    void resize(uint32_t size);
+    uint32_t size() const;
 
 private:
     std::vector<uint8_t> m_buf;
@@ -38,6 +42,27 @@ private:
 //    uint32_t m_sizeLimit;
 };
 
+inline bool ConnectionBuffer::full() const
+{
+    return m_buf.size() == m_dataEnd &&  m_dataBegin == 0;
+}
+
+inline bool ConnectionBuffer::empty() const
+{
+    return m_dataEnd == 0;
+}
+
+inline void ConnectionBuffer::resize(uint32_t size)
+{
+    m_buf.resize(size);
+}
+
+inline uint32_t ConnectionBuffer::size() const
+{
+    return m_buf.size();
+}
+
+////////////////////////////////////BufferedConnection//////////////////////////////////////
 //异常定义, 读取已关闭的socket
 DEFINE_EXCEPTION(ReadClosedConnection, net::NetException);
 
@@ -70,11 +95,6 @@ inline ConnectionBuffer& BufferedConnection::sendBuf()
 inline ConnectionBuffer& BufferedConnection::recvBuf()
 {
     return m_recvBuf;
-}
-
-inline bool ConnectionBuffer::empty() const
-{
-    return m_dataBegin == m_dataEnd;
 }
 
 

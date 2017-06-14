@@ -14,13 +14,13 @@
 //#include "common/commdef.h"
 #include "componet/spinlock.h"
 #include "componet/datetime.h"
-#include "net/packet_connection.h"
 #include "process_thread.h"
 
 #include <list>
 #include <memory>
 
 namespace water{
+namespace net {class BufferedConnection;}
 namespace process{
 
 class FlashSandboxHandler : public ProcessThread
@@ -32,7 +32,7 @@ public:
     FlashSandboxHandler() = default;
     ~FlashSandboxHandler() = default;
 
-    void addFlashSandboxConn(net::PacketConnection::Ptr conn);
+    void addFlashSandboxConn(std::shared_ptr<net::BufferedConnection> conn);
 
 private:
     bool exec() override;
@@ -49,7 +49,7 @@ private:
     {
         ConnState state;
         componet::TimePoint tp;
-        net::PacketConnection::Ptr conn;
+        std::shared_ptr<net::BufferedConnection> conn;
     };
 
     std::list<ConnHolder> m_conns;

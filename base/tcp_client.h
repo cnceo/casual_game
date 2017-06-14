@@ -13,14 +13,17 @@
 #include <map>
 
 #include "net/endpoint.h"
-#include "net/packet_connection.h"
 #include "componet/datetime.h"
 #include "componet/event.h"
 #include "componet/class_helper.h"
 #include "process_thread.h"
 
 namespace water{
+
+namespace net {class BufferedConnection; class TcpConnection;}
+
 namespace process{
+
 
 class TcpClient : public ProcessThread
 {
@@ -33,7 +36,7 @@ public:
     bool exec() override;
 
 public:
-    componet::Event<void (net::PacketConnection::Ptr)> e_newConn;
+    componet::Event<void (std::shared_ptr<net::BufferedConnection>)> e_newConn;
     componet::Event<void (TcpClient*)> e_close;
 //    componet::Event<void (TcpClient*)> e_allConnsReady;
 
@@ -45,7 +48,7 @@ private:
     {
         componet::TimePoint retryTimepoint;
         std::chrono::seconds retryInterval;
-        net::TcpConnection::WPtr conn;
+        std::weak_ptr<net::TcpConnection> conn;
     };
 
     std::map<net::Endpoint, RemoteEndpointInfo> m_remoteEndpoints;

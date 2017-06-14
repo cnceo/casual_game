@@ -12,8 +12,6 @@
 
 #include "componet/event.h"
 
-#include "net/packet_connection.h"
-
 #include "process_id.h"
 #include "process_thread.h"
 
@@ -23,6 +21,7 @@
 #include <unordered_map>
 
 namespace water{
+namespace net {class BufferedConnection;}
 namespace process{
 
 class PrivateConnectionChecker : public ProcessThread
@@ -35,10 +34,10 @@ public:
     ~PrivateConnectionChecker() = default;
 
     enum class ConnType {in, out};
-    void addUncheckedConnection(net::PacketConnection::Ptr conn, ConnType type);
+    void addUncheckedConnection(std::shared_ptr<net::BufferedConnection> conn, ConnType type);
 
 public:
-    componet::Event<void (net::PacketConnection::Ptr, ProcessId processId)> e_connConfirmed;
+    componet::Event<void (std::shared_ptr<net::BufferedConnection>, ProcessId processId)> e_connConfirmed;
 
 private:
     void checkConn();
@@ -61,7 +60,7 @@ private:
     struct ConnInfo
     {
         ConnState state;
-        net::PacketConnection::Ptr conn;
+        std::shared_ptr<net::BufferedConnection> conn;
         ProcessId remoteId;
         bool checkResult;
     };

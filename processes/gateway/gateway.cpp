@@ -152,7 +152,7 @@ bool Gateway::sendToClient(ClientConnectionId ccid, TcpMsgCode code, const Proto
     return m_conns.sendPacketToPublic(ccid, packet);
 }
 
-net::PacketConnection::Ptr Gateway::eraseClientConn(ClientConnectionId ccid)
+net::BufferedConnection::Ptr Gateway::eraseClientConn(ClientConnectionId ccid)
 {
     return m_conns.erasePublicConnection(ccid);
 }
@@ -162,7 +162,7 @@ void Gateway::loadConfig()
     ProtoManager::me().loadConfig(m_cfgDir);
 }
 
-void Gateway::newClientConnection(net::PacketConnection::Ptr conn)
+void Gateway::newClientConnection(net::BufferedConnection::Ptr conn)
 {
     if(conn == nullptr)
         return;
@@ -170,7 +170,6 @@ void Gateway::newClientConnection(net::PacketConnection::Ptr conn)
     try
     {
         conn->setNonBlocking();
-        conn->setRecvPacket(process::TcpPacket::create());
 
         ClientConnectionId ccid = m_clientManager->clientOnline();
         if (ccid == INVALID_CCID)

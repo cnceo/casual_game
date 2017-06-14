@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <atomic>
 
-#include "net/packet_connection.h"
+#include "net/buffered_connection.h"
 #include "net/epoller.h"
 
 #include "componet/event.h"
@@ -24,10 +24,13 @@
 #include "process_thread.h"
 
 namespace water{
+namespace net {class BufferedConnection; class Packet;}
 namespace process{
 
 class HttpConnectionManager : public ProcessThread
 {
+    using PacketPtr = std::shared_ptr<net::Packet>;
+    using PacketCPtr = std::shared_ptr<const net::Packet>;
 public:
     struct ConnectionHolder
     {
@@ -35,9 +38,9 @@ public:
 
 
         int64_t id;
-        net::PacketConnection::Ptr conn;
+        std::shared_ptr<net::BufferedConnection> conn;
         //由于socke太忙而暂时无法发出的包，缓存在这里
-        componet::LockFreeCircularQueueSPSC<net::Packet::Ptr>::Ptr sendQueue; 
+        componet::LockFreeCircularQueueSPSC<PacketPtr>::Ptr sendQueue; 
     };
 public:
     HttpConnectionManager();
@@ -45,15 +48,15 @@ public:
 
     bool exec() override;
 
-    void addPrivateConnection(net::PacketConnection::Ptr conn);
-    void delConnection(net::PacketConnection::Ptr conn);
+    void addPrivateConnection(std::shared_ptr<net::BufferedConnection> conn);
+    void delConnection(std::shared_ptr<net::BufferedConnection> conn);
 
     //从接收队列中取出一个packet, 并得到与其相关的conn
-    bool sendPacket(ConnectionHolder::Ptr connHolder, net::Packet::Ptr packet);
+    bool sendPacket(ConnectionHolder::Ptr connHolder, PacketPtr packet);
 
 public:
     componet::Event<void (HttpConnectionManager*)> e_close;
-    componet::Event<void (ConnectionHolder::Ptr, net::Packet::CPtr) > e_packetrecv;
+    componet::Event<void (ConnectionHolder::Ptr, PacketCPtr) > e_packetrecv;
 
 private:
     void epollerEventHandler(int32_t socketFD, net::Epoller::Event event);
@@ -71,7 +74,7 @@ private:
     //公网连接, {accountId, conn}, 暂空，需要一个确定账号id的机制配合
     //std::unordered_map<PublicClientIdentity, ConnectionHolder::Ptr>
 
-    componet::LockFreeCircularQueueSPSC<std::pair<ConnectionHolder::Ptr, net::Packet::CPtr>> m_recvQueue;
+    componet::LockFreeCircularQueueSPSC<std::pair<ConnectionHolder::Ptr, PacketCPtr>> m_recvQueue;
 };
 
 }}

@@ -1,18 +1,16 @@
 #include  "flash_sanbox_handler.h"
 
 #include "componet/logger.h"
+#include "net/buffered_connection.h"
 
 namespace water{
 namespace process{
 
-void FlashSandboxHandler::addFlashSandboxConn(net::PacketConnection::Ptr conn)
+void FlashSandboxHandler::addFlashSandboxConn(net::BufferedConnection::Ptr conn)
 {
-    const char revText[] = "<policy-file-request/>";
     try
     {
         conn->setNonBlocking();
-        conn->setRecvPacket( net::Packet::create(sizeof(revText)) );
-
         ConnHolder connHolder;
         connHolder.state = ConnState::recving;
         connHolder.tp = componet::Clock::now();
@@ -53,10 +51,12 @@ bool FlashSandboxHandler::exec()
                 {
                 case ConnState::recving:
                     {
-                        if(!it->conn->tryRecv())
+                        it->conn->tryRecv();
+                        const auto& revBuf = it->conn->recvBuf().readable();
+                        if (revBuf.second < sizeof(revText))
                             continue;
-                        auto packet = it->conn->getRecvPacket();
-                        std::string text(reinterpret_cast<const char*>(packet->data()));
+                        std::string text(reinterpret_cast<const char*>(revBuf.first), sizeof(revText));
+                        it->conn->recvBuf().commitRead(sizeof(revText));
                         if(text != revText)
                         {
                             LOG_TRACE("Flash Sandbox 验证失败, {}, 收到{}", 
@@ -64,7 +64,16 @@ bool FlashSandboxHandler::exec()
                             it = m_conns.erase(it);
                             continue;
                         }
-                        it->conn->setSendPacket( net::Packet::create(sendText, sizeof(sendText)) );
+                        const auto& sndBuf = it->conn->sendBuf().writeable(sizeof(sendText));
+                        if (sndBuf.second < sizeof(sendText))
+                        {
+                            LOG_ERROR("Flash Sandbox 发送失败, 缓冲区不足");
+                            it = m_conns.erase(it);
+                            it->conn->close();
+                            continue;
+                        }
+                        strncpy(reinterpret_cast<char*>(sndBuf.first), sendText, sndBuf.second);
+                        it->conn->sendBuf().commitWrite(sizeof(sendText));
                         it->state = ConnState::sending;
                     }
                     //break; 故意不要break

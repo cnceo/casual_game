@@ -3,7 +3,7 @@
 #include <iostream>
 #include <thread>
 
-#include "net/connection.h"
+#include "net/buffered_connection.h"
 #include "componet/logger.h"
 
 namespace water{
@@ -58,7 +58,7 @@ bool TcpClient::exec()
                     LOG_TRACE("已建立到{}的tcp连接", ep);
                     conn->e_close.reg([ep](net::TcpSocket*)
                                       {LOG_TRACE("主动tcp连接已断开, remoteEp={}", ep);});
-                    auto packetConn = net::PacketConnection::create(std::move(*conn));
+                    auto packetConn = net::BufferedConnection::create(std::move(*conn));
                     e_newConn(packetConn);
                     info.conn = packetConn;
                 }

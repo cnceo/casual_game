@@ -1,11 +1,15 @@
 #include "http_connection_manager.h"
+#include "http_packet.h"
 
-#include <iostream>
-#include <mutex>
+#include "net/packet.h"
 
 #include "componet/other_tools.h"
 #include "componet/logger.h"
-#include "http_packet.h"
+#include "net/buffered_connection.h"
+
+
+#include <iostream>
+#include <mutex>
 
 namespace water{
 namespace process{
@@ -15,7 +19,7 @@ HttpConnectionManager::HttpConnectionManager()
 {
 }
 
-void HttpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn)
+void HttpConnectionManager::addPrivateConnection(net::BufferedConnection::Ptr conn)
 {
     conn->setNonBlocking();
 
@@ -42,7 +46,6 @@ void HttpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn
     try
     {
         m_epoller.regSocket(conn->getFD(), net::Epoller::Event::read);
-        conn->setRecvPacket(HttpPacket::create());
         LOG_DEBUG("add conn to epoll read");
     }
     catch (const componet::ExceptionBase& ex)
@@ -54,7 +57,7 @@ void HttpConnectionManager::addPrivateConnection(net::PacketConnection::Ptr conn
     }
 }
 
-void HttpConnectionManager::delConnection(net::PacketConnection::Ptr conn)
+void HttpConnectionManager::delConnection(net::BufferedConnection::Ptr conn)
 {
     std::lock_guard<componet::Spinlock> lock(m_lock);
 
@@ -105,7 +108,7 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
         }
         connHolder = connsIter->second;
     }
-    net::PacketConnection::Ptr conn = connHolder->conn;
+    net::BufferedConnection::Ptr conn = connHolder->conn;
     try
     {
         switch (event)
@@ -114,7 +117,7 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
             {
                 while(conn->tryRecv())
                 {
-					e_packetrecv(connHolder, conn->getRecvPacket());
+//todo					e_packetrecv(connHolder, conn->getRecvPacket());
 					this->delConnection(conn); //关闭连接
 					break;
                 }
@@ -134,7 +137,8 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
 
                     net::Packet::Ptr packet;
                     if(queue->pop(&packet))
-                        conn->setSendPacket(packet);
+//todo                        conn->setSendPacket(packet);
+                    ;
                     else
                         queue = nullptr; //队列已空，不再需要存在
                 }
@@ -165,7 +169,7 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
 
 bool HttpConnectionManager::sendPacket(ConnectionHolder::Ptr connHolder, net::Packet::Ptr packet)
 {
-    if(connHolder->conn->setSendPacket(packet))
+//    if(connHolder->conn->setSendPacket(packet))
         return true;
 
     LOG_TRACE("socket 发送过慢, ep={}", 

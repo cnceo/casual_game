@@ -10,10 +10,9 @@ objects = \
     tcp_connection_manager.o\
     process_timer.o\
     process.o\
+	flash_sanbox_handler.o\
 	http_packet.o\
 	http_connection_manager.o\
-	flash_sanbox_handler.o\
-
   #  tcp_packet.o\
 
 #	tcp_msg_dispatcher.o\

@@ -17,9 +17,9 @@
 #include "net/endpoint.h"
 #include "net/listener.h"
 #include "componet/event.h"
-#include "net/packet_connection.h"
 
 namespace water{
+namespace net {class BufferedConnection; class TcpConnection;}
 namespace process{
 
 class TcpServer final : public ProcessThread
@@ -34,7 +34,7 @@ public:
     bool exec() override;
 
 public:
-    componet::Event<void (net::PacketConnection::Ptr)> e_newConn;
+    componet::Event<void (std::shared_ptr<net::BufferedConnection>)> e_newConn;
 
 private:
     void epollEventHandler(int32_t socketFD, net::Epoller::Event event);

@@ -35,7 +35,7 @@ bool ConnectionBuffer::commitRead(uint32_t size)
 std::pair<uint8_t*, uint32_t> ConnectionBuffer::writeable(uint32_t size)
 {
     std::pair<uint8_t*, uint32_t> ret(m_buf.data() + m_dataEnd, 0);
-    if (m_buf.size() - m_dataEnd < size)
+    if (m_buf.size() - m_dataEnd < size || m_buf.size() == m_dataEnd) //尾部空闲空间不足
     {
        if (m_dataBegin == 0) //前面也没空间了
            return ret;
@@ -65,7 +65,7 @@ BufferedConnection::BufferedConnection(TcpConnection&& tcpConn)
 
 bool BufferedConnection::trySend()
 {
-    const auto rawBuf = m_sendBuf.readable();
+    const auto& rawBuf = m_sendBuf.readable();
     if (rawBuf.second == 0)
         return true;
 
@@ -79,7 +79,7 @@ bool BufferedConnection::trySend()
 
 bool BufferedConnection::tryRecv()
 {
-    const auto rawBuf = m_recvBuf.writeable();
+    const auto& rawBuf = m_recvBuf.writeable();
     if (rawBuf.second == 0)
         return !m_recvBuf.empty();
 
