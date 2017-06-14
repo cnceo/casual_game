@@ -7,7 +7,6 @@ objects = \
     epoller.o\
     packet.o\
 	tcp_packet.o\
-    packet_connection.o\
 	buffered_connection.o\
 
 
