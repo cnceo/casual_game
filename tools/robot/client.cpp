@@ -27,8 +27,8 @@ void Client::run()
         ProtoManager::me().loadConfig(cfgDir);
 
         auto tcpConn = net::TcpConnection::connect(m_serverEp);
-        m_conn = net::PacketConnection::create(std::move(*tcpConn));
-        m_conn->setRecvPacket(process::TcpPacket::create());
+        m_conn = net::BufferedConnection::create(std::move(*tcpConn));
+//        m_conn->setRecvPacket(net::TcpPacket::create());
         m_conn->setNonBlocking();
         m_epoller.setEventHandler(std::bind(&Client::epollEventHandler, this, std::placeholders::_3));
         m_epoller.regSocket(m_conn->getFD(), net::Epoller::Event::read);
@@ -56,24 +56,27 @@ void Client::epollEventHandler(net::Epoller::Event event)
             {
                 while(m_conn->tryRecv())
                 {
-                    if(!m_recvQue.push(m_conn->getRecvPacket()))
+                    const auto& rawBuf = m_conn->recvBuf().readable();
+                    auto packet = net::TcpPacket::tryParse(rawBuf.first, rawBuf.second);
+                    if (packet == nullptr || !m_recvQue.push(packet))
                         break;
-                    m_conn->setRecvPacket(process::TcpPacket::create());
+                    m_conn->recvBuf().commitRead(packet->size());
                 }
             }
             break;
         case net::Epoller::Event::write:
             {
-                while(m_conn->trySend())
-                {
-                    if(m_sendQue.empty())
-                    {
-                        m_epoller.modifySocket(m_conn->getFD(), net::Epoller::Event::read);
-                        break;
-                    }
-                    m_conn->setSendPacket(m_sendQue.top());
-                    m_sendQue.pop();
-                }
+                m_conn->trySend();
+//                while(m_conn->trySend())
+//                {
+//                    if(m_sendQue.empty())
+//                    {
+//                        m_epoller.modifySocket(m_conn->getFD(), net::Epoller::Event::read);
+//                        break;
+//                    }
+//                    m_conn->setSendPacket(m_sendQue.top());
+//                    m_sendQue.pop();
+//                }
             }
             break;
         case net::Epoller::Event::error:
@@ -96,7 +99,7 @@ void Client::dealMsg(const componet::TimePoint& now)
 {
     while (!m_recvQue.empty())
     {
-        auto packet = std::static_pointer_cast<process::TcpPacket>(m_recvQue.top());
+        auto packet = std::static_pointer_cast<net::TcpPacket>(m_recvQue.top());
         m_recvQue.pop();
         auto msg = reinterpret_cast<process::TcpMsg*>(packet->content());
         ProtoManager::me().dealTcpMsg(msg, packet->contentSize(), 0, now);
@@ -135,8 +138,9 @@ bool Client::trySendMsg(TcpMsgCode msgCode, const ProtoMsg& proto)
         return false;
     }   
 
-    auto packet = process::TcpPacket::create();
+    auto packet = net::TcpPacket::create();
     packet->setContent(buf, bufSize);
+        
 
 	//send packet
 #if 0
@@ -146,9 +150,15 @@ bool Client::trySendMsg(TcpMsgCode msgCode, const ProtoMsg& proto)
         return false;
     m_epoller.modifySocket(m_conn->getFD(), net::Epoller::Event::read_write);
 #else
-    while(!m_conn->setSendPacket(packet))
-        corot::this_corot::yield();
 
+    auto rawBuf = m_conn->sendBuf().writeable();
+    while (rawBuf.second < packet->size())
+    {
+        corot::this_corot::yield();
+        rawBuf = m_conn->sendBuf().writeable();
+    }
+    packet->copy(rawBuf.first, rawBuf.second);
+    m_conn->sendBuf().commitWrite(packet->size());
     while(!m_conn->trySend())
         corot::this_corot::yield();
 #endif
@@ -159,7 +169,7 @@ ProtoMsgPtr Client::tryRecvMsg(TcpMsgCode msgCode)
 {
     if (m_recvQue.empty())
         return nullptr;
-    auto packet = std::static_pointer_cast<process::TcpPacket>(m_recvQue.top());
+    auto packet = std::static_pointer_cast<net::TcpPacket>(m_recvQue.top());
     auto raw = reinterpret_cast<process::TcpMsg*>(packet->content());
     if (raw->code != msgCode)
         return nullptr;

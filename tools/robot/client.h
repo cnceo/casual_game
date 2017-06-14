@@ -1,7 +1,8 @@
 #include "net/connection.h"
-#include "net/packet_connection.h"
+//#include "net/packet_connection.h"
+#include "net/buffered_connection.h"
 #include "net/epoller.h"
-#include "base/tcp_packet.h"
+#include "net/tcp_packet.h"
 #include "base/tcp_message.h"
 #include "componet/logger.h"
 #include "componet/timer.h"
@@ -34,7 +35,7 @@ private:
     ProtoMsgPtr tryRecvMsg(TcpMsgCode msgCode);
 
 private:
-    net::PacketConnection::Ptr m_conn;
+    net::BufferedConnection::Ptr m_conn;
     net::Epoller m_epoller;
     componet::Timer m_timer;
     componet::CircularQueue<net::Packet::Ptr> m_recvQue;

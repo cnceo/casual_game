@@ -7,7 +7,6 @@ objects = \
     process_id.o\
     process_thread.o\
 	private_connection_checker.o\
-    tcp_packet.o\
     tcp_connection_manager.o\
     process_timer.o\
     process.o\
@@ -15,6 +14,7 @@ objects = \
 	http_connection_manager.o\
 	flash_sanbox_handler.o\
 
+  #  tcp_packet.o\
 
 #	tcp_msg_dispatcher.o\
 #	async_msg_handler_manager.o\

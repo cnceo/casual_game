@@ -2,7 +2,18 @@
 #include <cstring>
 
 namespace water{
-namespace process{
+namespace net{
+
+TcpPacket::Ptr TcpPacket::tryParse(uint8_t* data, SizeType size)
+{
+    if (size < sizeof(SizeType))
+        return nullptr;
+    if (size < *reinterpret_cast<const SizeType*>(data) + sizeof(size))
+        return nullptr;
+    auto packet = new Packet(data, size);
+    auto ret = TcpPacket::Ptr(static_cast<TcpPacket*>(packet));
+    return ret;
+}
 
 TcpPacket::TcpPacket()
 : Packet(sizeof(SizeType))

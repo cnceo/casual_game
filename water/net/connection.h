@@ -19,12 +19,9 @@
 namespace water{ 
 namespace net{
 
-
 class TcpConnection : public TcpSocket
 {
     friend class TcpListener;
-    friend class TcpConnector;
-
 public:
     TYPEDEF_PTR(TcpConnection)
 

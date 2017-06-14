@@ -12,12 +12,12 @@
  *               0+sizeof(SizeType)    |--   uint8_t[] data   --|   *(SizeType*)(data)
  */
 
-#include "net/packet.h"
+#include "packet.h"
 
 namespace water{
-namespace process{
+namespace net{
 
-class TcpPacket : public net::Packet
+class TcpPacket : public Packet
 {
 public:
     TYPEDEF_PTR(TcpPacket)
@@ -30,6 +30,9 @@ public:
 //    void* resizeContent(SizeType contentSize);
     SizeType contentSize() const;
     void addCursor(SizeType add) override;
+
+public:
+    static TcpPacket::Ptr tryParse(uint8_t* data, SizeType size);
 };
 
 }}

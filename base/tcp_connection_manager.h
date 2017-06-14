@@ -11,6 +11,7 @@
 
 #include "net/packet_connection.h"
 #include "net/epoller.h"
+#include "net/tcp_packet.h"
 
 #include "componet/event.h"
 #include "componet/class_helper.h"
@@ -19,7 +20,6 @@
 
 #include "process_id.h"
 #include "process_thread.h"
-#include "tcp_packet.h"
 
 #include <unordered_map>
 #include <list>

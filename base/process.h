@@ -27,6 +27,7 @@ namespace water{
 namespace process{
 
 //class TcpMsg;
+using net::TcpPacket;
 
 class Process
 {
