@@ -1,7 +1,7 @@
 #ifndef WARTER_NET_HTTP_PACKET_H
 #define WARTER_NET_HTTP_PACKET_H
 #include <string>
-#include "net/packet.h"
+#include "packet.h"
 
 namespace water{
 namespace process{
@@ -17,10 +17,6 @@ public:
 public: 
 	TYPEDEF_PTR(HttpPacket);
 	CREATE_FUN_MAKE(HttpPacket);
-
-	//接口
-public:
-    virtual void addCursor(SizeType add);
 
 private:
 	const int32_t getHeaderLen(const char* buf, const int buflen) const;

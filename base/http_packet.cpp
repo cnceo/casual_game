@@ -19,43 +19,6 @@ HttpPacket::~HttpPacket()
 {
 }
 
-void HttpPacket::addCursor(SizeType add)
-{
-    if(m_cursor + add > m_buf.size())
-        EXCEPTION(net::PacketCursorOutOfRange, "datasize={}, cursor={}, add={}", m_buf.size(), m_cursor, add);
-    m_cursor += add;  //must
-
-	if (this->m_type == BuffType::recv)
-	{
-		if (this->state == ReadState::read_header)
-		{
-			m_headerLen = this->getHeaderLen(reinterpret_cast<const char *>(m_buf.data()), m_cursor);
-			if (m_headerLen != 0 && m_headerLen <= m_cursor)
-			{
-				m_headerInfo.append(reinterpret_cast<const char *>(m_buf.data()), m_headerLen);
-				state = ReadState::read_body;
-			}
-		}
-		if (this->state == ReadState::read_body)
-		{
-			m_bodyLen = this->getBodyLength();
-			if (static_cast<unsigned int>(m_bodyLen + m_headerLen) == m_cursor)
-			{
-				Packet::resize(m_bodyLen + m_headerLen);
-				state = ReadState::read_ok;
-			}
-			else
-			{
-				Packet::resize(m_bodyLen + m_headerLen);
-			}
-		}
-		if (this->state == ReadState::read_ok)
-		{
-			m_cursor = m_buf.size(); //读包完成，让上层调用返回
-		}
-	}
-}
-
 // http head is /r/n/r/n as eof
 const int32_t HttpPacket::getHeaderLen(const char* buf, const int buflen) const
 {

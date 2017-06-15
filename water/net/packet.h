@@ -47,9 +47,6 @@ public:
     static const SizeType MIN_CONTENT_SIZE = 0;
     static const SizeType MAX_CONTENT_SIZE = MAX_SIZE - MIN_SIZE;
 
-    //作为发送接收缓冲时的类型
-    enum class BuffType : uint8_t  {send, recv};
-
 public:
     TYPEDEF_PTR(Packet);
     CREATE_FUN_MAKE(Packet);
@@ -73,19 +70,8 @@ public:
     //得到buff的长度
     SizeType size() const;
 
-public://socket收发使用的接口
-    void initBuffType(BuffType type);
-    //得到已处理标记的位置
-    SizeType getCursor() const;
-    //后移已处理标记
-    virtual void addCursor(SizeType add);
-
 protected:
     std::vector<uint8_t> m_buf;
-
-    //在发送和接收消息时使用, 指向未处理的数据
-    SizeType m_cursor;
-    BuffType m_type;
 };
 
 }}

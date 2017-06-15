@@ -27,9 +27,7 @@ public:
     explicit TcpPacket(SizeType contentSize);
     void setContent(const void* content, SizeType contentSize);
     void* content();
-//    void* resizeContent(SizeType contentSize);
     SizeType contentSize() const;
-    void addCursor(SizeType add) override;
 
 public:
     static TcpPacket::Ptr tryParse(uint8_t* data, SizeType size);
