@@ -11,12 +11,8 @@ objects = \
     process_timer.o\
     process.o\
 	flash_sanbox_handler.o\
-	http_packet.o\
 	http_connection_manager.o\
-  #  tcp_packet.o\
 
-#	tcp_msg_dispatcher.o\
-#	async_msg_handler_manager.o\
 
 
 CC = g++

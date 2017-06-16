@@ -4,50 +4,64 @@
 
 //#include "http-parser/http_parser.h"
 #include "../componet/class_helper.h"
+#include "packet.h"
 
 #include <cstdint>
 #include <string>
+#include <map>
+
+
+class http_parser;
+class http_parser_settings;
 
 namespace water{
 namespace net{
 
-using Parser = http_parser;
 
 enum class HttpType
 {
     request, response,
 };
 
-class HttpPacket : 
+class HttpPacket //: public Packet
 {
+    using Parser = http_parser;
 public:
     TYPEDEF_PTR(HttpPacket)
     CREATE_FUN_MAKE(HttpPacket)
     HttpPacket(HttpType type);
+    ~HttpPacket();
 
-    bool tryParse(const char* data, size_t size);
+    bool complete() const;
+    HttpType type() const;
+    bool keepAlive() const;
+
+    size_t tryParse(const char* data, size_t size);
 
 private:
-    Parser m_parser;
+    std::unique_ptr<http_parser> m_parser;
     bool m_completed = true;
     struct Detial
     {
+        HttpType type = HttpType::request;
+        std::string curHeaderFiled;
         std::map<std::string, std::string> headers;
-        enum
+        union
         {
             uint32_t statusCode = 0;
-            Method method;
+            uint32_t method;
         };
+        bool keepAlive = false;
         std::string body;
-        std::string cmd;
+        std::string url;
     } m_detial;
 
 public:
-    static HttpPacket::Ptr tryParse(HttpType type, const char* data, size_t size);
+    static std::pair<HttpPacket::Ptr, size_t> tryParse(HttpType type, const char* data, size_t size);
 
 private:
-    struct ParserSettings : http_parser_settings {};
-    static ParserSettings s_settings;
+    struct ParserSettings;
+    static std::unique_ptr<http_parser_settings> s_settings;
 
     static int32_t onPacketBegin(Parser* parser);
     static int32_t onUrl(Parser* parser, const char* data, size_t size);

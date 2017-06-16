@@ -70,7 +70,7 @@ bool BufferedConnection::trySend()
         return true;
 
     const auto sendSize = send(rawBuf.first, rawBuf.second);
-    if (sendSize == -1) //无数据
+    if (sendSize == -1) //socket忙, 数据无法写入
         return false;
     
     m_sendBuf.commitRead(sendSize); //不可能失败

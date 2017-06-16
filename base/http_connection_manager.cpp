@@ -1,7 +1,7 @@
 #include "http_connection_manager.h"
-#include "http_packet.h"
 
 #include "net/packet.h"
+#include "net/http_packet.h"
 
 #include "componet/other_tools.h"
 #include "componet/logger.h"
@@ -19,15 +19,18 @@ HttpConnectionManager::HttpConnectionManager()
 {
 }
 
-void HttpConnectionManager::addPrivateConnection(net::BufferedConnection::Ptr conn)
+void HttpConnectionManager::addConnection(net::BufferedConnection::Ptr conn, ConnType type)
 {
     conn->setNonBlocking();
 
     auto item = std::make_shared<ConnectionHolder>();
     item->id = uniqueID++;
     item->conn = conn;
+    auto recvPacketType = connHolder->type == ConnType::client ? net::HttpType::request : net::HttpType::response;
+    item->recvPacket = HttpPacket::create(recvPacketType);
 
     std::lock_guard<componet::Spinlock> lock(m_lock);
+
 
     auto insertAllRet = m_allConns.insert({conn->getFD(), item});
     if(insertAllRet.second == false)
@@ -35,25 +38,18 @@ void HttpConnectionManager::addPrivateConnection(net::BufferedConnection::Ptr co
         LOG_ERROR("ConnectionManager, insert httpConn to m_allConns failed, remoteEp={}", 
                   conn->getRemoteEndpoint());
     }
-    auto insertPrivateRet = m_privateConns.insert({item->id, item});
-    if(insertPrivateRet.second == false)
-    {
-        LOG_ERROR("ConnectionManager, insert httpConn to m_privateConns failed, remoteEp={}", 
-                  conn->getRemoteEndpoint());
-        m_allConns.erase(insertAllRet.first);
-    }
 
     try
     {
+        net::Epoller::Event epollEvent = conn->trySend() ? net::Epoller::Event::read : net::Epoller::Event::read_write;
         m_epoller.regSocket(conn->getFD(), net::Epoller::Event::read);
-        LOG_DEBUG("add conn to epoll read");
+        LOG_DEBUG("add http conn to epoll, remote ep={}", conn->getRemoteEndpoint());
     }
     catch (const componet::ExceptionBase& ex)
     {
         LOG_ERROR("ConnectionManager, insert httpConn to epoller failed, ex={}, remoteEp={}",
                   ex.what(), conn->getRemoteEndpoint());
         m_allConns.erase(insertAllRet.first);
-        m_privateConns.erase(insertPrivateRet.first);
     }
 }
 
@@ -65,7 +61,6 @@ void HttpConnectionManager::delConnection(net::BufferedConnection::Ptr conn)
     if(it == m_allConns.end())
         return;
 
-    m_privateConns.erase(it->second->id);
     m_allConns.erase(it);
     m_epoller.delSocket(conn->getFD());
 }
@@ -115,21 +110,30 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
         {
         case net::Epoller::Event::read:
             {
+                net::HttpPacket::Ptr& recvPacket = connHolder->recvPacket;
                 while(conn->tryRecv())
                 {
-//todo					e_packetrecv(connHolder, conn->getRecvPacket());
-					this->delConnection(conn); //关闭连接
+                    const auto& rawBuf = conn->recvBuf().readable();
+                    size_t parsedSize = recvPacket->tryParse(rawBuf.first, rawBuf.second);
+                    conn->commitread(parsedSize);
+                    if (!recvPacket->complete())
+                        break;
+                    if (!m_recvQueue.push({connHolder, connHolder->recvPacket}))
+                        break;
+
+                    if (!recvPacket->keepAlive() && recvPacket->type() == net::HttpType::response)
+                            delConnection(conn);
+                        else
+                            recvPacket = net::HttpPacket::create(recvPacket->type());
 					break;
                 }
             }
             break;
         case net::Epoller::Event::write:
             {
-                componet::LockFreeCircularQueueSPSC<net::Packet::Ptr>::Ptr queue = connHolder->sendQueue;
-
                 while(conn->trySend())
                 {
-                    if(queue == nullptr)
+                    if(connHolder->sendQueue.empty())
                     {
                         m_epoller.modifySocket(socketFD, net::Epoller::Event::read);
                         break;
