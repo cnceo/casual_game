@@ -14,7 +14,9 @@
 typedef std::shared_ptr<ClassName> Ptr;\
 typedef std::shared_ptr<const ClassName> CPtr;\
 typedef std::weak_ptr<ClassName> WPtr;\
-typedef std::weak_ptr<const ClassName> CWPtr;
+typedef std::weak_ptr<const ClassName> CWPtr;\
+typedef std::unique_ptr<ClassName> UPtr;\
+typedef std::unique_ptr<const ClassName> CUPtr;
 
 #define CREATE_FUN_NEW(ClassName)\
 template <typename ... ArgsType>\

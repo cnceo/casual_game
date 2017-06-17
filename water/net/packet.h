@@ -28,7 +28,7 @@
 
 #include <vector>
 
-#include "componet/class_helper.h"
+#include "../componet/class_helper.h"
 
 #include "net_exception.h"
 
@@ -56,22 +56,24 @@ public:
     explicit Packet(const void* data, SizeType size);
 
     //得到内部buff的地址
-    uint8_t* data();
-    const uint8_t* data() const;
+    char* data();
+    const char* data() const;
 
-    //填充数据
-    void assign(const void* data, SizeType size);
+    //追加数据
+    SizeType append(const void* data, SizeType size);
+
+    //删除数据
+    void pop(SizeType size);
 
     //把数据拷出
     SizeType copy(void* buff, SizeType maxSize);
 
     //重新设置buff的长度
-    void resize(SizeType size);
     //得到buff的长度
     SizeType size() const;
 
 protected:
-    std::vector<uint8_t> m_buf;
+    std::vector<char> m_buf;
 };
 
 }}

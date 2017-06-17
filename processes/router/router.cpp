@@ -54,18 +54,21 @@ void Router::tcpPacketHandle(TcpPacket::Ptr packet,
     }
     */
 
+    auto msgCode = envelope->msg.code;
+    auto packetSize = packet->size();
+
     //剩下的都是发到本区的消息, 转到对应的进程
     if(receiverId.num() == 0) //广播
     {
         m_conns.broadcastPacketToPrivate(receiverId.type(), packet);
         LOG_DEBUG("relay broadcast packet, {}->{}, code={}, length={},", 
-                  senderId, ProcessId::typeToString(receiverId.type()), envelope->msg.code, packet->size() );
+                  senderId, ProcessId::typeToString(receiverId.type()), msgCode, packetSize);
     }
     else
     {
         auto ret = m_conns.sendPacketToPrivate(receiverId, packet) ? "successed" : "failed";
         LOG_DEBUG("relay packet {}, {}->{}, code={}, length={},", 
-                  ret, senderId, receiverId, envelope->msg.code, packet->size());
+                  ret, senderId, receiverId, msgCode, packetSize);
     }
 }
 

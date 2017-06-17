@@ -20,13 +20,13 @@ namespace net{
 class ConnectionBuffer
 {
 public:
-    ConnectionBuffer(uint32_t sizeLimit = 4096);
+    ConnectionBuffer(uint32_t sizeLimit =2048);
 
-    std::pair<uint8_t*, uint32_t> readable();
+    std::pair<char*, uint32_t> readable();
     bool commitRead(uint32_t size);
 
     //参数指期望的写入量, 0为
-    std::pair<uint8_t*, uint32_t> writeable(uint32_t size = 0);
+    std::pair<char*, uint32_t> writeable(uint32_t size = 0);
     bool commitWrite(uint32_t size);
 
     bool full() const;
@@ -36,7 +36,7 @@ public:
     uint32_t size() const;
 
 private:
-    std::vector<uint8_t> m_buf;
+    std::vector<char> m_buf;
     uint32_t m_dataBegin = 0;
     uint32_t m_dataEnd = 0;
 //    uint32_t m_sizeLimit;

@@ -9,7 +9,7 @@
  *               起始地址              |  内容                  |    长度
  *               ----------------------+------------------------+---------------------
  *               0                     |-- SizeType  dataSize --|   sizeof(SizeType)
- *               0+sizeof(SizeType)    |--   uint8_t[] data   --|   *(SizeType*)(data)
+ *               0+sizeof(SizeType)    |--      char[] data   --|   *(SizeType*)(data)
  */
 
 #include "packet.h"
@@ -28,9 +28,12 @@ public:
     void setContent(const void* content, SizeType contentSize);
     void* content();
     SizeType contentSize() const;
+    bool complete() const;
+
+    SizeType parse(const char* buf, SizeType len);
 
 public:
-    static TcpPacket::Ptr tryParse(uint8_t* data, SizeType size);
+    static TcpPacket::Ptr tryParse(const char* buf, SizeType size);
 };
 
 }}

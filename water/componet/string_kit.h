@@ -22,6 +22,8 @@
 namespace water{
 namespace componet{
 
+std::string dataToHex(const void* data, uint32_t size);
+
 /*****************字符串分割******************************/
 
 

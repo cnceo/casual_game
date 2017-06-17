@@ -23,16 +23,13 @@ void HttpConnectionManager::addConnection(net::BufferedConnection::Ptr conn, Con
 {
     conn->setNonBlocking();
 
-    auto item = std::make_shared<ConnectionHolder>();
-    item->id = uniqueID++;
-    item->conn = conn;
-    auto recvPacketType = connHolder->type == ConnType::client ? net::HttpType::request : net::HttpType::response;
-    item->recvPacket = HttpPacket::create(recvPacketType);
+    auto connHolder = std::make_shared<ConnectionHolder>();
+    connHolder->id = uniqueID++;
+    connHolder->conn = conn;
 
     std::lock_guard<componet::Spinlock> lock(m_lock);
 
-
-    auto insertAllRet = m_allConns.insert({conn->getFD(), item});
+    auto insertAllRet = m_allConns.insert({conn->getFD(), connHolder});
     if(insertAllRet.second == false)
     {
         LOG_ERROR("ConnectionManager, insert httpConn to m_allConns failed, remoteEp={}", 
@@ -42,7 +39,10 @@ void HttpConnectionManager::addConnection(net::BufferedConnection::Ptr conn, Con
     try
     {
         net::Epoller::Event epollEvent = conn->trySend() ? net::Epoller::Event::read : net::Epoller::Event::read_write;
-        m_epoller.regSocket(conn->getFD(), net::Epoller::Event::read);
+        m_epoller.regSocket(conn->getFD(), epollEvent);
+
+        auto recvPacketType = connHolder->type == ConnType::client ? net::HttpMsg::Type::request : net::HttpMsg::Type::response;
+        connHolder->recvPacket = net::HttpPacket::create(recvPacketType);
         LOG_DEBUG("add http conn to epoll, remote ep={}", conn->getRemoteEndpoint());
     }
     catch (const componet::ExceptionBase& ex)
@@ -110,41 +110,48 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
         {
         case net::Epoller::Event::read:
             {
-                net::HttpPacket::Ptr& recvPacket = connHolder->recvPacket;
+                if (m_recvQueue.full()) //队列满了, 不收了
+                    break;
+                net::HttpPacket::Ptr& packet = connHolder->recvPacket;
                 while(conn->tryRecv())
                 {
                     const auto& rawBuf = conn->recvBuf().readable();
-                    size_t parsedSize = recvPacket->tryParse(rawBuf.first, rawBuf.second);
-                    conn->commitread(parsedSize);
-                    if (!recvPacket->complete())
+                    size_t parsedSize = packet->parse(rawBuf.first, rawBuf.second); //从上次没解析的地方开始解析
+                    conn->recvBuf().commitRead(parsedSize); //已解析部分从recvBuf中取出
+                    if (!packet->complete()) //还没收到一个完整的包, 停止本次处理
                         break;
-                    if (!m_recvQueue.push({connHolder, connHolder->recvPacket}))
-                        break;
-
-                    if (!recvPacket->keepAlive() && recvPacket->type() == net::HttpType::response)
-                            delConnection(conn);
-                        else
-                            recvPacket = net::HttpPacket::create(recvPacket->type());
-					break;
+                    m_recvQueue.push({connHolder, packet});   //收到的包入队
+                    packet = net::HttpPacket::create(packet->msgType()); //重置待收包
                 }
             }
             break;
         case net::Epoller::Event::write:
             {
-                while(conn->trySend())
+                std::lock_guard<componet::Spinlock> lock(connHolder->sendLock);
+                while (conn->trySend())
                 {
-                    if(connHolder->sendQueue.empty())
+                    if (connHolder->sendQueue.empty())
                     {
                         m_epoller.modifySocket(socketFD, net::Epoller::Event::read);
                         break;
                     }
 
-                    net::Packet::Ptr packet;
-                    if(queue->pop(&packet))
-//todo                        conn->setSendPacket(packet);
-                    ;
-                    else
-                        queue = nullptr; //队列已空，不再需要存在
+                    while (!connHolder->sendQueue.empty()) 
+                    {
+                        net::Packet::Ptr packet = connHolder->sendQueue.front();
+                        const auto& rawBuf = conn->sendBuf().writeable(packet->size());
+                        if (rawBuf.second == 0)
+                            break;
+
+                        const auto copySize = packet->copy(rawBuf.first, rawBuf.second);
+                        conn->sendBuf().commitWrite(copySize);
+                        if (copySize < packet->size())
+                        {
+                            packet->pop(copySize);
+                            break;
+                        }
+                        connHolder->sendQueue.pop_front();
+                    }
                 }
             }
             break;
@@ -173,18 +180,35 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
 
 bool HttpConnectionManager::sendPacket(ConnectionHolder::Ptr connHolder, net::Packet::Ptr packet)
 {
-//    if(connHolder->conn->setSendPacket(packet))
-        return true;
+    std::lock_guard<componet::Spinlock> lock(connHolder->sendLock);
 
-    LOG_TRACE("socket 发送过慢, ep={}", 
-              connHolder->conn->getRemoteEndpoint());
-
-    if(connHolder->sendQueue == nullptr)
+    if (!connHolder->sendQueue.empty())
     {
-        m_epoller.modifySocket(connHolder->conn->getFD(), net::Epoller::Event::read_write);
-        connHolder->sendQueue = std::make_shared<componet::LockFreeCircularQueueSPSC<net::Packet::Ptr>>(9);
+        if (connHolder->sendQueue.size() > 512)
+            return false;
+
+        connHolder->sendQueue.push_back(packet);
+        return true;
     }
-    return connHolder->sendQueue->push(packet);
+
+    net::BufferedConnection::Ptr conn = connHolder->conn;
+    const auto& rawBuf = conn->sendBuf().writeable(packet->size());
+    if (rawBuf.second >= packet->size())
+    {
+        packet->copy(rawBuf.first, rawBuf.second);
+        conn->sendBuf().commitWrite(packet->size());
+        if (conn->trySend())
+            return true;
+    }
+    
+    auto copySize = packet->copy(rawBuf.first, rawBuf.second);
+    conn->sendBuf().commitWrite(copySize);
+    packet->pop(copySize);
+
+    connHolder->sendQueue.push_back(packet);
+    LOG_TRACE("发送过慢，发送队列出现排队, connId:{}", connHolder->id);
+    m_epoller.modifySocket(connHolder->conn->getFD(), net::Epoller::Event::read_write);
+    return true;
 }
 
 

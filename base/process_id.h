@@ -19,6 +19,11 @@
 namespace water{
 namespace process{
 
+//http 连接ID
+typedef uint64_t HttpConnectionId;
+const HttpConnectionId INVALID_HCID = 0;
+
+
 //客户连接ID
 typedef uint64_t ClientConnectionId; // |-32bits unixtime-|-8bits gatewayNum-|-24bits counter-|
 const ClientConnectionId INVALID_CCID = 0;

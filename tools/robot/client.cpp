@@ -14,7 +14,7 @@ Client Client::s_me;
 
 
 Client::Client()
-    : m_serverEp(serverAddr)
+    : m_recvPacket(net::TcpPacket::create()), m_serverEp(serverAddr)
 {
 }
 
@@ -54,13 +54,17 @@ void Client::epollEventHandler(net::Epoller::Event event)
         {
         case net::Epoller::Event::read:
             {
+                net::TcpPacket::Ptr& packet = m_recvPacket;
                 while(m_conn->tryRecv())
                 {
                     const auto& rawBuf = m_conn->recvBuf().readable();
-                    auto packet = net::TcpPacket::tryParse(rawBuf.first, rawBuf.second);
-                    if (packet == nullptr || !m_recvQue.push(packet))
+                    auto readSize = packet->parse(rawBuf.first, rawBuf.second);
+                    m_conn->recvBuf().commitRead(readSize);
+                    if (!packet->complete())
                         break;
-                    m_conn->recvBuf().commitRead(packet->size());
+                    if (!m_recvQue.push(packet))
+                        break;
+                    packet = net::TcpPacket::create();
                 }
             }
             break;
@@ -125,6 +129,9 @@ ProtoMsgPtr Client::recvMsg(TcpMsgCode msgCode)
 
 bool Client::trySendMsg(TcpMsgCode msgCode, const ProtoMsg& proto)
 {
+    while (!m_conn->trySend())
+        corot::this_corot::yield();
+
 	//create packet
     const uint32_t protoBinSize = proto.ByteSize();
     const uint32_t bufSize = sizeof(process::TcpMsg) + protoBinSize;
@@ -141,27 +148,17 @@ bool Client::trySendMsg(TcpMsgCode msgCode, const ProtoMsg& proto)
     auto packet = net::TcpPacket::create();
     packet->setContent(buf, bufSize);
         
-
-	//send packet
-#if 0
-    if(m_conn->setSendPacket(packet))
-        return true;
-    if(!m_sendQue.push(packet))
-        return false;
-    m_epoller.modifySocket(m_conn->getFD(), net::Epoller::Event::read_write);
-#else
-
-    auto rawBuf = m_conn->sendBuf().writeable();
-    while (rawBuf.second < packet->size())
+    while (packet->size() > 0)
     {
+        auto rawBuf = m_conn->sendBuf().writeable();
+        auto copySize = packet->copy(rawBuf.first, rawBuf.second);
+        m_conn->sendBuf().commitWrite(copySize);
+        packet->pop(copySize);
+        m_conn->trySend();
         corot::this_corot::yield();
-        rawBuf = m_conn->sendBuf().writeable();
     }
-    packet->copy(rawBuf.first, rawBuf.second);
-    m_conn->sendBuf().commitWrite(packet->size());
     while(!m_conn->trySend())
         corot::this_corot::yield();
-#endif
     return true;
 }
 

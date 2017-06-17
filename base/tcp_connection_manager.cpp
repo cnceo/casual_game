@@ -5,9 +5,11 @@
 
 #include "componet/other_tools.h"
 #include "componet/logger.h"
+#include "componet/string_kit.h"
 
 #include <iostream>
 #include <mutex>
+#include <thread>
 
 namespace water{
 namespace process{
@@ -18,14 +20,14 @@ void TcpConnectionManager::addPrivateConnection(net::BufferedConnection::Ptr con
 {
     conn->setNonBlocking();
 
-    auto item = std::make_shared<ConnectionHolder>();
-    item->type = ConnType::privateType;
-    item->id = processId.value();
-    item->conn = conn;
+    auto connHolder = std::make_shared<ConnectionHolder>();
+    connHolder->type = ConnType::privateType;
+    connHolder->id = processId.value();
+    connHolder->conn = conn;
 
     std::lock_guard<componet::Spinlock> lock(m_lock);
 
-    auto insertAllRet = m_allConns.insert({conn->getFD(), item});
+    auto insertAllRet = m_allConns.insert({conn->getFD(), connHolder});
     if(insertAllRet.second == false)
     {
         LOG_ERROR("ConnectionManager, insert privateConn to m_allConns failed, processId={}", processId);
@@ -34,7 +36,7 @@ void TcpConnectionManager::addPrivateConnection(net::BufferedConnection::Ptr con
 
     auto& privateProcessByType = m_privateConns[processId.type()];
 
-    auto insertPrivateRet = privateProcessByType.insert({processId.num(), item});
+    auto insertPrivateRet = privateProcessByType.insert({processId.num(), connHolder});
     if(insertPrivateRet.second == false)
     {
         LOG_ERROR("ConnectionManager, insert privateConn to m_privateConns failed, processId={}", processId);
@@ -45,6 +47,7 @@ void TcpConnectionManager::addPrivateConnection(net::BufferedConnection::Ptr con
     try
     {
         m_epoller.regSocket(conn->getFD(), net::Epoller::Event::read);
+        connHolder->recvPacket = net::TcpPacket::create();
     }
     catch (const componet::ExceptionBase& ex)
     {
@@ -66,21 +69,21 @@ bool TcpConnectionManager::addPublicConnection(net::BufferedConnection::Ptr conn
         return false;
 
     conn->setNonBlocking();
-    auto item = std::make_shared<ConnectionHolder>();
-    item->type = ConnType::publicType;
-    item->id = clientId;
-    item->conn = conn;
+    auto connHolder = std::make_shared<ConnectionHolder>();
+    connHolder->type = ConnType::publicType;
+    connHolder->id = clientId;
+    connHolder->conn = conn;
 
     std::lock_guard<componet::Spinlock> lock(m_lock);
 
-    auto insertAllRet = m_allConns.insert({conn->getFD(), item});
+    auto insertAllRet = m_allConns.insert({conn->getFD(), connHolder});
     if(insertAllRet.second == false)
     {
         LOG_ERROR("ConnectionManager::addPublicConnection failed, clientId={}, ep={}", clientId, conn->getRemoteEndpoint());
         return false;
     }
    
-    auto insertPublicRet = m_publicConns.insert({clientId, item});
+    auto insertPublicRet = m_publicConns.insert({clientId, connHolder});
     if(insertPublicRet.second == false)
     {
         LOG_ERROR("ConnectionManager::addPublicConnection failed, clientId={}, ep={}", clientId, conn->getRemoteEndpoint());
@@ -91,6 +94,7 @@ bool TcpConnectionManager::addPublicConnection(net::BufferedConnection::Ptr conn
     try
     {
         m_epoller.regSocket(conn->getFD(), net::Epoller::Event::read);
+        connHolder->recvPacket = net::TcpPacket::create();
     }
     catch (const componet::ExceptionBase& ex)
     {
@@ -205,40 +209,43 @@ void TcpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::E
         {
         case net::Epoller::Event::read:
             {
+                if (m_recvQueue.full()) //队列满, 不能收
+                    break;
                 while(conn->tryRecv())
                 {
+                    net::TcpPacket::Ptr packet = connHolder->recvPacket;
                     const auto& rawBuf = conn->recvBuf().readable();
-                    auto packet = net::TcpPacket::tryParse(rawBuf.first, rawBuf.second);
-                    if (packet == nullptr)
-                    {
-                        if (conn->recvBuf().full()) //缓冲区空间不够收一个包
-                        {
-                            if (conn->recvBuf().size() >= 1 * 1024 * 1024)
-                            {
-                                LOG_TRACE("recv tcp packet, 端消息超长, 踢掉, remote={}", conn->getRemoteEndpoint());
-                                eraseConnection(conn);
-                                conn->close();
-                                return;
-                            }
-                            
-                            conn->recvBuf().resize(conn->recvBuf().size() + 1024);//一次增加1k
-                            LOG_TRACE("recv tcp packet, 长消息, remote={}, recved size=", conn->getRemoteEndpoint(), conn->recvBuf().size());
-                            continue;
-                        }
+                    const auto readSize = packet->parse(rawBuf.first, rawBuf.second);
+//                    LOG_DEBUG("SOCKT DEBUG, PARSE, packetSize={}, contentSize={}, ep={}",  packet->size(), packet->contentSize(), conn->getRemoteEndpoint());
+                    conn->recvBuf().commitRead(readSize);
+                    if (!packet->complete())
                         break;
-                    }
-                    if (!m_recvQueue.push({connHolder, packet}) )
-                        break;//队列满，停止处理
-                    conn->recvBuf().commitRead(packet->size());
+                    m_recvQueue.push({connHolder, packet});
+
+//                   net::TcpPacket* tp = (net::TcpPacket*)packet.get();
+//                   auto rawMsg = reinterpret_cast<water::process::TcpMsg*>(tp->content());
+//                   if(water::process::isEnvelopeMsgCode(rawMsg->code))
+//                   {
+//                       auto envelope = reinterpret_cast<water::process::Envelope*>(tp->content());
+//                       LOG_DEBUG("SOCKT DEBUG, RECV, packetsize={}, contentSize={}, msgCode={}, {}", packet->size(), tp->contentSize(), envelope->msg.code,
+//                                 componet::dataToHex(packet->data(), packet->size()));
+//                   }
+//                   else
+//                   {
+//                       LOG_DEBUG("SOCKT DEBUG, RECV, packetsize={}, contentSize={}, msgCode={}, {}", packet->size(), tp->contentSize(), rawMsg->code, 
+//                                 componet::dataToHex(packet->data(), packet->size()));
+//                   }
+
+                    connHolder->recvPacket = net::TcpPacket::create();
                 }
             }
             break;
         case net::Epoller::Event::write:
             {
                 std::lock_guard<componet::Spinlock> lock(connHolder->sendLock);
-                while(connHolder->conn->trySend()) //缓冲区已经发空
+                while (connHolder->conn->trySend()) //缓冲区已经发空
                 {
-                    if(connHolder->sendQueue.empty()) //累积未发送的消息队列也已经发空
+                    if (connHolder->sendQueue.empty()) //累积未发送的消息队列也已经发空
                     {
                         m_epoller.modifySocket(socketFD, net::Epoller::Event::read);
                         break;
@@ -247,12 +254,17 @@ void TcpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::E
                     while (!connHolder->sendQueue.empty())
                     {
                         net::Packet::Ptr packet = connHolder->sendQueue.front();
-                        const auto& rawBuf = conn->recvBuf().writeable(packet->size());
-                        if (rawBuf.second < packet->size())
+                        const auto& rawBuf = conn->sendBuf().writeable(packet->size());
+                        if (rawBuf.second == 0)
                             break;
 
-                        packet->copy(rawBuf.first, rawBuf.second);
-                        conn->recvBuf().commitWrite(packet->size());
+                        const auto copySize = packet->copy(rawBuf.first, rawBuf.second);
+                        conn->sendBuf().commitWrite(copySize);
+                        if (copySize < packet->size())
+                        {
+                            packet->pop(copySize);
+                            break;
+                        }
                         connHolder->sendQueue.pop_front();
                     }
                 }
@@ -390,13 +402,25 @@ void TcpConnectionManager::broadcastPacketToPublic(net::Packet::Ptr packet)
 
 bool TcpConnectionManager::sendPacket(ConnectionHolder::Ptr connHolder, net::Packet::Ptr packet)
 {
+   // std::this_thread::sleep_for(std::chrono::seconds(5));
+   // LOG_DEBUG("SOCKT DEBUG, AFTER SLEEP, ----------------------------------------------------");
+   // LOG_DEBUG("SOCKT DEBUG, PACKETDATA={}", componet::dataToHex(packet->data(), packet->size()));
+
+
     std::lock_guard<componet::Spinlock> lock(connHolder->sendLock);
 
-    if (packet->size() > connHolder->conn->sendBuf().size())
-    {
-        LOG_TRACE("send tcp packet, 发送超大消息, size={}, remote={}", packet->size(), connHolder->conn->getRemoteEndpoint());
-        connHolder->conn->sendBuf().resize(packet->size());
-    }
+
+    //net::TcpPacket* tp = (net::TcpPacket*)packet.get();
+    //auto rawMsg = reinterpret_cast<water::process::TcpMsg*>(tp->content());
+    //if(water::process::isEnvelopeMsgCode(rawMsg->code))
+    //{
+    //    auto envelope = reinterpret_cast<water::process::Envelope*>(tp->content());
+    //    LOG_DEBUG("SOCKT DEBUG, SEND, PACKETSIZE={}, contentSize={}, msgCode={}", packet->size(), tp->contentSize(), envelope->msg.code);
+    //}
+    //else
+    //{
+    //    LOG_DEBUG("SOCKT DEBUG, SEND, PACKETSIZE={}, contentSize={}, msgCode={}", packet->size(), tp->contentSize(), rawMsg->code);
+    //}
 
     if(!connHolder->sendQueue.empty()) //待发送队列非空, 直接排队
     {
@@ -404,25 +428,25 @@ bool TcpConnectionManager::sendPacket(ConnectionHolder::Ptr connHolder, net::Pac
             return false;
 
         connHolder->sendQueue.push_back(packet);
-        LOG_TRACE("发送过慢，发送队列出现排队, connId:{}", connHolder->id);
         return true;
     }
 
-    const auto& rawBuf = connHolder->conn->sendBuf().writeable(packet->size());
-    if (rawBuf.second >= packet->size() )
+    net::BufferedConnection::Ptr conn = connHolder->conn;
+    const auto& rawBuf = conn->sendBuf().writeable(packet->size());
+    if (rawBuf.second >= packet->size())
     {
         packet->copy(rawBuf.first, rawBuf.second);
-        connHolder->conn->sendBuf().commitWrite(packet->size());
-        if(connHolder->conn->trySend())
-            return true; //直接发送成功
+        conn->sendBuf().commitWrite(packet->size());
+        if (conn->trySend())
+            return true;
     }
-    else
-    {
-        //buf空间不足, 无法放入, 排队, 等epoll_write事件时处理这些未发出的消息
-        connHolder->sendQueue.push_back(packet);
-    }
+    
+    auto copySize = packet->copy(rawBuf.first, rawBuf.second);
+    conn->sendBuf().commitWrite(copySize);
+    packet->pop(copySize);
 
-    //没有一次性发送成功，注册epoll_write事件
+    connHolder->sendQueue.push_back(packet);
+    LOG_TRACE("发送过慢，发送队列出现排队, connId:{}", connHolder->id);
     m_epoller.modifySocket(connHolder->conn->getFD(), net::Epoller::Event::read_write);
     return true;
 }

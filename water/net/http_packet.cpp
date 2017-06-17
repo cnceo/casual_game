@@ -33,10 +33,10 @@ struct HttpPacket::ParserSettings : http_parser_settings
 std::unique_ptr<http_parser_settings> HttpPacket::s_settings(new ParserSettings);
 
 
-std::pair<HttpPacket::Ptr, size_t> HttpPacket::tryParse(HttpType type, const char* data, size_t size)
+std::pair<HttpPacket::Ptr, size_t> HttpPacket::tryParse(HttpMsg::Type type, const char* data, size_t size)
 {
     auto ret = HttpPacket::create(type);
-    size_t used = ret->tryParse(data, size);
+    size_t used = ret->parse(data, size);
     return {ret->m_completed ? ret : nullptr, used};
 }
 
@@ -49,7 +49,7 @@ int32_t HttpPacket::onUrl(Parser* parser, const char* data, size_t size)
 {
     cout << "url=" << std::string(data, size) << endl;
     auto packet = reinterpret_cast<HttpPacket*>(parser->data);
-    packet->m_detial.url.assign(data, size);
+    packet->m_msg.url.assign(data, size);
     return 0;
 }
 
@@ -58,10 +58,10 @@ int32_t HttpPacket::onStatus(Parser* parser, const char* data, size_t size)
     cout << "status, code=" << parser->status_code << endl;
     cout << "status, method=" << parser->method << endl;
     auto packet = reinterpret_cast<HttpPacket*>(parser->data);
-    if (packet->m_detial.type == HttpType::request)
-        packet->m_detial.method = parser->method;
+    if (packet->m_msg.type == HttpMsg::Type::request)
+        packet->m_msg.method = parser->method;
     else
-        packet->m_detial.statusCode = parser->status_code;
+        packet->m_msg.statusCode = parser->status_code;
     return 0;
 }
 
@@ -69,7 +69,7 @@ int32_t HttpPacket::onHeaderField(Parser* parser, const char* data, size_t size)
 {
     cout << "headerFiled=" << std::string(data, size) << endl;
     auto packet = reinterpret_cast<HttpPacket*>(parser->data);
-    packet->m_detial.curHeaderFiled.assign(data, size);
+    packet->m_msg.curHeaderFiled.assign(data, size);
     return 0;
 }
 
@@ -77,15 +77,15 @@ int32_t HttpPacket::onHeaderValue(Parser* parser, const char* data, size_t size)
 {
     cout << "headerValue=" << std::string(data, size) << endl;
     auto packet = reinterpret_cast<HttpPacket*>(parser->data);
-    packet->m_detial.headers[packet->m_detial.curHeaderFiled] = std::string(data, size);
+    packet->m_msg.headers[packet->m_msg.curHeaderFiled] = std::string(data, size);
     return 0;
 }
 
 int32_t HttpPacket::onHeadersComplete(Parser* parser)
 {
     auto packet = reinterpret_cast<HttpPacket*>(parser->data);
-    cout << "headerEnd, size=" << packet->m_detial.headers.size();
-    std::string().swap(packet->m_detial.curHeaderFiled);
+    cout << "headerEnd, size=" << packet->m_msg.headers.size();
+    std::string().swap(packet->m_msg.curHeaderFiled);
     return 0;
 }
 
@@ -93,7 +93,7 @@ int32_t HttpPacket::onBody(Parser* parser, const char* data, size_t size)
 {
     cout << "body: " << std::string(data, size) << endl;
     auto packet = reinterpret_cast<HttpPacket*>(parser->data);
-    packet->m_detial.body.append(data, size);
+    packet->m_msg.body.append(data, size);
     return 0;
 }
 
@@ -102,7 +102,7 @@ int32_t HttpPacket::onPacketComplete(Parser* parser)
     cout << "packet complete" << endl;
     auto packet = reinterpret_cast<HttpPacket*>(parser->data);
     packet->m_completed = true;
-    packet->m_detial.body.shrink_to_fit();
+    packet->m_msg.body.shrink_to_fit();
     http_parser_pause(parser, 1);
     return 0;
 }
@@ -118,12 +118,12 @@ int32_t HttpPacket::onChunkComplete(Parser* parser)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-HttpPacket::HttpPacket(HttpType type)
+HttpPacket::HttpPacket(HttpMsg::Type type)
     : m_parser(new http_parser)
 {
-    http_parser_init(m_parser.get(), type == HttpType::request ? HTTP_REQUEST : HTTP_REQUEST);
+    http_parser_init(m_parser.get(), type == HttpMsg::Type::request ? HTTP_REQUEST : HTTP_REQUEST);
     m_parser->data = this;
-    m_detial.type = type;
+    m_msg.type = type;
 }
 
 HttpPacket::~HttpPacket() = default;
@@ -134,17 +134,17 @@ bool HttpPacket::complete() const
     return m_completed;
 }
 
-HttpType HttpPacket::type() const
+HttpMsg::Type HttpPacket::msgType() const
 {
-    m_detial.type;
+    return m_msg.type;
 }
 
 bool HttpPacket::keepAlive() const
 {
-    return m_detial.keepAlive;
+    return m_msg.keepAlive;
 }
 
-size_t HttpPacket::tryParse(const char* data, size_t size)
+size_t HttpPacket::parse(const char* data, size_t size)
 {
     if (complete())
         return 0;

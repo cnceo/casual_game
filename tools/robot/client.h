@@ -35,6 +35,7 @@ private:
     ProtoMsgPtr tryRecvMsg(TcpMsgCode msgCode);
 
 private:
+    net::TcpPacket::Ptr m_recvPacket;
     net::BufferedConnection::Ptr m_conn;
     net::Epoller m_epoller;
     componet::Timer m_timer;

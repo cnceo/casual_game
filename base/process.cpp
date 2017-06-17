@@ -331,7 +331,7 @@ void Process::init()
         if (m_httpServer)
         {
             m_httpServer->e_newConn.reg(std::bind(&HttpConnectionManager::addConnection, 
-                                                  &m_httpcons, _1));
+                                                  &m_httpcons, _1, HttpConnectionManager::ConnType::server));
         }
         //通过检查的连接加入连接管理器
         m_privateConnChecker->e_connConfirmed.reg(std::bind(&TcpConnectionManager::addPrivateConnection, 

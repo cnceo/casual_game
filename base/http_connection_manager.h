@@ -9,9 +9,6 @@
 #ifndef WATER_HTTP_CONNECTION_MANAGER_H
 #define WATER_HTTP_CONNECTION_MANAGER_H
 
-#include <unordered_map>
-#include <atomic>
-
 #include "net/buffered_connection.h"
 #include "net/epoller.h"
 
@@ -23,14 +20,19 @@
 #include "process_id.h"
 #include "process_thread.h"
 
+#include <unordered_map>
+#include <atomic>
+#include <list>
+
 namespace water{
-namespace net {class BufferedConnection; class HttpPacket;}
+namespace net {class BufferedConnection; class HttpPacket; class Packet;}
 namespace process{
 
 class HttpConnectionManager : public ProcessThread
 {
-    using PacketPtr = std::shared_ptr<net::HttpPacket>;
-    using PacketCPtr = std::shared_ptr<const net::Packet>;
+    using HttpPacketPtr = std::shared_ptr<net::HttpPacket>;
+    using HttpPacketCPtr = std::shared_ptr<const net::HttpPacket>;
+    using PacketPtr = std::shared_ptr<net::Packet>;
 public:
 
     enum class ConnType
@@ -45,10 +47,10 @@ public:
         int64_t id;
         std::shared_ptr<net::BufferedConnection> conn;
         ConnType type = ConnType::client;
-        PacketPtr recvPacket = nullptr;
+        HttpPacketPtr recvPacket = nullptr;
         //由于socke太忙而暂时无法发出的包，缓存在这里
         componet::Spinlock sendLock;
-        std::list<net::Packet::Ptr> sendQueue; 
+        std::list<PacketPtr> sendQueue; 
         bool keeyAlive = false;
     };
 public:
@@ -60,15 +62,13 @@ public:
     void addConnection(std::shared_ptr<net::BufferedConnection> conn, ConnType type);
     void delConnection(std::shared_ptr<net::BufferedConnection> conn);
 
-    //从接收队列中取出一个packet, 并得到与其相关的conn
-    bool sendPacket(ConnectionHolder::Ptr connHolder, PacketPtr packet);
-
-public:
-    componet::Event<void (HttpConnectionManager*)> e_close;
-    componet::Event<void (ConnectionHolder::Ptr, PacketCPtr) > e_packetrecv;
+    void sendPacket(HttpConnectionId hcid, PacketPtr packet);
 
 private:
     void epollerEventHandler(int32_t socketFD, net::Epoller::Event event);
+
+    //从接收队列中取出一个packet, 并得到与其相关的conn
+    bool sendPacket(ConnectionHolder::Ptr connHolder, PacketPtr packet);
 
 private:
 
@@ -79,7 +79,7 @@ private:
     //所有的连接, {fd, conn}
     std::unordered_map<int32_t, ConnectionHolder::Ptr> m_allConns;
 
-    componet::LockFreeCircularQueueSPSC<std::pair<ConnectionHolder::Ptr, PacketCPtr>> m_recvQueue;
+    componet::LockFreeCircularQueueSPSC<std::pair<ConnectionHolder::Ptr, HttpPacketCPtr>> m_recvQueue;
 };
 
 }}

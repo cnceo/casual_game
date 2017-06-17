@@ -1,22 +1,20 @@
 #include "tcp_packet.h"
 #include <cstring>
+#include "../componet/logger.h"
+#include "../componet/string_kit.h"
 
 namespace water{
 namespace net{
 
-TcpPacket::Ptr TcpPacket::tryParse(uint8_t* data, SizeType size)
+TcpPacket::Ptr TcpPacket::tryParse(const char* data, SizeType size)
 {
-    if (size < sizeof(SizeType))
-        return nullptr;
-    if (size < *reinterpret_cast<const SizeType*>(data) + sizeof(size))
-        return nullptr;
-    auto packet = new Packet(data, size);
-    auto ret = TcpPacket::Ptr(static_cast<TcpPacket*>(packet));
-    return ret;
+    auto ret = TcpPacket::create();
+    ret->parse(data, size);
+    return ret->complete() ? ret : nullptr;
 }
 
 TcpPacket::TcpPacket()
-: Packet(sizeof(SizeType))
+    : Packet()
 {
 }
 
@@ -29,14 +27,14 @@ TcpPacket::TcpPacket(SizeType contentSize)
 void TcpPacket::setContent(const void* content, SizeType contentSize)
 {
     const SizeType packetSize = sizeof(SizeType) + contentSize;
-    resize(packetSize);
+    m_buf.resize(packetSize);
     std::memcpy(data(), &contentSize, sizeof(contentSize));
     std::memcpy(data() + sizeof(contentSize), content, contentSize);
 }
 
 void* TcpPacket::content()
 {
-    if(size() < sizeof(SizeType))
+    if (size() < sizeof(SizeType))
         return nullptr;
 
     return data() + sizeof(SizeType);
@@ -44,10 +42,54 @@ void* TcpPacket::content()
 
 TcpPacket::SizeType TcpPacket::contentSize() const
 {
-    if(size() < sizeof(SizeType))
+    if (size() < sizeof(SizeType))
         return 0;
 
-    return size() - sizeof(SizeType);
+    return *reinterpret_cast<const SizeType*>(data());
+}
+
+bool TcpPacket::complete() const
+{
+    return ( size() >= sizeof(SizeType) ) && ( contentSize() + sizeof(SizeType) <= size() );
+}
+
+TcpPacket::SizeType TcpPacket::parse(const char* buf, SizeType len)
+{
+    if (complete()) //已完整, 不再需要解析
+        return 0;
+
+    //fill header and try fill body, 包头要一次性读完, 不够则不读
+    if (size() == 0)
+    {
+        if (len < sizeof(SizeType))
+            return 0;
+        SizeType readLen = *reinterpret_cast<const SizeType*>(buf) + sizeof(SizeType);
+        if (readLen > len)
+            readLen = len;
+        m_buf.assign(buf, buf + readLen);
+        return readLen;
+    }
+
+    //fill header //处理一下吧, 应该不可能
+    SizeType headerAppendLen = 0;
+    if (size() < sizeof(SizeType))
+    {
+        if (len < sizeof(SizeType) - size()) //不够header, 直接不读了
+        {
+            return 0;
+        }
+        headerAppendLen = append(buf, sizeof(SizeType) - size());
+        len -= headerAppendLen;
+        buf += headerAppendLen;
+    }
+    
+    //fill body
+    SizeType completeSize = *reinterpret_cast<const SizeType*>(data()) + sizeof(SizeType);
+    SizeType deficiencySize = completeSize - size();
+
+    SizeType appendLen = deficiencySize < len ? deficiencySize : len;
+    append(buf, appendLen);
+    return  headerAppendLen + appendLen;
 }
 
 

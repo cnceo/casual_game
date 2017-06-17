@@ -2,8 +2,6 @@
 #define WATER_NET_HTTP_PACKET_H
 
 
-//#include "http-parser/http_parser.h"
-#include "../componet/class_helper.h"
 #include "packet.h"
 
 #include <cstdint>
@@ -18,46 +16,49 @@ namespace water{
 namespace net{
 
 
-enum class HttpType
+struct HttpMsg
 {
-    request, response,
+    enum class Type
+    {
+        request, response,
+    };
+
+
+    Type type = Type::request;
+    std::string curHeaderFiled;
+    std::map<std::string, std::string> headers;
+    union
+    {
+        uint32_t statusCode = 0;
+        uint32_t method;
+    };
+    bool keepAlive = false;
+    std::string body;
+    std::string url;
 };
 
-class HttpPacket //: public Packet
+class HttpPacket : public Packet
 {
     using Parser = http_parser;
 public:
     TYPEDEF_PTR(HttpPacket)
     CREATE_FUN_MAKE(HttpPacket)
-    HttpPacket(HttpType type);
+    HttpPacket(HttpMsg::Type type);
     ~HttpPacket();
 
     bool complete() const;
-    HttpType type() const;
+    HttpMsg::Type msgType() const;
     bool keepAlive() const;
 
-    size_t tryParse(const char* data, size_t size);
+    size_t parse(const char* data, size_t size);
 
 private:
     std::unique_ptr<http_parser> m_parser;
     bool m_completed = true;
-    struct Detial
-    {
-        HttpType type = HttpType::request;
-        std::string curHeaderFiled;
-        std::map<std::string, std::string> headers;
-        union
-        {
-            uint32_t statusCode = 0;
-            uint32_t method;
-        };
-        bool keepAlive = false;
-        std::string body;
-        std::string url;
-    } m_detial;
+    HttpMsg m_msg;
 
 public:
-    static std::pair<HttpPacket::Ptr, size_t> tryParse(HttpType type, const char* data, size_t size);
+    static std::pair<HttpPacket::Ptr, size_t> tryParse(HttpMsg::Type type, const char* data, size_t size);
 
 private:
     struct ParserSettings;

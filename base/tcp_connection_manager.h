@@ -43,6 +43,7 @@ public:
         ConnType type;
         int64_t id;
 
+        net::TcpPacket::Ptr recvPacket;
         net::BufferedConnection::Ptr conn;
 
         //由于socke太忙而暂时无法发出的包，缓存在这里

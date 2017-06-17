@@ -12,44 +12,55 @@ const Packet::SizeType Packet::HEAD_SIZE;
 
 Packet::Packet()
 {
+    m_buf.reserve(64);
 }
 
 Packet::Packet(SizeType size)
-: m_buf(size)
+    :m_buf(size, 0)
 {
 }
 
 Packet::Packet(const void* data, SizeType size)
-: m_buf(reinterpret_cast<const uint8_t*>(data), reinterpret_cast<const uint8_t*>(data) + size)
+: m_buf(reinterpret_cast<const char*>(data), reinterpret_cast<const char*>(data) + size)
 {
 }
 
-uint8_t* Packet::data()
+char* Packet::data()
+{
+    return m_buf.data(); 
+}
+
+const char* Packet::data() const
 {
     return m_buf.data();
 }
 
-const uint8_t* Packet::data() const
+Packet::SizeType Packet::append(const void* data, SizeType size)
 {
-    return m_buf.data();
+    m_buf.resize(m_buf.size() + size);
+    memcpy(m_buf.data() + m_buf.size() - size, data, size);
+    return size;
 }
 
-void Packet::assign(const void* data, SizeType size)
+void Packet::pop(SizeType size)
 {
-    auto tmp = reinterpret_cast<const uint8_t*>(data);
-    m_buf.assign(tmp, tmp + size);
+    if (size >= m_buf.size())
+    {
+        m_buf.clear();
+        return;
+    }
+
+    auto moveSize = m_buf.size() - size;
+    
+    memmove(m_buf.data(), m_buf.data() + size, moveSize);
+    m_buf.resize(moveSize);
 }
 
 Packet::SizeType Packet::copy(void* buff, SizeType maxSize)
 {
-    SizeType copySize = maxSize > m_buf.size() ? maxSize : m_buf.size();
+    SizeType copySize = maxSize < m_buf.size() ? maxSize : m_buf.size();
     std::memcpy(buff, m_buf.data(), copySize);
     return copySize;
-}
-
-void Packet::resize(SizeType size)
-{
-    m_buf.resize(size);
 }
 
 Packet::SizeType Packet::size() const
