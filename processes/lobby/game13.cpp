@@ -155,7 +155,9 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
             game->checkAllVotes();
         }
         break;
-    case GameStatus::settle:
+    case GameStatus::settle: //结算期间, 外挂, 忽略
+        break;
+    case GameStatus::settleAll:
     case GameStatus::closed:
         {
             LOG_TRACE("结算完毕后主动离开房间, roomId={}, ccid={}, cuid={}, openid={}",
@@ -348,8 +350,8 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     game->trySettleGame();
 
-    //是否已经结束, 没结束就开下一局
-    if (game->m_status != GameStatus::closed)
+    //顺利结算完毕, 开下一局
+    if (game->m_status == GameStatus::settle)
         game->tryStartRound();
 }
 
@@ -738,7 +740,12 @@ void Game13::trySettleGame()
 
     //总结算
     if (m_rounds >= m_attr.rounds)
-        abortGame();
+    {
+        m_status = GameStatus::settleAll;
+        m_settleAllTime = componet::toUnixTime(s_timerTime);
+        return;
+    }
+        
     m_status = GameStatus::settle;
 }
 
@@ -865,6 +872,17 @@ void Game13::timerExec(componet::TimePoint now)
         break;
     case GameStatus::settle:
         break;
+    case GameStatus::settleAll:
+        {
+            time_t elapse = componet::toUnixTime(s_timerTime) - m_settleAllTime;
+            if (elapse >= 120)
+            {
+                LOG_TRACE("总结算等待120s, 游戏终止, roomid={}", getId());
+                m_settleAllTime = 0;
+                abortGame();
+            }
+        }
+        break;
     case GameStatus::closed:
         {
             destroyLater();
@@ -900,25 +918,30 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
         {
             auto& dataJ = datas[j];
             ///////////////////////////////以下为特殊牌型//////////////////////////
+
             if (dataI.spec != dataJ.spec)
             {
-                auto& specWinner = (dataI.spec > dataJ.spec) ?  dataI : dataJ;
-                auto& specLoser  = (dataI.spec < dataJ.spec) ?  dataI : dataJ;
+                using InfoOfSBrand = typename std::underlying_type<Deck::G13SpecialBrand>::type;
+                auto specCmpValueI = static_cast<InfoOfSBrand>(dataI.spec);
+                auto specCmpValueJ = static_cast<InfoOfSBrand>(dataJ.spec);
+                if (specCmpValueI == specCmpValueJ) //平局
+                    continue;
+
+                auto& specWinner = (specCmpValueI > specCmpValueJ) ?  dataI : dataJ;
+                auto& specLoser  = (specCmpValueI < specCmpValueJ) ?  dataI : dataJ;
+                int32_t specPrize = 0;
                 switch (specWinner.spec)
                 {
                 case Deck::G13SpecialBrand::flushStriaght: //11.   清龙（同花十三水）：若大于其他玩家，每家赢取104分
-                    specWinner.prize += 104;
-                    specLoser.prize  -= 104;
+                    specPrize = 104;
                     break;
                 case Deck::G13SpecialBrand::straight:
-                    specWinner.prize += 52;
-                    specLoser.prize  -= 52;
+                    specPrize = 52;
                     break;
                 case Deck::G13SpecialBrand::royal:
                 case Deck::G13SpecialBrand::tripleStraightFlush:
                 case Deck::G13SpecialBrand::tripleBombs:
-                    specWinner.prize += 26;
-                    specLoser.prize  -= 26;
+                    specPrize = 26;
                     break;
                 case Deck::G13SpecialBrand::allBig:
                 case Deck::G13SpecialBrand::allLittle:
@@ -928,8 +951,7 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 case Deck::G13SpecialBrand::sixPairs:
                 case Deck::G13SpecialBrand::tripleStraight:
                 case Deck::G13SpecialBrand::tripleFlush:
-                    specWinner.prize += 6;
-                    specLoser.prize  -= 6;
+                    specPrize = 6;
                     break;
                 case Deck::G13SpecialBrand::none:
                     break;
@@ -937,7 +959,9 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     break;
                 }
 
-                //本轮已经不用再比了, 因为有特殊牌型, 特殊的都大于一般的
+                specWinner.losers[specLoser.cuid][0] = specPrize;
+                specWinner.losers[specLoser.cuid][1] = 0;
+                //本轮已经不用再比了, 因为至少有一家是特殊牌型, 特殊的都大于一般的
                 continue;
             }
 
@@ -949,6 +973,8 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 Deck::cmpBrandInfo(dataI.dun[1], dataJ.dun[2]),
                 Deck::cmpBrandInfo(dataI.dun[1], dataJ.dun[2]),
             };
+
+            int32_t dunPrize[3] = {0, 0, 0};
             // rule 1, 同一墩赢1个玩家1水 +1分
             // rule 2, 同一墩输1个玩家1水 -1分
             // rule 3, 同一墩和其它玩家打和（牌型大小一样）0分
@@ -957,12 +983,10 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 switch (dunCmps[d])
                 {
                 case 1: //I赢
-                    dataI.prize += 1;
-                    dataJ.prize -= 1;
+                    dunPrize[d] += 1;
                     break;
                 case 2: //J赢
-                    dataI.prize -= 1;
-                    dataJ.prize += 1;
+                    dunPrize[d] -= 1;
                     break;
                 case 0: //平
                 default:
@@ -976,13 +1000,11 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     const uint32_t extra = 2;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::threeOfKind)
                     {
-                        dataI.prize += extra;
-                        dataJ.prize -= extra;
+                        dunPrize[d] += extra;
                     }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::threeOfKind)
                     {
-                        dataI.prize -= extra;
-                        dataJ.prize += extra;
+                        dunPrize[d] -= extra;
                     }
                 }
             }
@@ -993,13 +1015,11 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     const uint32_t extra = 1;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fullHouse)
                     {
-                        dataI.prize += extra;
-                        dataJ.prize -= extra;
+                        dunPrize[d] += extra;
                     }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fullHouse)
                     {
-                        dataI.prize -= extra;
-                        dataJ.prize += extra;
+                        dunPrize[d] -= extra;
                     }
                 }
             }
@@ -1011,13 +1031,11 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     const uint32_t extra = 19;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fiveOfKind)
                     {
-                        dataI.prize += extra;
-                        dataJ.prize -= extra;
+                        dunPrize[d] += extra;
                     }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fiveOfKind)
                     {
-                        dataI.prize -= extra;
-                        dataJ.prize += extra;
+                        dunPrize[d] -= extra;
                     }
                 }
 
@@ -1028,13 +1046,11 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     const uint32_t extra = 9;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fiveOfKind)
                     {
-                        dataI.prize += extra;
-                        dataJ.prize -= extra;
+                        dunPrize[d] += extra;
                     }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fiveOfKind)
                     {
-                        dataI.prize -= extra;
-                        dataJ.prize += extra;
+                        dunPrize[d] -= extra;
                     }
                 }
 
@@ -1048,13 +1064,11 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     const uint32_t extra = 9;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::straightFlush)
                     {
-                        dataI.prize += extra;
-                        dataJ.prize -= extra;
+                        dunPrize[d] += extra;
                     }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::straightFlush)
                     {
-                        dataI.prize -= extra;
-                        dataJ.prize += extra;
+                        dunPrize[d] -= extra;
                     }
                 }
 
@@ -1065,13 +1079,11 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     const uint32_t extra = 4;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::straightFlush)
                     {
-                        dataI.prize += extra;
-                        dataJ.prize -= extra;
+                        dunPrize[d] += extra;
                     }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::straightFlush)
                     {
-                        dataI.prize -= extra;
-                        dataJ.prize += extra;
+                        dunPrize[d] -= extra;
                     }
                 }
             }
@@ -1083,13 +1095,11 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     const uint32_t extra = 7;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fourOfKind)
                     {
-                        dataI.prize += extra;
-                        dataJ.prize -= extra;
+                        dunPrize[d] += extra;
                     }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fourOfKind)
                     {
-                        dataI.prize -= extra;
-                        dataJ.prize += extra;
+                        dunPrize[d] -= extra;
                     }
                 }
 
@@ -1100,28 +1110,51 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     const uint32_t extra = 3;
                     if (dunCmps[d] == 1 && dataI.dun[d].b == Deck::Brand::fourOfKind)
                     {
-                        dataI.prize += extra;
-                        dataJ.prize -= extra;
+                        dunPrize[d] += extra;
                     }
                     else if (dunCmps[d] == 2 && dataJ.dun[d].b == Deck::Brand::fourOfKind)
                     {
-                        dataI.prize -= extra;
-                        dataJ.prize += extra;
+                        dunPrize[d] -= extra;
                     }
                 }
             }
+
             //9, 打枪
-            //如果三墩都比一个玩家打的话，向该玩家收取分数*2,包含特殊分
+            //如果三墩都比一个玩家大的话，向该玩家收取分数*2,包含特殊分
             //诸如冲三后打枪一个玩家，为5分+5分，共对该玩家收取10分
             if (m_attr.daQiang)
             {
-                //这个看不懂, 先跳过
-                //但是可以肯定很恶心   
+                const uint32_t prize = dunPrize[0] + dunPrize[1] + dunPrize[2];
+                if (dunPrize[0] > 0 && dunPrize[1] > 0 && dunPrize[2] > 0)
+                {
+                    dataI.losers[dataJ.cuid][0] = prize;
+                    dataI.losers[dataJ.cuid][1] = 1;
+                }
+                else if (dunPrize[0] > 0 && dunPrize[1] > 0 && dunPrize[2] > 0)
+                {
+                    dataJ.losers[dataI.cuid][0] = prize;
+                    dataJ.losers[dataI.cuid][1] = 1;
+                }
+                else //没有打枪
+                {
+                    if (prize == 0) //平局
+                        break;
+
+                    if (prize > 0)
+                    {
+                        dataI.losers[dataJ.cuid][0] = prize;
+                        dataI.losers[dataJ.cuid][1] = 0;
+                    }
+                    else
+                    {
+                        dataJ.losers[dataI.cuid][0] = prize;
+                        dataJ.losers[dataI.cuid][1] = 0;
+                    }
+                }
             }
-            //10, 全垒打, 计算完每家打枪的分数后，再*2，也就是总分X分+X分
-            {
-                //同上, 一样跳过
-            }
+        }
+        //10, 全垒打, 计算完每家打枪的分数后，再*2，也就是总分X分+X分
+        {
         }
     }
     return rsd;

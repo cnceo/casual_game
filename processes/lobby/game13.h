@@ -24,6 +24,7 @@ class Game13 : public Room
         play,    //发牌之后
         vote,
         settle,  //一局结束
+        settleAll, //总结算
         closed,  //所有局结束
     };
 
@@ -108,6 +109,7 @@ private:
     int32_t m_rounds = 0;
     time_t m_startVoteTime = 0;
     ClientUniqueId m_voteSponsorCuid = 0;
+    time_t m_settleAllTime = 0;
 
     struct RoundSettleData
     {
@@ -122,6 +124,7 @@ private:
             std::array<Deck::BrandInfo, 3> dun; //3墩牌型
             Deck::G13SpecialBrand spec;         //特殊牌型
             int32_t prize = 0;
+            std::map<ClientUniqueId, std::array<int32_t, 2>> losers; //<loser, <price, 打枪>>
         };
         std::vector<PlayerData> players;
     };

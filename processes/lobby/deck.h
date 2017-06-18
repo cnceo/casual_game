@@ -56,22 +56,22 @@ public:
         hightCard       = 0,  //乌龙, 高牌, 散牌
     };
 
-    enum class G13SpecialBrand : int16_t //这些枚举名字就自己随意定啦
+    enum class G13SpecialBrand : int16_t //这些枚举名字就自己随意定啦, 牌型大小依据枚举值的个位数来比较
     {
-        flushStriaght            = 13, //青龙,          13张同花顺
-        straight                 = 12, //一条龙         13张顺子
-        royal                    = 11, //12皇族         13张最小是J(属于JQKA)
-        tripleStraightFlush      = 10, //三个同花顺     3墩都是同花顺
-        tripleBombs              =  9, //三个炸弹       13张含3个四条
-        allBig                   =  8, //全大           13张中最小的是8
-        allLittle                =  7, //全小           13张中最大的是8
-        redOrBlack               =  6, //全红或全黑     13张全红或全黑
-        quradThreeOfKind         =  5, //四个三条       13张含4个三条
-        pentaPairsAndThreeOfKind =  4, //五对 + 三条    13张含1个三条+5个对子
-        sixPairs                 =  3, //六对           13张含6个对子
-        tripleStraight           =  2, //三顺子         3墩都是顺子
-        tripleFlush              =  1, //三同花         3墩都是同花
-        none                     =  0,
+        flushStriaght            = 135, //青龙,          13张同花顺
+        straight                 = 124, //一条龙         13张顺子
+        royal                    = 113, //12皇族         13张最小是J(属于JQKA)
+        tripleStraightFlush      = 103, //三个同花顺     3墩都是同花顺
+        tripleBombs              =  93, //三个炸弹       13张含3个四条
+        allBig                   =  82, //全大           13张中最小的是8
+        allLittle                =  72, //全小           13张中最大的是8
+        redOrBlack               =  62, //全红或全黑     13张全红或全黑
+        quradThreeOfKind         =  52, //四个三条       13张含4个三条
+        pentaPairsAndThreeOfKind =  42, //五对 + 三条    13张含1个三条+5个对子
+        sixPairs                 =  32, //六对           13张含6个对子
+        tripleStraight           =  22, //三顺子         3墩都是顺子
+        tripleFlush              =  12, //三同花         3墩都是同花
+        none                     =   0,
 
         
     };
@@ -82,6 +82,7 @@ public:
         int32_t point = 0;
     };
 
+    //0 相等, 1 bi1较大, 2 bi2较大
     static int32_t cmpBrandInfo(const BrandInfo& bi1, const BrandInfo& bi2);
 
 
@@ -138,10 +139,10 @@ inline int32_t Deck::cmpBrandInfo(const BrandInfo& bi1, const BrandInfo& bi2)
 {
 
     if (bi1.b != bi2.b)
-        return bi1.b < bi2.b ? 1 : 2;
+        return bi1.b > bi2.b ? 1 : 2;
 
     if( bi1.point != bi2.point )
-       return bi1.point < bi2.point ? 1 : 2;
+       return bi1.point > bi2.point ? 1 : 2;
 
     return 0;
 }
