@@ -922,8 +922,8 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             if (dataI.spec != dataJ.spec)
             {
                 using InfoOfSBrand = typename std::underlying_type<Deck::G13SpecialBrand>::type;
-                auto specCmpValueI = static_cast<InfoOfSBrand>(dataI.spec);
-                auto specCmpValueJ = static_cast<InfoOfSBrand>(dataJ.spec);
+                auto specCmpValueI = static_cast<InfoOfSBrand>(dataI.spec) % 10;
+                auto specCmpValueJ = static_cast<InfoOfSBrand>(dataJ.spec) % 10;
                 if (specCmpValueI == specCmpValueJ) //平局
                     continue;
 
