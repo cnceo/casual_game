@@ -928,7 +928,6 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     continue;
 
                 auto& specWinner = (specCmpValueI > specCmpValueJ) ?  dataI : dataJ;
-                auto& specLoser  = (specCmpValueI < specCmpValueJ) ?  dataI : dataJ;
                 int32_t specPrize = 0;
                 switch (specWinner.spec)
                 {
@@ -959,8 +958,16 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                     break;
                 }
 
-                specWinner.losers[specLoser.cuid][0] = specPrize;
-                specWinner.losers[specLoser.cuid][1] = 0;
+                if (specCmpValueI > specCmpValueJ)
+                {
+                    specWinner.losers[i][0] = specPrize;
+                    specWinner.losers[i][1] = 0;
+                }
+                else
+                {
+                    specWinner.losers[j][0] = specPrize;
+                    specWinner.losers[j][1] = 0;
+                }
                 //本轮已经不用再比了, 因为至少有一家是特殊牌型, 特殊的都大于一般的
                 continue;
             }
@@ -1127,13 +1134,13 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 const uint32_t prize = dunPrize[0] + dunPrize[1] + dunPrize[2];
                 if (dunPrize[0] > 0 && dunPrize[1] > 0 && dunPrize[2] > 0)
                 {
-                    dataI.losers[dataJ.cuid][0] = prize;
-                    dataI.losers[dataJ.cuid][1] = 1;
+                    dataI.losers[j][0] = prize;
+                    dataI.losers[j][1] = 1;
                 }
                 else if (dunPrize[0] > 0 && dunPrize[1] > 0 && dunPrize[2] > 0)
                 {
-                    dataJ.losers[dataI.cuid][0] = prize;
-                    dataJ.losers[dataI.cuid][1] = 1;
+                    dataJ.losers[i][0] = prize;
+                    dataJ.losers[i][1] = 1;
                 }
                 else //没有打枪
                 {
@@ -1142,20 +1149,53 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
 
                     if (prize > 0)
                     {
-                        dataI.losers[dataJ.cuid][0] = prize;
-                        dataI.losers[dataJ.cuid][1] = 0;
+                        dataI.losers[j][0] = prize;
+                        dataI.losers[j][1] = 0;
                     }
                     else
                     {
-                        dataJ.losers[dataI.cuid][0] = prize;
-                        dataJ.losers[dataI.cuid][1] = 0;
+                        dataJ.losers[i][0] = prize;
+                        dataJ.losers[i][1] = 0;
                     }
                 }
             }
         }
-        //10, 全垒打, 计算完每家打枪的分数后，再*2，也就是总分X分+X分
+    }
+    //两两比完了, 最终结果把每一次pk都算上
+    //10, 全垒打, 计算完每家打枪的分数后，再*2，也就是总分X分+X分
+    {
+        for (auto i = 0u; i < datas.size(); ++i)
         {
-        }
+            auto& winner = datas[i];
+
+            //判断是否是全垒打
+            winner.quanLeiDa = false;
+            if (winner.losers.size() + 1 == datas.size()) //全胜
+            {
+                for (auto iter = winner.losers.begin(); iter != winner.losers.end(); ++iter)
+                {
+                    if (iter->second[1] == 0)
+                    {
+                        winner.quanLeiDa = false;
+                        break;
+                    }
+                }
+            }
+
+            //开始对losers逐人结算分数
+            for (auto iter = winner.losers.begin(); iter != winner.losers.end(); ++iter)
+            {
+
+                auto& loser = datas[iter->first];
+                int32_t prize = iter->second[0]; //分数得失
+                if (iter->second[1] > 0) //打枪
+                    prize *= 2;
+                if (winner.quanLeiDa) //全垒打
+                    prize *= 2;
+                winner.prize += prize;
+                loser.prize -= prize;
+            }
+        }       
     }
     return rsd;
 }

@@ -124,7 +124,8 @@ private:
             std::array<Deck::BrandInfo, 3> dun; //3墩牌型
             Deck::G13SpecialBrand spec;         //特殊牌型
             int32_t prize = 0;
-            std::map<ClientUniqueId, std::array<int32_t, 2>> losers; //<loser, <price, 打枪>>
+            std::map<uint32_t, std::array<int32_t, 2>> losers; //<loserIndex, <price, 打枪>>
+            bool quanLeiDa = false;
         };
         std::vector<PlayerData> players;
     };
