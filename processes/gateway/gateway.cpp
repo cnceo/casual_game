@@ -1,5 +1,7 @@
 #include "gateway.h"
 
+#include "anysdk_login_manager.h"
+
 #include "water/componet/logger.h"
 #include "water/componet/scope_guard.h"
 #include "water/net/endpoint.h"
@@ -49,7 +51,15 @@ void Gateway::init()
     //已加入connectionManager的连接被断开时的处理
     m_conns.e_afterErasePublicConn.reg(std::bind(&ClientManager::clientOffline, m_clientManager, _1));
 
-    //注册消息处理事件和主定时器事件
+    //aynsdk 定时器
+    m_timer.regEventHandler(std::chrono::milliseconds(3), std::bind(&AnySdkLoginManager::dealHttpPackets, &AnySdkLoginManager::me(), _1));
+    m_timer.regEventHandler(std::chrono::seconds(10), std::bind(&AnySdkLoginManager::timerExec, &AnySdkLoginManager::me(), _1));
+    //anysdk 处理 http 呼入
+//    m_httpServer->e_newConn.reg(std::bind(&HttpConnectionManager::addConnection, &m_httpConns, 
+//                                          AnySdkLoginManager::me().genHttpConnectionId(),  _1, HttpConnectionManager::ConnType::client));
+    m_httpServer->e_newConn.reg(std::bind(&AnySdkLoginManager::onNewHttpConnection, &AnySdkLoginManager::me(), _1));
+
+    //普通业务注册消息处理事件和主定时器事件
     registerTcpMsgHandler();
     registerTimerHandler();
 }
@@ -155,6 +165,11 @@ bool Gateway::sendToClient(ClientConnectionId ccid, TcpMsgCode code, const Proto
 net::BufferedConnection::Ptr Gateway::eraseClientConn(ClientConnectionId ccid)
 {
     return m_conns.erasePublicConnection(ccid);
+}
+
+HttpConnectionManager& Gateway::httpConnectionManager()
+{
+    return m_httpConns;
 }
 
 void Gateway::loadConfig()

@@ -446,7 +446,7 @@ bool TcpConnectionManager::sendPacket(ConnectionHolder::Ptr connHolder, net::Pac
     packet->pop(copySize);
 
     connHolder->sendQueue.push_back(packet);
-    LOG_TRACE("发送过慢，发送队列出现排队, connId:{}", connHolder->id);
+    LOG_TRACE("发送过慢，发送队列出现排队, connId:{}, remote={}", connHolder->id, connHolder->conn->getRemoteEndpoint());
     m_epoller.modifySocket(connHolder->conn->getFD(), net::Epoller::Event::read_write);
     return true;
 }

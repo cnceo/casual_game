@@ -86,7 +86,7 @@ protected:
 
     //http服务器相关
     TcpServer::Ptr m_httpServer;
-    HttpConnectionManager m_httpcons;
+    HttpConnectionManager m_httpConns;
 
     //主定时器，处理一切业务处理
     ProcessTimer m_timer;

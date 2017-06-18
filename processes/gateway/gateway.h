@@ -37,6 +37,9 @@ public:
     bool sendToClient(ClientConnectionId ccid, TcpMsgCode code, const ProtoMsg& proto);
 
     net::BufferedConnection::Ptr eraseClientConn(ClientConnectionId ccid);
+
+    HttpConnectionManager& httpConnectionManager();
+
 private:
     Gateway(int32_t num, const std::string& configDir, const std::string& logDir);
 

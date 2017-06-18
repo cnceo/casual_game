@@ -44,7 +44,7 @@ public:
     {
         TYPEDEF_PTR(ConnectionHolder);
 
-        int64_t id;
+        HttpConnectionId hcid;
         std::shared_ptr<net::BufferedConnection> conn;
         ConnType type = ConnType::client;
         HttpPacketPtr recvPacket = nullptr;
@@ -59,10 +59,15 @@ public:
 
     bool exec() override;
 
-    void addConnection(std::shared_ptr<net::BufferedConnection> conn, ConnType type);
-    void delConnection(std::shared_ptr<net::BufferedConnection> conn);
+    void addConnection(HttpConnectionId hcid, std::shared_ptr<net::BufferedConnection> conn, ConnType type);
+    void eraseConnection(HttpConnectionId hcid);
 
-    void sendPacket(HttpConnectionId hcid, PacketPtr packet);
+    bool getPacket(ConnectionHolder::Ptr* conn, HttpPacketPtr* packet);
+    bool sendPacket(HttpConnectionId hcid, PacketPtr packet);
+
+
+public:
+    componet::Event<void (HttpConnectionId id)> e_afterEraseConn; 
 
 private:
     void epollerEventHandler(int32_t socketFD, net::Epoller::Event event);
@@ -70,16 +75,18 @@ private:
     //从接收队列中取出一个packet, 并得到与其相关的conn
     bool sendPacket(ConnectionHolder::Ptr connHolder, PacketPtr packet);
 
+    void eraseConnection(std::shared_ptr<net::BufferedConnection> conn);
+
 private:
 
-	int32_t uniqueID = 0;
     componet::Spinlock m_lock;
 
     net::Epoller m_epoller;
-    //所有的连接, {fd, conn}
+    //所有的连接, {HttpConnectionId, conn} {SocketFD, conn}
     std::unordered_map<int32_t, ConnectionHolder::Ptr> m_allConns;
+    std::unordered_map<HttpConnectionId, ConnectionHolder::Ptr> m_hcid2Conns;;
 
-    componet::LockFreeCircularQueueSPSC<std::pair<ConnectionHolder::Ptr, HttpPacketCPtr>> m_recvQueue;
+    componet::LockFreeCircularQueueSPSC<std::pair<ConnectionHolder::Ptr, HttpPacketPtr>> m_recvQueue;
 };
 
 }}

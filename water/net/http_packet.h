@@ -49,6 +49,7 @@ public:
     bool complete() const;
     HttpMsg::Type msgType() const;
     bool keepAlive() const;
+    HttpMsg& msg();
 
     size_t parse(const char* data, size_t size);
 
@@ -76,6 +77,25 @@ private:
     static int32_t onChunkComplete(Parser* parser);
 };
 
+inline bool HttpPacket::complete() const
+{
+    return m_completed;
+}
+
+inline HttpMsg::Type HttpPacket::msgType() const
+{
+    return m_msg.type;
+}
+
+inline bool HttpPacket::keepAlive() const
+{
+    return m_msg.keepAlive;
+}
+
+inline HttpMsg& HttpPacket::msg()
+{
+    return m_msg;
+}
 
 }}
 

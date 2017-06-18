@@ -19,21 +19,28 @@ HttpConnectionManager::HttpConnectionManager()
 {
 }
 
-void HttpConnectionManager::addConnection(net::BufferedConnection::Ptr conn, ConnType type)
+void HttpConnectionManager::addConnection(HttpConnectionId hcid, net::BufferedConnection::Ptr conn, ConnType type)
 {
     conn->setNonBlocking();
 
     auto connHolder = std::make_shared<ConnectionHolder>();
-    connHolder->id = uniqueID++;
+    connHolder->hcid = hcid;
     connHolder->conn = conn;
 
     std::lock_guard<componet::Spinlock> lock(m_lock);
 
+    auto insertHcid2ConnsRet = m_hcid2Conns.insert({hcid, connHolder});
+    if (insertHcid2ConnsRet.second == false)
+    {
+        LOG_ERROR("ConnectionManager, insert httpConn to m_hcid2Conns failed, remoteEp={}", conn->getRemoteEndpoint());
+        return;
+    }
+
     auto insertAllRet = m_allConns.insert({conn->getFD(), connHolder});
     if(insertAllRet.second == false)
     {
-        LOG_ERROR("ConnectionManager, insert httpConn to m_allConns failed, remoteEp={}", 
-                  conn->getRemoteEndpoint());
+        LOG_ERROR("ConnectionManager, insert httpConn to m_allConns failed, remoteEp={}", conn->getRemoteEndpoint());
+        m_hcid2Conns.erase(insertHcid2ConnsRet.first);
     }
 
     try
@@ -53,16 +60,37 @@ void HttpConnectionManager::addConnection(net::BufferedConnection::Ptr conn, Con
     }
 }
 
-void HttpConnectionManager::delConnection(net::BufferedConnection::Ptr conn)
+void HttpConnectionManager::eraseConnection(net::BufferedConnection::Ptr conn)
 {
+    if (conn == nullptr)
+        return;
+
     std::lock_guard<componet::Spinlock> lock(m_lock);
+
 
     auto it = m_allConns.find(conn->getFD());
     if(it == m_allConns.end())
         return;
 
+    m_hcid2Conns.erase(it->second->hcid);
+    e_afterEraseConn(it->second->hcid); //删除事件
+
+
     m_allConns.erase(it);
     m_epoller.delSocket(conn->getFD());
+}
+
+void HttpConnectionManager::eraseConnection(HttpConnectionId hcid)
+{
+    net::BufferedConnection::Ptr conn = nullptr;
+    {
+        std::lock_guard<componet::Spinlock> lock(m_lock);
+        auto it = m_hcid2Conns.find(hcid);
+        if (it == m_hcid2Conns.end())
+            return;
+        conn = it->second->conn;
+    }
+    eraseConnection(conn);
 }
 
 bool HttpConnectionManager::exec()
@@ -112,16 +140,16 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
             {
                 if (m_recvQueue.full()) //队列满了, 不收了
                     break;
-                net::HttpPacket::Ptr& packet = connHolder->recvPacket;
                 while(conn->tryRecv())
                 {
+                    net::HttpPacket::Ptr packet = connHolder->recvPacket;
                     const auto& rawBuf = conn->recvBuf().readable();
                     size_t parsedSize = packet->parse(rawBuf.first, rawBuf.second); //从上次没解析的地方开始解析
                     conn->recvBuf().commitRead(parsedSize); //已解析部分从recvBuf中取出
                     if (!packet->complete()) //还没收到一个完整的包, 停止本次处理
                         break;
                     m_recvQueue.push({connHolder, packet});   //收到的包入队
-                    packet = net::HttpPacket::create(packet->msgType()); //重置待收包
+                    connHolder->recvPacket = net::HttpPacket::create(packet->msgType()); //重置待收包
                 }
             }
             break;
@@ -158,7 +186,7 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
         case net::Epoller::Event::error:
             {
                 LOG_ERROR("epoll error, {}", conn->getRemoteEndpoint());
-                delConnection(conn);
+                eraseConnection(conn);
             }
             break;
         default:
@@ -169,14 +197,35 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
     catch (const net::ReadClosedConnection& ex)
     {
         LOG_TRACE("对方断开连接, {}", conn->getRemoteEndpoint());
-        delConnection(conn);
+        eraseConnection(conn);
     }
     catch (const net::NetException& ex)
     {
         LOG_TRACE("连接异常, {}", conn->getRemoteEndpoint());
-        delConnection(conn);
+        eraseConnection(conn);
     }
 }
+
+bool HttpConnectionManager::getPacket(ConnectionHolder::Ptr* conn, net::HttpPacket::Ptr* packet)
+{
+    std::pair<ConnectionHolder::Ptr, net::HttpPacket::Ptr> ret;
+    if(!m_recvQueue.pop(&ret))
+        return false;
+
+    *conn = ret.first;
+    *packet = ret.second;
+    return true;
+}
+
+bool HttpConnectionManager::sendPacket(HttpConnectionId hcid, net::Packet::Ptr packet)
+{
+    std::lock_guard<componet::Spinlock> lock(m_lock);
+    auto iter = m_hcid2Conns.find(hcid);
+    if (iter == m_hcid2Conns.end())
+        return false;
+    return sendPacket(iter->second, packet);
+}
+
 
 bool HttpConnectionManager::sendPacket(ConnectionHolder::Ptr connHolder, net::Packet::Ptr packet)
 {
@@ -206,7 +255,7 @@ bool HttpConnectionManager::sendPacket(ConnectionHolder::Ptr connHolder, net::Pa
     packet->pop(copySize);
 
     connHolder->sendQueue.push_back(packet);
-    LOG_TRACE("发送过慢，发送队列出现排队, connId:{}", connHolder->id);
+    LOG_TRACE("发送过慢，发送队列出现排队, remote={}", connHolder->conn->getRemoteEndpoint());
     m_epoller.modifySocket(connHolder->conn->getFD(), net::Epoller::Event::read_write);
     return true;
 }

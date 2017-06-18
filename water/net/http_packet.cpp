@@ -129,21 +129,6 @@ HttpPacket::HttpPacket(HttpMsg::Type type)
 HttpPacket::~HttpPacket() = default;
 
 
-bool HttpPacket::complete() const
-{
-    return m_completed;
-}
-
-HttpMsg::Type HttpPacket::msgType() const
-{
-    return m_msg.type;
-}
-
-bool HttpPacket::keepAlive() const
-{
-    return m_msg.keepAlive;
-}
-
 size_t HttpPacket::parse(const char* data, size_t size)
 {
     if (complete())

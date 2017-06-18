@@ -55,7 +55,7 @@ void Process::lanchThreads()
         LOG_DEBUG("{} thread start ok", serverName);
 
         const std::string connName = "http conns";
-        m_httpcons.run();
+        m_httpConns.run();
         m_threads.insert({connName, &m_timer});
         LOG_DEBUG("{} thread start ok", connName);
     }
@@ -327,18 +327,17 @@ void Process::init()
 
             m_flashSandboxServer->e_newConn.reg(handler);
         }
-
         if (m_httpServer)
         {
-            m_httpServer->e_newConn.reg(std::bind(&HttpConnectionManager::addConnection, 
-                                                  &m_httpcons, _1, HttpConnectionManager::ConnType::server));
+        //    m_httpServer->e_newConn.reg(std::bind(&HttpConnectionManager::addConnection, 
+        //                                          &m_httpConns, _1, HttpConnectionManager::ConnType::server));
         }
         //通过检查的连接加入连接管理器
         m_privateConnChecker->e_connConfirmed.reg(std::bind(&TcpConnectionManager::addPrivateConnection, 
                                                             &m_conns, _1, _2));
 
         //处理消息接收队列
-        m_timer.regEventHandler(std::chrono::milliseconds(1), std::bind(&Process::dealTcpPackets, this, _1));
+        m_timer.regEventHandler(std::chrono::milliseconds(3), std::bind(&Process::dealTcpPackets, this, _1));
     }
 }
 

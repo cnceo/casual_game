@@ -1,4 +1,5 @@
 objects = \
+		  anysdk_login_manager.o\
 		  gateway.o\
 		  main.o\
 		  register_tcp_msg_handler.o\
