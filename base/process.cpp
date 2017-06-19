@@ -118,22 +118,31 @@ void Process::joinThreads()
             const std::string& name = threadInfo.first;
             ProcessThread* thread = threadInfo.second;
 
-            bool threadRetValue;
-            const auto waitRet = thread->wait(&threadRetValue, std::chrono::milliseconds(0));
-            if(waitRet == ProcessThread::WaitRet::timeout)
-                continue;
+            try
+            {
+                bool threadRetValue;
+                const auto waitRet = thread->wait(&threadRetValue, std::chrono::milliseconds(0));
+                if(waitRet == ProcessThread::WaitRet::timeout)
+                    continue;
 
-            if(threadRetValue)
-            {
-                LOG_TRACE("thread {}  stoped", name, getFullName());
+                if(threadRetValue)
+                {
+                    LOG_TRACE("thread {} stoped", name);
+                }
+                else
+                {
+                    LOG_ERROR("thread {} abort", name);
+                    stop();
+                }
+                m_threads.erase(name);
+                break;
             }
-            else
+            catch(const std::future_error& ex)
             {
-                LOG_ERROR("thread {}  abort", name, getFullName());
-                stop();
+                LOG_ERROR("thread {} {} raise std::future_error, ex={}", name, getFullName(), ex.what());
+                m_threads.erase(name);
+                break;
             }
-            m_threads.erase(name);
-            break;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
