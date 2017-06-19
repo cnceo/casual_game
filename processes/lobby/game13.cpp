@@ -780,6 +780,7 @@ void Game13::trySettleGame()
             player->set_rank(count.rank);
         }
         sendToAll(sndFinalCode, sndFinal);
+        LOG_TRACE("所有轮结束, 总结算完成 round={}/{}, roomid={}", m_rounds, m_attr.rounds, getId());
 
         //房间状态
         m_status = GameStatus::settleAll;
