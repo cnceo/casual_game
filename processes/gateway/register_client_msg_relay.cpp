@@ -45,6 +45,7 @@ void ClientManager::regClientMsgRelay()
     PUBLIC_MSG_TO_CLIENT(S_G13_PlayersInRoom)
     PUBLIC_MSG_TO_CLIENT(S_G13_HandOfMine)
     PUBLIC_MSG_TO_CLIENT(S_G13_AllHands)
+    PUBLIC_MSG_TO_CLIENT(S_G13_AllRounds)
 
 };
 
