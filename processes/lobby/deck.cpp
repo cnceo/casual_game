@@ -22,9 +22,11 @@ Deck::BrandInfo Deck::brandInfo5(Card* c)
     std::sort(c, end, &Deck::lessCard);
     std::vector<Rank> r = { rank(c[0]), rank(c[1]), rank(c[2]), rank(c[3]), rank(c[4]) };
     std::vector<Suit> s = { suit(c[0]), suit(c[1]), suit(c[2]), suit(c[3]), suit(c[4]) };
+//    std::vector<int32_t> powR = { 7529536, 537824, 38416, 2744, 196, 14, 1 }; //14的
+    std::vector<int32_t> pow = { 1, 14, 196, 2744, 38416, 537824, 7529536 };
     auto rtoi = [&r](uint32_t i)->IntOfRank
     {
-        return static_cast<IntOfRank>(r[i]) + 2;
+        return static_cast<IntOfRank>(r[i]) + 1;
     };
 
     // check 9, 五同
@@ -82,7 +84,48 @@ Deck::BrandInfo Deck::brandInfo5(Card* c)
     // check 5, 同花
     if (isFlush)
     {
-        return {Brand::flush, rtoi(4)}; //最大的牌
+        //return {Brand::flush, rtoi(4)}; //最大的牌
+        {//判断其中是否存在两对
+            int32_t point = 0; //rank(大对子) * 14^^6 + rank(小对子) * 14^^5 + rank(单张)
+            if (r[0] == r[1] && r[2] == r[3])
+                point = rtoi(3) * pow[6] + rtoi(1) * pow[5] + rtoi(4);
+            else if (r[0] == r[1] && r[3] == r[4])
+                point = rtoi(4) * pow[6] + rtoi(1) * pow[5] + rtoi(2);
+            else if (r[1] == r[2] && r[3] == r[4])
+                point = rtoi(4) * pow[6] + rtoi(2) * pow[5] + rtoi(0);
+            if (point > 0)
+                return {Brand::flush, point};
+        }
+        {//判断其中是否存在对子
+            uint32_t pairIndex = -1;
+            for (uint32_t i = 1; i < size; ++i)
+            {
+                if (r[i - 1] == r[i])
+                {
+                    pairIndex = i;
+                    break;
+                }
+            }
+            if (pairIndex != uint32_t(-1))
+            {
+                int32_t point = 0; //rank(对子) * 14^^5 + point(3张乌龙)
+                point += rtoi(pairIndex) * pow[5];
+                uint32_t hightCounter = 0;
+                for (uint32_t i = 0; i < size; ++i)
+                {
+                    if (i == pairIndex || i == pairIndex - 1u)
+                        continue;
+                    point += rtoi(i) * pow[hightCounter++];
+                }
+                return {Brand::flush, point};
+            }
+        }
+
+        //不包含两对也不包含对子, 那就只能是包含乌龙了
+        int32_t point = 0;
+        for (uint32_t i = 0; i < size; ++i)
+            point += rtoi(i) * pow[i];
+        return {Brand::flush, point};
     }
 
     // check 4, 顺子
@@ -107,26 +150,46 @@ Deck::BrandInfo Deck::brandInfo5(Card* c)
     }
 
     {// check 2, 两对
-        int32_t point = 0; //rank(大对子) * 100 + rank(小对子)
+        int32_t point = 0; //rank(大对子) * 14^^6 + rank(小对子) * 14^^5 + rank(单张)
         if (r[0] == r[1] && r[2] == r[3])
-            point = rtoi(3) * 100 + rtoi(1);
+            point = rtoi(3) * pow[6] + rtoi(1) * pow[5] + rtoi(4);
         else if (r[0] == r[1] && r[3] == r[4])
-            point = rtoi(4) * 100 + rtoi(1);
+            point = rtoi(4) * pow[6] + rtoi(1) * pow[5] + rtoi(2);
         else if (r[1] == r[2] && r[3] == r[4])
-            point = rtoi(4) * 100 + rtoi(2);
+            point = rtoi(4) * pow[6] + rtoi(2) * pow[5] + rtoi(0);
         if (point > 0)
             return {Brand::twoPairs, point};
     }
-
-    // check 1, 对子
-    for (uint32_t i = 1; i < size; ++i)
-    {
-        if (r[i - 1] == r[i])
-            return {Brand::onePair, rtoi(i)};
+    {// check 1, 对子
+        uint32_t pairIndex = -1;
+        for (uint32_t i = 1; i < size; ++i)
+        {
+            if (r[i - 1] == r[i])
+            {
+                pairIndex = i;
+                break;
+            }
+        }
+        if (pairIndex != uint32_t(-1))
+        {
+            int32_t point = 0; //rank(对子) * 14^^5 + point(3张乌龙)
+            point += rtoi(pairIndex) * pow[5];
+            uint32_t hightCounter = 0;
+            for (uint32_t i = 0; i < size; ++i)
+            {
+                if (i == pairIndex || i == pairIndex - 1)
+                    continue;
+                point += rtoi(i) * pow[hightCounter++];
+            }
+            return {Brand::onePair, point};
+        }
     }
 
     // check 0, 乌龙, 散牌, 高牌
-    return {Brand::hightCard, rtoi(12)};
+    int32_t point = 0;
+    for (uint32_t i = 0; i < size; ++i)
+        point += rtoi(i) * pow[i];
+    return {Brand::hightCard, point};
 }
 
 Deck::BrandInfo Deck::brandInfo3(Card* c)
@@ -139,6 +202,7 @@ Deck::BrandInfo Deck::brandInfo3(Card* c)
     std::sort(c, end, &Deck::lessCard);
     std::vector<Rank> r = { rank(c[0]), rank(c[1]), rank(c[2]) };
     std::vector<Suit> s = { suit(c[0]), suit(c[1]), suit(c[2]) };
+    std::vector<int32_t> pow = { 1, 14, 196, 2744, 38416, 537824, 7529536 };
     auto rtoi = [&r](uint32_t i)->IntOfRank
     {
         return static_cast<IntOfRank>(r[i]) + 2;
@@ -150,16 +214,19 @@ Deck::BrandInfo Deck::brandInfo3(Card* c)
     
     {// check 2, 对子
         int32_t point = 0;
-    if (r[0] == r[1])
-       point = rtoi(1);
-    else if (r[1] == r[2])
-        point = rtoi(2);
-    if (point > 0)
-        return {Brand::onePair, point};
+        if (r[0] == r[1])
+            point = rtoi(1) * pow[3] + rtoi(2);
+        else if (r[1] == r[2])
+            point = rtoi(2) * pow[4] + rtoi(0);
+        if (point > 0)
+            return {Brand::onePair, point};
     }
 
     // check 3, 乌龙, 散牌, 高牌
-    return {Brand::hightCard, rtoi(2)};
+    int32_t point = 0;
+    for (uint32_t i = 0; i < size; ++i)
+        point += rtoi(i) * pow[i];
+    return {Brand::hightCard, point};
 }
 
 Deck::Brand Deck::brand(Card* c, uint32_t size)
