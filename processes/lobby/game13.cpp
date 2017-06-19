@@ -1019,11 +1019,13 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             int32_t dunCmps[] = 
             {
                 Deck::cmpBrandInfo(dataI.dun[0], dataJ.dun[0]),
-                Deck::cmpBrandInfo(dataI.dun[1], dataJ.dun[2]),
-                Deck::cmpBrandInfo(dataI.dun[1], dataJ.dun[2]),
+                Deck::cmpBrandInfo(dataI.dun[1], dataJ.dun[1]),
+                Deck::cmpBrandInfo(dataI.dun[2], dataJ.dun[2]),
             };
 
-            int32_t dunPrize[3] = {0, 0, 0};
+            //下面按照按照逐个规则计算3墩的胜负分
+            int32_t dunPrize[3] = {0, 0, 0}; //3墩胜负分的记录, I赢记整数, J赢记负数, 最后看正负知道谁赢了, 绝对值代表赢的数量
+
             // rule 1, 同一墩赢1个玩家1水 +1分
             // rule 2, 同一墩输1个玩家1水 -1分
             // rule 3, 同一墩和其它玩家打和（牌型大小一样）0分
@@ -1171,34 +1173,31 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             //9, 打枪
             //如果三墩都比一个玩家大的话，向该玩家收取分数*2,包含特殊分
             //诸如冲三后打枪一个玩家，为5分+5分，共对该玩家收取10分
-            if (m_attr.daQiang)
+            const uint32_t prize = dunPrize[0] + dunPrize[1] + dunPrize[2];
+            if (m_attr.daQiang && (dunPrize[0] > 0 && dunPrize[1] > 0 && dunPrize[2] > 0) ) //I打枪
             {
-                const uint32_t prize = dunPrize[0] + dunPrize[1] + dunPrize[2];
-                if (dunPrize[0] > 0 && dunPrize[1] > 0 && dunPrize[2] > 0)
+                dataI.losers[j][0] = prize;
+                dataI.losers[j][1] = 1;
+            }
+            else if (m_attr.daQiang && (dunPrize[0] < 0 && dunPrize[1] < 0 && dunPrize[2] < 0) ) //J打枪
+            {
+                dataJ.losers[i][0] = -prize;
+                dataJ.losers[i][1] = 1;
+            }
+            else //没有打枪
+            {
+                if (prize == 0) //平局
+                    break;
+
+                if (prize > 0) //I胜利
                 {
                     dataI.losers[j][0] = prize;
-                    dataI.losers[j][1] = 1;
+                    dataI.losers[j][1] = 0;
                 }
-                else if (dunPrize[0] > 0 && dunPrize[1] > 0 && dunPrize[2] > 0)
+                else //J胜利
                 {
-                    dataJ.losers[i][0] = prize;
-                    dataJ.losers[i][1] = 1;
-                }
-                else //没有打枪
-                {
-                    if (prize == 0) //平局
-                        break;
-
-                    if (prize > 0)
-                    {
-                        dataI.losers[j][0] = prize;
-                        dataI.losers[j][1] = 0;
-                    }
-                    else
-                    {
-                        dataJ.losers[i][0] = prize;
-                        dataJ.losers[i][1] = 0;
-                    }
+                    dataJ.losers[i][0] = -prize;
+                    dataJ.losers[i][1] = 0;
                 }
             }
         }
@@ -1206,9 +1205,9 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
     //两两比完了, 最终结果把每一次pk都算上
     //10, 全垒打, 计算完每家打枪的分数后，再*2，也就是总分X分+X分
     {
-        for (auto i = 0u; i < datas.size(); ++i)
+        for (auto d = 0u; d < datas.size(); ++d)
         {
-            auto& winner = datas[i];
+            auto& winner = datas[d];
 
             //判断是否是全垒打
             winner.quanLeiDa = false;
