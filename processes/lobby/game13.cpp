@@ -710,16 +710,16 @@ void Game13::trySettleGame()
 
     //TODO 比牌型, 算的分
     //先算牌型
-    auto data = calcRound();
+    auto curRound = calcRound();
     for (uint32_t i = 0; i < m_players.size(); ++i)
     {
-        data->players[i].cards = m_players[i].cards;
+        curRound->players[i].cards = m_players[i].cards;
     }
-    m_settleData.push_back(data);
+    m_settleData.push_back(curRound);
 
     //发结果
     PROTO_VAR_PUBLIC(S_G13_AllHands, snd)
-    for (const auto& pd : data->players)
+    for (const auto& pd : curRound->players)
     {
         auto player = snd.add_players();
         player->set_cuid(pd.cuid);
@@ -741,6 +741,44 @@ void Game13::trySettleGame()
     //总结算
     if (m_rounds >= m_attr.rounds)
     {
+        //统计
+        struct FinalCount
+        {
+            ClientUniqueId cuid = 0;
+            int32_t win = 0;
+            int32_t daqiang = 0;
+            int32_t quanleida = 0;
+        };
+        std::vector<FinalCount> allFinalCount(m_players.size());;
+        for (const auto& round : m_settleData)
+        {
+            for (auto i = 0u; i < round->players.size(); ++i)
+            {
+                const auto& pd = round->players[i];
+                auto& count = allFinalCount[i];
+                count.cuid = pd.cuid;
+                count.win += pd.losers.size();
+                bool daqiang = 0;
+                for(const auto& item : pd.losers)
+                    daqiang += item.second[1];
+                count.daqiang += daqiang;
+                if (pd.quanLeiDa)
+                    count.quanleida += 1;
+            }
+        }
+        //发送
+        PROTO_VAR_PUBLIC(S_G13_AllRounds, sndFinal)
+        for (const auto& count : allFinalCount)
+        {
+            auto player = sndFinal.add_players();
+            player->set_cuid(count.cuid);
+            player->set_win(count.win);
+            player->set_daqiang(count.daqiang);
+            player->set_quanleida(count.quanleida);
+        }
+        sendToAll(sndFinalCode, sndFinal);
+
+        //房间状态
         m_status = GameStatus::settleAll;
         m_settleAllTime = componet::toUnixTime(s_timerTime);
         return;
@@ -894,6 +932,7 @@ void Game13::timerExec(componet::TimePoint now)
 Game13::RoundSettleData::Ptr Game13::calcRound()
 {
     auto rsd = RoundSettleData::create();
+    rsd->players.reserve(m_players.size());
     for (PlayerInfo& info : m_players)
     {
         rsd->players.emplace_back();
@@ -1170,7 +1209,8 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
 
             //判断是否是全垒打
             winner.quanLeiDa = false;
-            if (winner.losers.size() + 1 == datas.size()) //全胜
+            if ((m_attr.quanLeiDa)  //全垒打启用
+                && (winner.losers.size() + 1 == datas.size()) ) //全胜
             {
                 for (auto iter = winner.losers.begin(); iter != winner.losers.end(); ++iter)
                 {
