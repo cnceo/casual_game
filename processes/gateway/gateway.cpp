@@ -57,6 +57,7 @@ void Gateway::init()
     //anysdk 处理 http 呼入
 //    m_httpServer->e_newConn.reg(std::bind(&HttpConnectionManager::addConnection, &m_httpConns, 
 //                                          AnySdkLoginManager::me().genHttpConnectionId(),  _1, HttpConnectionManager::ConnType::client));
+    AnySdkLoginManager::me().startNameResolve();
     if (m_httpServer)                                          
         m_httpServer->e_newConn.reg(std::bind(&AnySdkLoginManager::onNewHttpConnection, &AnySdkLoginManager::me(), _1));
 

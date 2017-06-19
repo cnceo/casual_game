@@ -55,7 +55,7 @@ public:
 
 private:
     std::unique_ptr<http_parser> m_parser;
-    bool m_completed = true;
+    bool m_completed = false;
     HttpMsg m_msg;
 
 public:

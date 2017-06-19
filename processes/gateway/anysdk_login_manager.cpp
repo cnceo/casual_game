@@ -67,12 +67,15 @@ void AnySdkLoginManager::dealHttpPackets(componet::TimePoint now)
 
 void AnySdkLoginManager::clientVerifyRequest(HttpConnectionId hcid, std::shared_ptr<net::HttpPacket> packet)
 {
+    LOG_DEBUG("http request");
     if (packet->msgType() != net::HttpMsg::Type::request)
         return;
+
 }
 
 void AnySdkLoginManager::assVerifyResponse(std::shared_ptr<net::HttpPacket> packet)
 {
+    LOG_DEBUG("http response");
     if (packet->msgType() != net::HttpMsg::Type::response)
         return;
 }
@@ -97,7 +100,6 @@ void AnySdkLoginManager::startNameResolve()
     {
         while (true)
         {
-            LOG_TRACE("try resolve host oauth.anysdk.com ...");
             const auto& resolveRet = resolveHost("oauth.anysdk.com");
             if (!resolveRet.second)
             {
@@ -106,11 +108,11 @@ void AnySdkLoginManager::startNameResolve()
                 continue;
             }
 
-            LOG_TRACE("resolve host oauth.anysdk.com ok, host={}, expiry in 5 seconds ...");
+            LOG_TRACE("resolve host oauth.anysdk.com ok, ip={}, will expire in 60 seconds ...", resolveRet.first);
             this->m_assIp.lock.lock();
             this->m_assIp.ipStr = resolveRet.first;
             this->m_assIp.lock.unlock();
-            std::this_thread::sleep_for(std::chrono::seconds(25));
+            std::this_thread::sleep_for(std::chrono::seconds(60));
         }
     };
 

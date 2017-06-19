@@ -10,7 +10,7 @@
             <process num="1">
                 <private listen="" connectTo="router:1"/>
                 <public  listen="0.0.0.0:7000"/>
-                <http    listen=""/>
+                <http    listen="0.0.0.0:8001"/>
             </process>
         </processType>
 
