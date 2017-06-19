@@ -210,6 +210,7 @@ message S_G13_AllRounds
         required int32  win         = 2;    //胜利次数
         required int32  daqiang     = 3;    //打枪次数
         required int32  quanleida   = 4;    //全垒打次数, 非全垒打房间值一定为0
+        required int32  rank        = 5;    //总得分
     }
     repeated Player players = 1;
 }

@@ -748,6 +748,7 @@ void Game13::trySettleGame()
             int32_t win = 0;
             int32_t daqiang = 0;
             int32_t quanleida = 0;
+            int32_t rank = 0;
         };
         std::vector<FinalCount> allFinalCount(m_players.size());;
         for (const auto& round : m_settleData)
@@ -764,6 +765,7 @@ void Game13::trySettleGame()
                 count.daqiang += daqiang;
                 if (pd.quanLeiDa)
                     count.quanleida += 1;
+                count.rank += pd.prize;
             }
         }
         //发送
@@ -775,6 +777,7 @@ void Game13::trySettleGame()
             player->set_win(count.win);
             player->set_daqiang(count.daqiang);
             player->set_quanleida(count.quanleida);
+            player->set_rank(count.rank);
         }
         sendToAll(sndFinalCode, sndFinal);
 
@@ -1210,6 +1213,7 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             //判断是否是全垒打
             winner.quanLeiDa = false;
             if ((m_attr.quanLeiDa)  //全垒打启用
+                && (m_attr.playerSize > 2) //两人房无全垒打
                 && (winner.losers.size() + 1 == datas.size()) ) //全胜
             {
                 for (auto iter = winner.losers.begin(); iter != winner.losers.end(); ++iter)
