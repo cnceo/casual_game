@@ -16,6 +16,7 @@ using namespace process;
 
 enum class GameType
 {
+    none = 0,
     xm13,
     xmMaJiang,
 };
@@ -32,12 +33,9 @@ public:
     RoomId getId() const;
     ClientUniqueId ownerCuid() const;
 
-    /*
-    bool full() const;
-    uint32_t size() const;
-*/
 protected:
-    Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
+    Room(RoomId roomid, ClientUniqueId ownerCuid, GameType gameType);
+    Room(ClientUniqueId ownerCuid, GameType gameType);
     void destroyLater();
 
 public:
@@ -49,9 +47,7 @@ public:
 private:
     RoomId m_id;
     const ClientUniqueId m_ownerCuid;
-    const uint32_t m_maxSize;
     const GameType m_gameType;
-//    std::list<ClientUniqueId> m_cuids;
 
 public:
     static Room::Ptr get(RoomId);
@@ -79,17 +75,6 @@ inline ClientUniqueId Room::ownerCuid() const
 {
     return m_ownerCuid;
 }
-/*
-inline bool Room::full() const
-{
-    return size() == m_maxSize;
-}
-
-inline uint32_t Room::size() const
-{
-    return m_cuids.size();
-}
-*/
 
 }
 

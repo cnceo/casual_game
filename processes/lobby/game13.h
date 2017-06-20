@@ -20,6 +20,7 @@ class Game13 : public Room
 
     enum class GameStatus
     {
+    //    none = 0,
         prepare, //建房之后
         play,    //发牌之后
         vote,
@@ -43,7 +44,9 @@ class Game13 : public Room
 private:
     CREATE_FUN_NEW(Game13);
     TYPEDEF_PTR(Game13);
-    Game13(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
+    using Room::Room;
+//    Game13(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType);
+    
     bool enterRoom(ClientPtr client);
     void tryStartRound();
     void trySettleGame();
@@ -73,7 +76,7 @@ private:
 
     struct //游戏的基本属性, 建立游戏时确定, 游戏过程中不变
     {
-        RoomId  roomId      = 0;
+//        RoomId  roomId      = 0;
         uint32_t playType   = GP_52;        //玩法
         int32_t rounds      = 0;            //局数
         uint32_t payor      = PAY_BANKER;   //支付方式
@@ -142,6 +145,10 @@ private://消息处理
 public:
     static Game13::Ptr getByRoomId(RoomId roomId);
     static void regMsgHandler();
+
+    static Game13::Ptr deserialize(const std::string& bin);
+    static std::string serialize(Game13::Ptr obj);
+
 private:
     static Deck s_deck;
 };

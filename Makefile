@@ -22,6 +22,7 @@ SUBDIR =  \
 		  water\
 		  base\
 		  protocol\
+		  permanent\
 		  processes\
           tools\
 

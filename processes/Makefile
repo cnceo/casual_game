@@ -14,9 +14,10 @@ export cpp_redis_ln_flag		= -L$(CPP_REDIS_INSTALLED_DIR)/lib -lcpp_redis -ltacop
 
 export PROTOCOL_DIR     = $(ROOT_DIR)/protocol
 
-export base_cc_flag = -I$(ROOT_DIR) -I$(BASE_DIR) -I$(ROOT_DIR)/processes
+export base_cc_flag = -I$(ROOT_DIR) -I$(BASE_DIR) -I$(ROOT_DIR)/processes -I$(ROOT_DIR)/permanent
 export base_ln_flag = \
 	-L$(ROOT_DIR)/base -lbase\
+	-L$(ROOT_DIR)/permanent -lpermanent\
 	-L$(ROOT_DIR)/water/net -lnet\
 	-L$(ROOT_DIR)/water/componet -lcomponet\
 	-L$(ROOT_DIR)/water/dbadaptcher -ldbadaptcher\

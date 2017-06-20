@@ -81,10 +81,16 @@ void Room::clientOnline(ClientPtr client)
 
 /**********************************non static**************************************/
 
-Room::Room(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
-: m_id(Room::getRoomId())
+Room::Room(RoomId roomid, ClientUniqueId ownerCuid, GameType gameType)
+: m_id(roomid)
 , m_ownerCuid(ownerCuid)
-, m_maxSize(maxSize)
+, m_gameType(gameType)
+{
+}
+
+Room::Room(ClientUniqueId ownerCuid, GameType gameType)
+: m_id(getRoomId())
+, m_ownerCuid(ownerCuid)
 , m_gameType(gameType)
 {
 }

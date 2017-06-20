@@ -2,7 +2,12 @@
 #include "client.h"
 #include "componet/logger.h"
 #include "componet/scope_guard.h"
+#include "componet/tools.h"
 #include "protocol/protobuf/public/client.codedef.h"
+
+
+#include "permanent/proto/game13.pb.h"
+
 
 #include <random>
 #include <algorithm>
@@ -12,6 +17,27 @@ namespace lobby{
 const time_t MAX_VOTE_DURATION = 300;
 
 Deck Game13::s_deck;
+
+Game13::Ptr Game13::deserialize(const std::string& bin)
+{
+    permanent::GameRoom proto;
+    if (!proto.ParseFromString(bin))
+        return nullptr;
+
+    if (proto.type() != underlying(GameType::xm13))
+        return nullptr;
+
+    auto ret = Game13::create(proto.roomid(), proto.owner_cuid(), GameType::xm13);
+    return ret;
+}
+
+std::string Game13::serialize(Game13::Ptr obj)
+{
+    std::string ret;
+
+    permanent::GameRoom proto;
+    return proto.SerializeToString(&ret) ? ret : "";
+}
 
 Game13::Ptr Game13::getByRoomId(RoomId roomId)
 {
@@ -58,7 +84,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     //初始化游戏信息
     auto& attr      = game->m_attr;
-    attr.roomId     = game->getId();
+//    attr.roomId     = game->getId();
     attr.playType   = rcv->play_type() > GP_52 ? GP_65 : GP_52;
     attr.rounds     = rcv->rounds();
     attr.payor      = rcv->payor();
@@ -357,10 +383,11 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
 
 
 /*************************************************************************/
-Game13::Game13(ClientUniqueId ownerCuid, uint32_t maxSize, GameType gameType)
-    : Room(ownerCuid, maxSize, gameType)
-{
-}
+//
+//Game13::Game13(ClientUniqueId ownerCuid, GameType gameType)
+//    : Room(ownerCuid, gameType)
+//{
+//}
 
 bool Game13::enterRoom(Client::Ptr client)
 {
@@ -446,7 +473,7 @@ void Game13::afterEnterRoom(ClientPtr client)
 
     {//给进入者发送房间基本属性
         PROTO_VAR_PUBLIC(S_G13_RoomAttr, snd)
-        snd.set_room_id(m_attr.roomId);
+        snd.set_room_id(getId());
         snd.set_banker_cuid(ownerCuid());
         snd.mutable_attr()->set_player_size(m_attr.playerSize);
         snd.mutable_attr()->set_play_type(m_attr.playType);
@@ -964,9 +991,8 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
 
             if (dataI.spec != dataJ.spec)
             {
-                using InfoOfSBrand = typename std::underlying_type<Deck::G13SpecialBrand>::type;
-                auto specCmpValueI = static_cast<InfoOfSBrand>(dataI.spec) % 10;
-                auto specCmpValueJ = static_cast<InfoOfSBrand>(dataJ.spec) % 10;
+                auto specCmpValueI = underlying(dataI.spec) % 10;
+                auto specCmpValueJ = underlying(dataJ.spec) % 10;
                 if (specCmpValueI == specCmpValueJ) //平局
                     continue;
 
@@ -1243,7 +1269,6 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
     }
     return rsd;
 }
-
 
 }
 

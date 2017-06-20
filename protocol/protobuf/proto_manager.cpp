@@ -79,8 +79,8 @@ ProtoMsgPtr ProtoManager::create(const TcpMsgCode code)
         google::protobuf::MessageFactory::generated_factory()->GetPrototype(descriptor);
         if (prototype)
         {
-            ProtoMsgPtr ProtoManager(prototype->New());
-            return ProtoManager;
+            ProtoMsgPtr msg(prototype->New());
+            return msg;
         }
     }
     return nullptr;

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package permanent;
+
+message ClientData
+{
+    string  openid  = 1;
+    int64   cuid    = 2;
+    string  name    = 3;
+    uint32  roomid  = 4;
+    uint32  roomtp  = 5;
+    int32   money   = 6;
+    int32   money1  = 7;
+}
+
+message GameRoom
+{
+    uint32  roomid      = 1;
+    uint32  roomtp      = 2;
+    uint64  owner_cuid  = 3;
+    uint32  type        = 4;
+    G13RoomData g13data = 5;
+}
+
+message G13RoomData
+{
+    G13Attr attr    = 1;
+    repeated G13Player  players = 2;
+}
+
+message G13Player
+{
+    int64   cuid    = 1;
+    string  name    = 2;
+    int32   status  = 3;
+    repeated int32  cards   = 4;
+    int32   vote    = 5;
+}
+
+message G13Attr
+{
+    int32   play_type   = 1;
+    int32   rounds      = 2;
+    int32   payor       = 3;
+    int32   daqiang     = 4;
+    bool    quanleida   = 5;
+    int32   yitiaolong  = 6;
+    int32   size        = 7;
+}
+
+
