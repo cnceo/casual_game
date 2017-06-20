@@ -49,14 +49,14 @@ void Process::lanchThreads()
     }
     if (m_httpServer)
     {
-        const std::string serverName = "http server";
         m_httpServer->run();
+        const std::string serverName = "http server";
         m_threads.insert({serverName, m_httpServer.get()});
         LOG_DEBUG("{} thread start ok", serverName);
 
-        const std::string connName = "http conns";
         m_httpConns.run();
-        m_threads.insert({connName, &m_timer});
+        const std::string connName = "http conns";
+        m_threads.insert({connName, &m_httpConns});
         LOG_DEBUG("{} thread start ok", connName);
     }
     if(m_privateConnChecker)

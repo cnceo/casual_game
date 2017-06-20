@@ -111,7 +111,7 @@ bool HttpConnectionManager::exec()
     }
     catch (const net::NetException& ex)
     {
-        LOG_ERROR("connManager 异常退出 , {}", ex.what());
+        LOG_ERROR("HttpConnManager 异常退出 , {}", ex.what());
         return false;
     }
 
