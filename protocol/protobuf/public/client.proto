@@ -29,13 +29,19 @@ message S_LoginRet
 {
     required int32  ret_code    = 1;
     optional int64  cuid        = 2;    //个人ID
-    optional string temp_token  = 3;    
-    optional int32  money1      = 4;    //货币1
-    optional int32  money2      = 5;    //货币2
-    optional string wechat1     = 6;    //微信号1
-    optional string wechat2     = 7;    //微信号2
-    optional string wechat3     = 8;    //微信号3
+    optional string temp_token  = 3;
+    optional string wechat1     = 4;    //微信号1
+    optional string wechat2     = 5;    //微信号2
+    optional string wechat3     = 6;    //微信号3
 }
+
+//游戏币
+message S_Money
+{
+    optional int32  money1      = 1;    //货币1
+    optional int32  money2      = 2;    //货币2
+}
+
 
 //通知客户端显示系统级推送的文本
 message S_Notice

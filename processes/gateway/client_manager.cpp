@@ -188,6 +188,9 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
         snd.set_ret_code(PublicProto::LOGINR_SUCCES);
         snd.set_cuid(client->cuid);
         snd.set_temp_token("xxxx"); //此版本一律返回xxxx， 此字段暂不启用
+        snd.set_wechat1("123");
+        snd.set_wechat2("456");
+        snd.set_wechat3("789");
     }
     else
     {
