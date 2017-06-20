@@ -27,9 +27,14 @@ enum RetCode_S_LoginRet
 }
 message S_LoginRet
 {
-    required int32  ret_code     = 1;
-    optional int64  cuid         = 2;
-    optional string temp_token   = 3;
+    required int32  ret_code    = 1;
+    optional int64  cuid        = 2;    //个人ID
+    optional string temp_token  = 3;    
+    optional int32  money1      = 4;    //货币1
+    optional int32  money2      = 5;    //货币2
+    optional string wechat1     = 6;    //微信号1
+    optional string wechat2     = 7;    //微信号2
+    optional string wechat3     = 8;    //微信号3
 }
 
 //通知客户端显示系统级推送的文本
@@ -38,6 +43,7 @@ message S_Notice
     enum Type
     {
         MSG_BOX = 1; //弹窗消息
+        NOTICE  = 2; //公告
     }
     required Type   type = 1;
     required string text = 2;
@@ -50,12 +56,14 @@ enum ChatType
     CHAT_FACE  = 1;
     CHAT_VOICE = 2;
 }
+
 message C_SendChat
 {
     required ChatType   type        = 1; //聊天的内容类型
     optional int64      data_int    = 3; //整形数据, 表情或语音id
     optional string     data_text   = 4; //字符串型数据, 文字内容
 }
+
 message S_Chat
 {
     required int64      cuid    = 1; //发送者
@@ -215,4 +223,41 @@ message S_G13_AllRounds
     repeated Player players = 1;
 }
 
+//请求历史总统计
+message C_G13_ReqGameHistoryCount
+{
+}
+
+//返回历史总统计
+message S_G13_GameHistoryCount
+{
+    required int32 total  = 1;  //总场数
+    required int32 win    = 2;  //胜利
+    required int32 lose   = 3;  //失败
+}
+
+//请求比赛历史详情
+message C_G13_ReqGameHistoryDetial
+{
+    required int32 page = 1;
+}
+
+//返回比赛历史详情
+message S_G13_GameHistoryDetial
+{
+    message Game
+    {
+        required int32  roomid  = 1;
+        required int32  rank    = 2;
+        repeated Opponent opps  = 3;
+        required int32  time    = 4;
+    }
+    message Opponent
+    {
+        required string name    = 1;
+        required int32  rank    = 2;
+    }
+    
+    repeated Game history = 1;
+}
 
