@@ -382,7 +382,7 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     auto game = getByRoomId(client->roomId());
     if (game == nullptr)
     {
-        LOG_ERROR("BringOut, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
+        LOG_ERROR("bring out, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
                   client->roomId(), client->ccid(), client->cuid(), client->openid());
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
@@ -404,7 +404,7 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
     if (info == nullptr)
     {
-        LOG_ERROR("BringOut, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
+        LOG_ERROR("bring out, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
                   client->roomId(), client->ccid(), client->cuid(), client->openid());
 
         client->afterLeaveRoom(); //ERR_HANDLER
@@ -434,8 +434,8 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         cardsStr.append(std::to_string(info->cards[index]));
         cardsStr.append(",");
     }
-    LOG_TRACE("BringOut, roomId={}, ccid={}, cuid={}, openid={}, cards=[{}]",
-             client->roomId(), client->ccid(), client->cuid(), client->openid(), cardsStr);
+    LOG_TRACE("bring out, roomId={}, round={}/{}, cuid={}, openid={}, cards=[{}]",
+             client->roomId(), game->m_rounds, game->m_attr.rounds, client->cuid(), client->openid(), cardsStr);
 
     game->syncAllPlayersInfoToAllClients();
 
@@ -741,7 +741,7 @@ void Game13::tryStartRound()
             cardsStr.append(",");
             snd2.add_cards(card);
         }
-        LOG_TRACE("deal deck, roomid={}, ccid={}, name={}, cards=[{}]", getId(), info.cuid, info.name, cardsStr);
+        LOG_TRACE("deal deck, roomid={}, round={}/{}, cuid={}, name={}, cards=[{}]", getId(), m_rounds, m_attr.rounds, info.cuid, info.name, cardsStr);
         auto client = ClientManager::me().getByCuid(info.cuid);
         if (client != nullptr)
         {
