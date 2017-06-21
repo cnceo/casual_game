@@ -20,22 +20,87 @@ Deck Game13::s_deck;
 
 Game13::Ptr Game13::deserialize(const std::string& bin)
 {
-    permanent::GameRoom proto;
-    if (!proto.ParseFromString(bin))
+    permanent::GameRoom protoData;
+    if (!protoData.ParseFromString(bin))
         return nullptr;
 
-    if (proto.type() != underlying(GameType::xm13))
+    if (protoData.type() != underlying(GameType::xm13))
         return nullptr;
 
-    auto ret = Game13::create(proto.roomid(), proto.owner_cuid(), GameType::xm13);
-    return ret;
+    auto obj = Game13::create(protoData.roomid(), protoData.owner_cuid(), GameType::xm13);
+
+    const auto& attr = protoData.g13data().attr();
+    obj->m_attr.playType   = attr.play_type();
+    obj->m_attr.rounds     = attr.rounds();
+    obj->m_attr.payor      = attr.payor();
+    obj->m_attr.daQiang    = attr.daqiang();
+    obj->m_attr.quanLeiDa  = attr.quanleida();
+    obj->m_attr.yiTiaoLong = attr.yitiaolong();
+    obj->m_attr.playerSize = attr.size();
+
+    const auto& players = protoData.g13data().players();
+    if (obj->m_attr.playerSize != players.size()) //protoData.g13data().players_size())
+        return nullptr;
+    obj->m_players.resize(attr.size());
+    for (auto i = 0; i < obj->m_attr.playerSize; ++i)
+    {
+        obj->m_players[i].cuid   = players[i].cuid();
+        obj->m_players[i].name   = players[i].name();
+        obj->m_players[i].status = players[i].status();
+        obj->m_players[i].vote   = players[i].vote();
+
+        if (players[i].cards().size() != 13)
+            return nullptr;
+        std::copy(players[i].cards().begin(), players[i].cards().end(), obj->m_players[i].cards.begin());
+    }
+
+//    if (protoData.g13data().status() < 0 || protoData.g13data().status() > underlying(GameStatus::closed))
+//        return nullptr;
+    obj->m_status           = static_cast<GameStatus>(protoData.g13data().status());
+    obj->m_rounds           = protoData.g13data().rounds();
+    obj->m_startVoteTime    = protoData.g13data().start_vote_time();
+    obj->m_voteSponsorCuid  = protoData.g13data().vote_sponsor_cuid();
+    obj->m_settleAllTime    = protoData.g13data().settle_all_time();
+
+    return obj;
 }
 
 std::string Game13::serialize(Game13::Ptr obj)
 {
-    std::string ret;
-
     permanent::GameRoom proto;
+    proto.set_roomid(obj->getId());
+    proto.set_roomtp(0);
+    proto.set_type(underlying(GameType::xm13));
+    proto.set_owner_cuid(obj->ownerCuid());
+    
+    auto gameData = proto.mutable_g13data();
+    gameData->set_status(underlying(obj->m_status));
+    gameData->set_rounds(obj->m_rounds);
+    gameData->set_start_vote_time(obj->m_startVoteTime);
+    gameData->set_vote_sponsor_cuid(obj->m_voteSponsorCuid);
+    gameData->set_settle_all_time(obj->m_settleAllTime);
+
+    auto attrData = gameData->mutable_attr();
+    attrData->set_play_type(obj->m_attr.playType);
+    attrData->set_rounds(obj->m_attr.rounds);
+    attrData->set_payor(obj->m_attr.payor);
+    attrData->set_daqiang(obj->m_attr.daQiang);
+    attrData->set_quanleida(obj->m_attr.quanLeiDa);
+    attrData->set_yitiaolong(obj->m_attr.yiTiaoLong);
+    attrData->set_size(obj->m_attr.playerSize);
+
+    for (const auto& playerInfo : obj->m_players)
+    {
+        auto playerData = gameData->add_players();
+        playerData->set_cuid(playerInfo.cuid);
+        playerData->set_name(playerInfo.name);
+        playerData->set_status(playerInfo.status);
+        playerData->set_vote(playerInfo.vote);
+        for (auto card : playerInfo.cards)
+            playerData->add_cards(card);
+    }
+
+    std::string ret;
     return proto.SerializeToString(&ret) ? ret : "";
 }
 
@@ -419,9 +484,8 @@ bool Game13::enterRoom(Client::Ptr client)
     m_players[index].cuid = client->cuid();
     m_players[index].name = client->name();
     m_players[index].status = PublicProto::S_G13_PlayersInRoom::PREP;
-    m_players[index].money = client->money();
     
-    {//预扣钱, 这个放到最后, 避免扣钱后进入失败需要回退
+    {//钱数检查
         bool enoughMoney = false;
         switch (m_attr.payor)
         {
@@ -550,7 +614,6 @@ void Game13::syncAllPlayersInfoToAllClients()
         player->set_cuid(info.cuid);
         player->set_name(info.name);
         player->set_status(info.status);
-        player->set_money(info.money);
     }
     snd.set_rounds(m_rounds);
     sendToAll(sndCode, snd);
@@ -687,14 +750,12 @@ void Game13::tryStartRound()
                 if(m_attr.payor == PAY_BANKER && client->cuid() == ownerCuid())
                 {
                     client->addMoney(-10);
-                    info.money -= 10;
                     LOG_TRACE("游戏开始扣钱, 房主付费, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
                               -10, getId(), client->ccid(), info.cuid, client->openid());
                 }
                 else if(m_attr.payor == PAY_SHARE_EQU)
                 {
                     client->addMoney(-5);
-                    info.money -= 5;
                     LOG_TRACE("游戏开始扣钱, 均摊, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
                               -5, getId(), client->ccid(), info.cuid, client->openid());
                 }
@@ -714,7 +775,6 @@ void Game13::tryStartRound()
         player->set_status(info.status);
         player->set_cuid(info.cuid);
         player->set_name(info.name);
-        player->set_money(info.money);
 
     }
     sendToAll(snd1Code, snd1);

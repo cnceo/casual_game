@@ -20,13 +20,12 @@ class Game13 : public Room
 
     enum class GameStatus
     {
-    //    none = 0,
-        prepare, //建房之后
-        play,    //发牌之后
-        vote,
-        settle,  //一局结束
-        settleAll, //总结算
-        closed,  //所有局结束
+        prepare = 0, //建房之后
+        play    = 1,    //发牌之后
+        vote    = 2,
+        settle  = 3,  //一局结束
+        settleAll=4, //总结算
+        closed  = 5,  //所有局结束
     };
 
     enum
@@ -77,19 +76,19 @@ private:
     struct //游戏的基本属性, 建立游戏时确定, 游戏过程中不变
     {
 //        RoomId  roomId      = 0;
-        uint32_t playType   = GP_52;        //玩法
+        int32_t playType   = GP_52;        //玩法
         int32_t rounds      = 0;            //局数
-        uint32_t payor      = PAY_BANKER;   //支付方式
-        uint32_t daQiang    = DQ_3_DAO;     //打枪
-        bool    quanLeiDa   = false;        //打枪, 全垒打
-        uint32_t yiTiaoLong = 1;            //一条龙
-        uint32_t playerSize = 0;            //人数
+        int32_t payor      = PAY_BANKER;   //支付方式
+        int32_t daQiang    = DQ_3_DAO;     //打枪
+        bool    quanLeiDa  = false;        //打枪, 全垒打
+        int32_t yiTiaoLong = 1;            //一条龙
+        int32_t playerSize = 0;            //人数
     } m_attr;
 
     struct PlayerInfo
     {
-        PlayerInfo(ClientUniqueId cuid_ = 0, std::string name_ = "", int32_t status_ = 0, int32_t money_ = 0)
-        :cuid(cuid_), name(name_), status(status_), money(money_)
+        PlayerInfo(ClientUniqueId cuid_ = 0, std::string name_ = "", int32_t status_ = 0) //, int32_t money_ = 0)
+        :cuid(cuid_), name(name_), status(status_)//, money(money_)
         {
         }
         void clear()
@@ -97,14 +96,12 @@ private:
             cuid = 0;
             name.clear();
             status = 0;
-            money = 0;
         }
         ClientUniqueId cuid;
         std::string name;
         int32_t status;
-        int32_t money;
-        std::array<Deck::Card, 13> cards;
         int32_t vote = 0;
+        std::array<Deck::Card, 13> cards;
     };
     std::vector<PlayerInfo> m_players;
 
