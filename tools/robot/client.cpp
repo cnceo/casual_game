@@ -22,21 +22,18 @@ void Client::run()
 {
     try 
     {
-//        m_timer.regEventHandler(std::chrono::milliseconds(1), std::bind(&Client::dealMsg, this, std::placeholders::_1));
-        m_timer.regEventHandler(std::chrono::milliseconds(1), std::bind(corot::doSchedule));
         ProtoManager::me().loadConfig(cfgDir);
 
         auto tcpConn = net::TcpConnection::connect(m_serverEp);
         m_conn = net::BufferedConnection::create(std::move(*tcpConn));
-//        m_conn->setRecvPacket(net::TcpPacket::create());
         m_conn->setNonBlocking();
         m_epoller.setEventHandler(std::bind(&Client::epollEventHandler, this, std::placeholders::_3));
         m_epoller.regSocket(m_conn->getFD(), net::Epoller::Event::read);
         while(true)
         {
-            m_epoller.wait(std::chrono::milliseconds(1));
+            m_epoller.wait(std::chrono::milliseconds(3));
             m_timer();
-            corot::doSchedule();
+            corot::schedule();
         }
     }
     catch(const net::NetException& ex)

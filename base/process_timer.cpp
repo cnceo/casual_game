@@ -3,6 +3,8 @@
 #include "componet/exception.h"
 #include "componet/logger.h"
 
+#include "coroutine/coroutine.h"
+
 #include <thread>
 #include <chrono>
 
@@ -26,6 +28,7 @@ bool ProcessTimer::exec()
         try
         {
             m_timer();
+            corot::schedule(); //自动协程调度
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
         catch(const componet::ExceptionBase& ex)
