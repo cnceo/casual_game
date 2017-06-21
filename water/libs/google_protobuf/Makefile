@@ -2,7 +2,7 @@
 CUR_DIR = $(shell pwd)
 
 #源文件名
-SOURCE_PACKGE_BASE_NAME = protobuf-3.0.0
+SOURCE_PACKGE_BASE_NAME = protobuf-3.3.0
 
 #安装目录
 INSTALL_DIR = $(CUR_DIR)/installed
