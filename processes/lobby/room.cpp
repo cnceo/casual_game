@@ -1,6 +1,8 @@
 #include "room.h"
 #include "client.h"
 
+#include "componet/logger.h"
+
 namespace lobby{
 
 RoomId Room::s_lastRoomId = 100000;
@@ -68,11 +70,13 @@ void Room::timerExecAll(componet::TimePoint now)
 
 void Room::clientOnline(ClientPtr client)
 {
+    LOG_TRACE("Room, client on line, cuid={}, ccid={}, openid={}, roomid={}", client->cuid(), client->ccid(), client->openid(), client->roomId());
     if (client == nullptr || client->roomId() == 0)
         return;
     auto room = Room::get(client->roomId());
     if (room == nullptr)
     {
+        LOG_TRACE("Room, client on line, room expried, cuid={}, ccid={}, openid={}, roomid={}", client->cuid(), client->ccid(), client->openid(), client->roomId());
         client->setRoomId(0);
         return;
     }

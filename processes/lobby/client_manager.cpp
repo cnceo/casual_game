@@ -161,11 +161,8 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
                     if(saveClientToDB(client))
                         break;
                 }
-                else
-                {
-                    erase(client); //失败要重新删掉
-                }
-                //注册失败, 登陆失败
+                //插入管理器失败, 注册失败,  登陆失败
+                erase(client); //失败要重新删掉
                 ret.set_cuid(client->cuid());
                 ret.set_ret_code(PrivateProto::RLQ_REG_FAILED);
                 Lobby::me().sendToPrivate(gatewayPid, retCode, ret);
@@ -187,10 +184,12 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         cbr.set_ccid(client->ccid());
         cbr.set_openid(client->openid());
         Lobby::me().sendToPrivate(gatewayPid, cbrCode, cbr);
+        LOG_TRACE("login, step 2.5, client was replaced, ccid={}, cuid={}, openid={}, newccid={}", client->ccid(), client->cuid(), client->openid(), ccid);
 
-        //更新ccid
+        //更新ccid 和 name
         erase(client);
         client->m_ccid = ccid;
+        client->m_name = rcv->name();
         if (!insert(client))
         {
             //更新ccid失败, 登陆失败
@@ -209,7 +208,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     Lobby::me().sendToPrivate(gatewayPid, retCode, ret);
     LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid(), client->openid());
 
-    //更新游戏信息
+    //更新可能的房间游戏信息
     Room::clientOnline(client);
     return;
 }

@@ -527,6 +527,8 @@ void Game13::clientOnlineExec(Client::Ptr client)
         client->setRoomId(0);
         return;
     }
+
+    LOG_TRACE("client, sync gameinfo, roomId={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
     afterEnterRoom(client);
 }
 
@@ -698,24 +700,9 @@ void Game13::tryStartRound()
                 Game13::s_deck.cards[i] = i + 39 + 1;
         }
 
-        //std::string deckStr;
-        //for (auto c : Game13::s_deck.cards)
-        //{
-        //    deckStr.append(std::to_string(c));
-        //    deckStr.append(",");
-        //}
-        //LOG_DEBUG("init deck, rounds={}/{}, roomid={}, deck={}", m_rounds, m_attr.rounds, getId(), deckStr);
-
         static std::random_device rd;
         static std::mt19937 rg(rd());
         std::shuffle(Game13::s_deck.cards.begin(), Game13::s_deck.cards.end(), rg);
-        //deckStr.clear();
-        //for (auto c : Game13::s_deck.cards)
-        //{
-        //    deckStr.append(std::to_string(c));
-        //    deckStr.append(",");
-        //}
-        //LOG_DEBUG("shuffle deck, rounds={}/{}, roomid={}, deck={}", m_rounds, m_attr.rounds, getId(), deckStr);
     }
 
     //deal cards, then update player status and send to client
