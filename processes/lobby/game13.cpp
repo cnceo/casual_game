@@ -140,7 +140,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     }
 
     //房间
-    auto game = Game13::create(client->cuid(), rcv->player_size(), GameType::xm13);
+    auto game = Game13::create(client->cuid(), GameType::xm13);
     if (Room::add(game) == false)
     {
         LOG_ERROR("G13, 创建房间失败, Room::add失败");
