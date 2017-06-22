@@ -33,6 +33,8 @@ void ClientManager::regClientMsgRelay()
     PUBLIC_MSG_TO_LOBBY(C_G13_VoteFoAbortGame)
     PUBLIC_MSG_TO_LOBBY(C_G13_ReadyFlag)
     PUBLIC_MSG_TO_LOBBY(C_G13_BringOut)
+    PUBLIC_MSG_TO_LOBBY(C_G13_ReqGameHistoryCount)
+    PUBLIC_MSG_TO_LOBBY(C_G13_ReqGameHistoryDetial)
 
     /************转发到hall*************/
 //    PUBLIC_MSG_TO_HALL()
@@ -40,13 +42,15 @@ void ClientManager::regClientMsgRelay()
     PUBLIC_MSG_TO_CLIENT(S_Chat)
     PUBLIC_MSG_TO_CLIENT(S_Notice)
     PUBLIC_MSG_TO_CLIENT(S_G13_RoomAttr)
-    PUBLIC_MSG_TO_CLIENT(S_G13_AbortGameOrNot)
-    PUBLIC_MSG_TO_CLIENT(S_G13_PlayerQuited)
     PUBLIC_MSG_TO_CLIENT(S_G13_PlayersInRoom)
+    PUBLIC_MSG_TO_CLIENT(S_G13_AbortGameOrNot)
+    PUBLIC_MSG_TO_CLIENT(S_G13_VoteFailed)
+    PUBLIC_MSG_TO_CLIENT(S_G13_PlayerQuited)
     PUBLIC_MSG_TO_CLIENT(S_G13_HandOfMine)
     PUBLIC_MSG_TO_CLIENT(S_G13_AllHands)
     PUBLIC_MSG_TO_CLIENT(S_G13_AllRounds)
-
+    PUBLIC_MSG_TO_CLIENT(S_G13_GameHistoryCount)
+    PUBLIC_MSG_TO_CLIENT(S_G13_GameHistoryDetial)
 };
 
 }
