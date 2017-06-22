@@ -36,6 +36,12 @@ void Client::run()
             corot::schedule();
         }
     }
+    catch (const net::ReadClosedConnection& ex)
+    {
+        m_epoller.delSocket(m_conn->getFD());
+        LOG_TRACE("server closed the connection");
+        return;
+    }
     catch(const net::NetException& ex)
     {
         LOG_ERROR("exception occured，ex={}", ex);
@@ -45,8 +51,6 @@ void Client::run()
 
 void Client::epollEventHandler(net::Epoller::Event event)
 {
-    try
-    {
         switch (event)
         {
         case net::Epoller::Event::read:
@@ -87,12 +91,6 @@ void Client::epollEventHandler(net::Epoller::Event event)
         default:
             break;
         }
-    }
-    catch (const net::ReadClosedConnection& ex)
-    {
-        LOG_TRACE("server disconnected the connection");
-        m_epoller.delSocket(m_conn->getFD());
-    }
     return;
 }
 

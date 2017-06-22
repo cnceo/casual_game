@@ -11,6 +11,7 @@
 
 #include "componet/class_helper.h"
 #include "componet/spinlock.h"
+#include "componet/event.h"
 #include "componet/fast_travel_unordered_map.h"
 
 #include "base/process_id.h"
@@ -18,6 +19,11 @@
 #include "protocol/protobuf/proto_manager.h"
 
 #include <list>
+
+namespace water{
+namespace net{
+}}
+
 
 namespace gateway{
 
@@ -39,6 +45,7 @@ class ClientManager
 
         TYPEDEF_PTR(Client)
         CREATE_FUN_MAKE(Client)
+
     public:
         ClientConnectionId ccid = INVALID_CCID;
         ClientUniqueId cuid = INVALID_CUID;
@@ -64,6 +71,8 @@ public:
     void regMsgHandler();
     void regClientMsgRelay();
 
+    componet::Event<void (ClientConnectionId)> e_afterEraseClient;
+
 private:
     Client::Ptr createNewClient();
     bool insert(Client::Ptr client);
@@ -88,6 +97,7 @@ private:
     componet::Spinlock m_clientsLock; //注意，按照设计，这个锁仅仅保证对m_clients访问的原子性，修改client的数据永远仅在主定时器线程中执行
     componet::FastTravelUnorderedMap<ClientConnectionId, Client::Ptr> m_clients; //只能有这一种key索引，因为重复登陆时，cuid和openid会重复，一并索引很难处理
 
+    componet::Spinlock m_dyingClientsLock;
     std::list<Client::Ptr> m_dyingClients; //即将被销毁的clients
 };
 

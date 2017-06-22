@@ -101,6 +101,7 @@ private:
         std::string name;
         int32_t status;
         int32_t vote = 0;
+        int32_t money = 0;
         std::array<Deck::Card, 13> cards;
     };
     std::vector<PlayerInfo> m_players;

@@ -127,37 +127,52 @@ net::BufferedConnection::Ptr TcpConnectionManager::erasePublicConnection(ClientS
 
 void TcpConnectionManager::eraseConnection(net::BufferedConnection::Ptr conn)
 {
-    std::lock_guard<componet::Spinlock> lock(m_lock);
+    bool publicConnErased = false;
+    ClientSessionId erasedPublicConnId = 0;
+    bool privateConnErased = false;
+    ProcessId erasedPrivateConnId = 0;
 
-    auto it = m_allConns.find(conn->getFD());
-    if(it == m_allConns.end())
-        return;
+    {
+        std::lock_guard<componet::Spinlock> lock(m_lock);
 
-    auto publicIt = m_publicConns.find(it->second->id);
-    if(publicIt != m_publicConns.end())
-    {
-        LOG_TRACE("ConnectionManager, erase publicConn, id={}", it->second->id);
-        m_publicConns.erase(publicIt);
-        e_afterErasePublicConn(it->second->id);
-    }
-    else
-    {
-        ProcessId pid(it->second->id);
-        auto iter = m_privateConns.find(pid.type());
-        if(iter != m_privateConns.end() && iter->second.find(pid.num()) != iter->second.end())
+        auto it = m_allConns.find(conn->getFD());
+        if(it == m_allConns.end())
+            return;
+
+        auto publicIt = m_publicConns.find(it->second->id);
+        if(publicIt != m_publicConns.end())
         {
-            LOG_TRACE("ConnectionManager, erase privateConn, id={}, fd={}", pid, conn->getFD());
-            iter->second.erase(pid.num());
-            e_afterErasePrivateConn(pid);
+            LOG_TRACE("ConnectionManager, erase publicConn, id={}", it->second->id);
+            m_publicConns.erase(publicIt);
+            publicConnErased = true;
+            erasedPublicConnId = it->second->id;
         }
         else
         {
-            LOG_ERROR("ConnectionManager, erase conn, notPublic and notPrivate id={}", pid);
+            ProcessId pid(it->second->id);
+            auto iter = m_privateConns.find(pid.type());
+            if(iter != m_privateConns.end() && iter->second.find(pid.num()) != iter->second.end())
+            {
+                LOG_TRACE("ConnectionManager, erase privateConn, id={}, fd={}", pid, conn->getFD());
+                iter->second.erase(pid.num());
+                privateConnErased = true;
+                erasedPrivateConnId = pid;
+            }
+            else
+            {
+                LOG_ERROR("ConnectionManager, erase conn, notPublic and notPrivate id={}", pid);
+            }
         }
+        LOG_TRACE("ConnectionManager, erase conn, fd={}, id={}, ep={}", conn->getFD(), it->second->id, conn->getRemoteEndpoint());
+        m_epoller.delSocket(conn->getFD());
+        m_allConns.erase(it);
     }
-    LOG_TRACE("ConnectionManager, erase conn, fd={}, id={}, ep={}", conn->getFD(), it->second->id, conn->getRemoteEndpoint());
-    m_epoller.delSocket(conn->getFD());
-    m_allConns.erase(it);
+
+    if (publicConnErased)
+        e_afterErasePublicConn(erasedPublicConnId);
+    else if (privateConnErased)
+        e_afterErasePrivateConn(erasedPrivateConnId);
+
 }
 
 bool TcpConnectionManager::exec()

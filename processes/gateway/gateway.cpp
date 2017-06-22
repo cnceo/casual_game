@@ -48,8 +48,9 @@ void Gateway::init()
     //处理新建立的客户连接
     m_publicNetServer->e_newConn.reg(std::bind(&Gateway::newClientConnection, this, _1));
 
-    //已加入connectionManager的连接被断开时的处理
+    //tcpConnManager 和 clientManager 互相订阅对方的删除事件
     m_conns.e_afterErasePublicConn.reg(std::bind(&ClientManager::clientOffline, m_clientManager, _1));
+    m_clientManager->e_afterEraseClient.reg(std::bind(&TcpConnectionManager::erasePublicConnection, &m_conns, _1));
 
     //aynsdk 定时器
     m_timer.regEventHandler(std::chrono::milliseconds(3), std::bind(&AnySdkLoginManager::dealHttpPackets, &AnySdkLoginManager::me(), _1));

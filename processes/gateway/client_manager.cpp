@@ -14,6 +14,10 @@ namespace gateway{
 using namespace protocol;
 using namespace protobuf;
 
+
+
+
+
 using LockGuard = std::lock_guard<componet::Spinlock>;
 
 ClientManager::ClientManager(ProcessId pid)
@@ -44,8 +48,16 @@ void ClientManager::erase(Client::Ptr client)
 {
     if (client == nullptr)
         return;
-    LockGuard lock(m_clientsLock);
-    m_clients.erase(client->ccid);
+    {
+        LockGuard lock(m_clientsLock);
+        auto iter = m_clients.find(client->ccid);
+        if (iter == m_clients.end())
+            return;
+
+        LOG_TRACE("ClientManager erase client, cuid={}, ccid={}", client->cuid, client->ccid);
+        m_clients.erase(client->ccid);
+    }
+    e_afterEraseClient(client->ccid);
 }
 
 ClientManager::Client::Ptr ClientManager::getByCcid(ClientConnectionId ccid)
@@ -61,17 +73,17 @@ void ClientManager::eraseLater(Client::Ptr client)
 {
     if (client == nullptr)
         return;
-    erase(client);
+    LockGuard lock(m_dyingClientsLock);
     m_dyingClients.push_back(client);
 }
 
 void ClientManager::timerExec(const componet::TimePoint& now)
 {
     { //action 1, 执行延迟删除
+        LockGuard lock(m_dyingClientsLock);
         for (auto client : m_dyingClients)
-        {
-            //client->conn->close(); //断开连接
-        }
+            erase(client);
+
         m_dyingClients.clear();
     }
 }
@@ -104,7 +116,7 @@ void ClientManager::clientOffline(ClientConnectionId ccid)
         LOG_TRACE("ClientManager, 客户端离线, ccid={}", ccid);
 
     //destroy
-    erase(client);
+    eraseLater(client);
 }
 
 void ClientManager::kickOutClient(ClientConnectionId ccid, bool delay/* = true*/)
@@ -113,14 +125,14 @@ void ClientManager::kickOutClient(ClientConnectionId ccid, bool delay/* = true*/
 
     if (client == nullptr)
     {
-        LOG_TRACE("ClientManager, 踢下线, ccid不存在, ccid={}, delay={}", ccid);
+        LOG_TRACE("ClientManager, 踢下线, ccid不存在, ccid={}, delay={}", ccid, delay);
         return;
     }
 
     if(client->state == Client::State::logining)
-        LOG_TRACE("ClientManager, 踢下线, 登录过程终止, ccid={}, delay={}", ccid);
+        LOG_TRACE("ClientManager, 踢下线, 登录过程终止, ccid={}, delay={}", ccid, delay);
     else
-        LOG_TRACE("ClientManager, 踢下线, ccid={}, delay={}", ccid);
+        LOG_TRACE("ClientManager, 踢下线, ccid={}, delay={}", ccid, delay);
     //TODO 这里要加入到客户端的通知， 告知为何踢出, 次函数需要修改加入一个踢出原因参数
     delay ? eraseLater(client) : erase(client);
     return;
@@ -212,8 +224,8 @@ void ClientManager::proto_ClientBeReplaced(ProtoMsgPtr proto)
         return;
     }
     
-    kickOutClient(rcv->ccid());
     LOG_TRACE("login, step 2.5, 客户端被挤下线, ccid={}, openid={}, cuid={}", rcv->ccid(), rcv->openid(), rcv->cuid());
+    kickOutClient(rcv->ccid());
 }
 
 void ClientManager::regMsgHandler()

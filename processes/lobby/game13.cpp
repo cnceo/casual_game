@@ -483,6 +483,7 @@ bool Game13::enterRoom(Client::Ptr client)
     //加入成员列表
     m_players[index].cuid = client->cuid();
     m_players[index].name = client->name();
+    m_players[index].money = client->money();
     m_players[index].status = PublicProto::S_G13_PlayersInRoom::PREP;
     
     {//钱数检查
@@ -521,12 +522,14 @@ void Game13::clientOnlineExec(Client::Ptr client)
 {
     if (client == nullptr)
         return;
-    if (client->roomId() == getId() && getPlayerInfoByCuid(client->cuid()) == nullptr)
+    auto info = getPlayerInfoByCuid(client->cuid());
+    if (client->roomId() == getId() && info == nullptr)
     {
         LOG_TRACE("玩家上线, 房间号已被复用, roomId={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
         client->setRoomId(0);
         return;
     }
+    info->money = client->money();
 
     LOG_TRACE("client, sync gameinfo, roomId={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
     afterEnterRoom(client);
@@ -616,6 +619,7 @@ void Game13::syncAllPlayersInfoToAllClients()
         player->set_cuid(info.cuid);
         player->set_name(info.name);
         player->set_status(info.status);
+        player->set_money(info.money);
     }
     snd.set_rounds(m_rounds);
     sendToAll(sndCode, snd);
@@ -762,7 +766,7 @@ void Game13::tryStartRound()
         player->set_status(info.status);
         player->set_cuid(info.cuid);
         player->set_name(info.name);
-
+        player->set_money(info.money);
     }
     sendToAll(snd1Code, snd1);
 
