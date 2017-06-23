@@ -181,6 +181,7 @@ void Game13::proto_C_G13_JionGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (game == nullptr)
     {
         client->noticeMessageBox("要加入的房间已解散");
+        LOG_DEBUG("申请加入房间失败, 房间号不存在, ccid={}, openid={}, roomid={}", client->ccid(), client->openid(), rcv->room_id());
         return;
     }
     game->enterRoom(client);
