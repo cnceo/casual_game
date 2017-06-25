@@ -64,8 +64,8 @@ void Room::timerExecAll(componet::TimePoint now)
     {
         if (iter->second->getId() == 0)
         {
-            iter = s_rooms.erase(iter);
             s_expiredIds.push_back(iter->first); //回收roomid
+            iter = s_rooms.erase(iter);
             break;
         }
         iter->second->timerExec();
