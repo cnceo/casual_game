@@ -27,3 +27,5 @@ water/libs/google_protobuf/protobuf-*/
 water/libs/google_protobuf/installed/
 water/libs/cpp_redis/cpp_redis/
 water/libs/cpp_redis/installed/
+water/libs/hiredis/hiredis/
+water/libs/hiredis/installed/
