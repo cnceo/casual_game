@@ -13,6 +13,7 @@
 namespace lobby{
 
 
+static const char* MAX_CLIENT_UNIQUE_ID_NAME = "max_client_unique_id";
 
 /***********************************************/
 
@@ -34,9 +35,21 @@ void ClientManager::init()
 
 void ClientManager::recoveryFromRedis()
 {
-    return;
 
     RedisHandler& redis = RedisHandler::me();
+    std::string maxUinqueIdStr = redis.get(MAX_CLIENT_UNIQUE_ID_NAME);
+    if (!maxUinqueIdStr.empty())
+    {
+        m_uniqueIdCounter = atoll(maxUinqueIdStr.c_str());
+        LOG_TRACE("ClientManager启动, 初始化, 加载m_uniqueIdCounter={}", m_uniqueIdCounter);
+    }
+    else
+    {
+        LOG_TRACE("ClientManager启动, 初始化, 默认m_uniqueIdCounter={}", m_uniqueIdCounter);
+    }
+
+    return;
+
 
     auto exec = [this](const std::string openid, const std::string& bin) -> bool
     {
@@ -332,7 +345,11 @@ void ClientManager::proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, C
 
 ClientUniqueId ClientManager::getClientUniqueId()
 {
-    //TODO uniqueid的组成和生成规则
+    const ClientUniqueId nextCuid = m_uniqueIdCounter + 1;
+
+    RedisHandler& redis = RedisHandler::me();
+    if (!redis.set(MAX_CLIENT_UNIQUE_ID_NAME, componet::format("{}", nextCuid)))
+        return INVALID_CUID;
     return ++m_uniqueIdCounter;
 }
 
