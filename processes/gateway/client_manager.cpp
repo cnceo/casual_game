@@ -233,6 +233,8 @@ void ClientManager::regMsgHandler()
     using namespace std::placeholders;
     /**********************msg from client*************/
     REG_PROTO_PUBLIC(C_Login, std::bind(&ClientManager::proto_C_Login, this, _1, _2));
+    auto heartbeat = [](ProtoMsgPtr rcv, ClientConnectionId ccid) { Gateway::me().sendToClient(ccid, PROTO_CODE_PUBLIC(CS_Heartbeat), *rcv);};
+    REG_PROTO_PUBLIC(CS_Heartbeat, std::bind(heartbeat, _1, _2));
 
     /*********************msg from cluster*************/
     REG_PROTO_PRIVATE(RetLoginQuest, std::bind(&ClientManager::proto_RetLoginQuest, this, _1));
