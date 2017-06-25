@@ -246,6 +246,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid(), client->openid());
 
     //更新可能的房间游戏信息
+    client->syncBasicDataToClient();
     Room::clientOnline(client);
     return;
 }

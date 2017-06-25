@@ -35,7 +35,7 @@ message S_LoginRet
     optional string wechat3     = 6;    //微信号3
 }
 
-//游戏币
+//玩家基本数据
 message S_PlayerBasicData
 {
     optional int32  money       = 1;    //货币1
