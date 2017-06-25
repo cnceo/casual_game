@@ -1,6 +1,7 @@
 #include "lobby.h"
 
 #include "client_manager.h"
+#include "game13.h"
 
 #include "water/componet/logger.h"
 #include "water/componet/scope_guard.h"
@@ -8,6 +9,9 @@
 #include "base/tcp_message.h"
 #include "protocol/rawmsg/rawmsg_manager.h"
 #include "protocol/protobuf/proto_manager.h"
+
+
+//#include "dbadaptcher/dbconnection_pool.h"
 
 namespace lobby{
 
@@ -40,6 +44,8 @@ void Lobby::init()
     ProtoManager::me().loadConfig(m_cfgDir);
     //初始化初始化ClientManager
     ClientManager::me().init();
+    //加载G13游戏房间数据
+    Game13::recoveryFromDB();
     //注册消息处理事件和主定时器事件
     registerTcpMsgHandler();
     registerTimerHandler();

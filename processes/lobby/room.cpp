@@ -5,6 +5,8 @@
 
 namespace lobby{
 
+const char* ROOM_TABLE_NAME = "tb_room";
+
 RoomId Room::s_lastRoomId = 100000;
 std::list<RoomId> Room::s_expiredIds;
 std::unordered_map<RoomId, Room::Ptr> Room::s_rooms;
@@ -14,12 +16,15 @@ componet::TimePoint Room::s_timerTime;
 RoomId Room::getRoomId()
 {
     RoomId id = 0;
-    if (s_expiredIds.empty())
-        id = ++s_lastRoomId;
-    else
+    while (id == 0 || get(id) != nullptr)
     {
-        id = s_expiredIds.front();
-        s_expiredIds.pop_front();
+        if (s_expiredIds.empty())
+            id = ++s_lastRoomId;
+        else
+        {
+            id = s_expiredIds.front();
+            s_expiredIds.pop_front();
+        }
     }
     return id;
 }
@@ -43,9 +48,9 @@ void Room::delLater(Room::Ptr room)
     room->destroyLater();
 }
 
-Room::Ptr Room::get(RoomId roomId)
+Room::Ptr Room::get(RoomId roomid)
 {
-    auto iter = s_rooms.find(roomId);
+    auto iter = s_rooms.find(roomid);
     if (iter == s_rooms.end())
         return nullptr;
     return iter->second;
@@ -60,23 +65,23 @@ void Room::timerExecAll(componet::TimePoint now)
         if (iter->second->getId() == 0)
         {
             iter = s_rooms.erase(iter);
-            //s_expiredIds.push_back(iter->first); //暂不回收, 要解决ABA问题才能用回收机制
+            s_expiredIds.push_back(iter->first); //回收roomid
             break;
         }
-        iter->second->timerExec(now);
+        iter->second->timerExec();
         ++iter;
     }
 }
 
 void Room::clientOnline(ClientPtr client)
 {
-    LOG_TRACE("Room, client on line, cuid={}, ccid={}, openid={}, roomid={}", client->cuid(), client->ccid(), client->openid(), client->roomId());
-    if (client == nullptr || client->roomId() == 0)
+    LOG_TRACE("Room, client on line, cuid={}, ccid={}, openid={}, roomid={}", client->cuid(), client->ccid(), client->openid(), client->roomid());
+    if (client == nullptr || client->roomid() == 0)
         return;
-    auto room = Room::get(client->roomId());
+    auto room = Room::get(client->roomid());
     if (room == nullptr)
     {
-        LOG_TRACE("Room, client on line, room expried, cuid={}, ccid={}, openid={}, roomid={}", client->cuid(), client->ccid(), client->openid(), client->roomId());
+        LOG_TRACE("Room, client on line, room expried, cuid={}, ccid={}, openid={}, roomid={}", client->cuid(), client->ccid(), client->openid(), client->roomid());
         client->setRoomId(0);
         return;
     }

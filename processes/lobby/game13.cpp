@@ -1,10 +1,13 @@
 #include "game13.h"
 #include "client.h"
+#include "redis_handler.h"
+
 #include "componet/logger.h"
 #include "componet/scope_guard.h"
 #include "componet/tools.h"
-#include "protocol/protobuf/public/client.codedef.h"
+#include "componet/format.h"
 
+#include "protocol/protobuf/public/client.codedef.h"
 
 #include "permanent/proto/game13.pb.h"
 
@@ -18,18 +21,88 @@ const time_t MAX_VOTE_DURATION = 300;
 
 Deck Game13::s_deck;
 
+
+bool Game13::recoveryFromDB()
+{
+    RedisHandler& redis = RedisHandler::me();
+    bool successed = true;
+    auto exec = [&successed](const std::string roomid, const std::string& bin) -> bool
+    {
+        auto game = Game13::deserialize(bin);
+        if (game == nullptr)
+        {
+            LOG_ERROR("Game13, loadFromDB, deserialize failed, roomid={}", roomid);
+            successed = false;
+            return false;
+        }
+        if (Room::add(game) == false)
+        {
+            LOG_ERROR("Game13, loadFromDB, room::add failed, roomid={}", roomid);
+            successed = false;
+            return false;
+        }
+        LOG_TRACE("Game13, laodFromDB, roomid={}, cuid={}", roomid, game->ownerCuid());
+        return true;
+    };
+    redis.htraversal(ROOM_TABLE_NAME, exec);
+    return true;
+}
+
+bool Game13::saveToDB(Game13::Ptr game, const std::string& log, ClientPtr client)
+{
+    if (game == nullptr)
+        return false;
+
+    const std::string& bin = serialize(game);
+    if (bin.size() == 0)
+    {
+        LOG_ERROR("Game13, save to DB, {}, serialize failed, roomid={}, cuid={}, opneid={}", 
+                  log, game->getId(), client->cuid(), client->openid());
+        return false;
+    }
+
+    RedisHandler& redis = RedisHandler::me();
+    if (!redis.hset(ROOM_TABLE_NAME, componet::format("{}", game->getId()), bin))
+    {
+        LOG_ERROR("Game13, save to DB, {}, hset failed, roomid={}, cuid={}, opneid={}",
+                  log, game->getId(), client->cuid(), client->openid());
+        return false;
+    }
+
+    LOG_TRACE("Game13, save to DB, {}, successed, roomid={}, cuid={}, opneid={}",
+              log, game->getId(), client->cuid(), client->openid());
+    return true;
+}
+
+void Game13::eraseFromDB(const std::string& log) const
+{
+    RedisHandler& redis = RedisHandler::me();
+    if (!redis.hdel(ROOM_TABLE_NAME, componet::format("{}", getId())))
+        LOG_ERROR("Game13, erase from DB, {}, redis failed, roomid={}", log, getId());
+    else
+        LOG_TRACE("Game13, erase from DB, {}, successed, roomid={}", log, getId());
+}
+
 Game13::Ptr Game13::deserialize(const std::string& bin)
 {
-    permanent::GameRoom protoData;
-    if (!protoData.ParseFromString(bin))
+    permanent::GameRoom proto;
+    if (!proto.ParseFromString(bin))
         return nullptr;
 
-    if (protoData.type() != underlying(GameType::xm13))
+    if (proto.type() != underlying(GameType::xm13))
         return nullptr;
 
-    auto obj = Game13::create(protoData.roomid(), protoData.owner_cuid(), GameType::xm13);
+    auto obj = Game13::create(proto.roomid(), proto.owner_cuid(), GameType::xm13);
 
-    const auto& attr = protoData.g13data().attr();
+    //游戏相关的基本数据
+    obj->m_status           = static_cast<GameStatus>(proto.g13data().status());
+    obj->m_rounds           = proto.g13data().rounds();
+    obj->m_startVoteTime    = proto.g13data().start_vote_time();
+    obj->m_voteSponsorCuid  = proto.g13data().vote_sponsor_cuid();
+    obj->m_settleAllTime    = proto.g13data().settle_all_time();
+
+    //房间固定属性
+    const auto& attr = proto.g13data().attr();
     obj->m_attr.playType   = attr.play_type();
     obj->m_attr.rounds     = attr.rounds();
     obj->m_attr.payor      = attr.payor();
@@ -38,8 +111,9 @@ Game13::Ptr Game13::deserialize(const std::string& bin)
     obj->m_attr.yiTiaoLong = attr.yitiaolong();
     obj->m_attr.playerSize = attr.size();
 
-    const auto& players = protoData.g13data().players();
-    if (obj->m_attr.playerSize != players.size()) //protoData.g13data().players_size())
+    //玩家列表
+    const auto& players = proto.g13data().players();
+    if (obj->m_attr.playerSize != players.size()) //proto.g13data().players_size())
         return nullptr;
     obj->m_players.resize(attr.size());
     for (auto i = 0; i < obj->m_attr.playerSize; ++i)
@@ -48,65 +122,132 @@ Game13::Ptr Game13::deserialize(const std::string& bin)
         obj->m_players[i].name   = players[i].name();
         obj->m_players[i].status = players[i].status();
         obj->m_players[i].vote   = players[i].vote();
+        obj->m_players[i].rank   = players[i].rank();
 
         if (players[i].cards().size() != 13)
             return nullptr;
         std::copy(players[i].cards().begin(), players[i].cards().end(), obj->m_players[i].cards.begin());
     }
 
-//    if (protoData.g13data().status() < 0 || protoData.g13data().status() > underlying(GameStatus::closed))
-//        return nullptr;
-    obj->m_status           = static_cast<GameStatus>(protoData.g13data().status());
-    obj->m_rounds           = protoData.g13data().rounds();
-    obj->m_startVoteTime    = protoData.g13data().start_vote_time();
-    obj->m_voteSponsorCuid  = protoData.g13data().vote_sponsor_cuid();
-    obj->m_settleAllTime    = protoData.g13data().settle_all_time();
+    //结算记录
+    const auto& settles = proto.g13data().settles();
+    obj->m_settleData.resize(settles.size());
+    for (auto i = 0; i < settles.size(); ++i)
+    {
+        const auto& protoPlayers = settles[i].players();
+        if (protoPlayers.size() != obj->m_attr.playerSize)
+            return nullptr;
 
+        auto& objPlayers = obj->m_settleData[i]->players;
+        for (auto j = 0; j < obj->m_attr.playerSize; ++i)
+        {
+            objPlayers[j].cuid = protoPlayers[j].cuid();
+
+            if (protoPlayers[j].cards().size() != 13)
+                return nullptr;
+            std::copy(protoPlayers[j].cards().begin(), protoPlayers[j].cards().end(), objPlayers[j].cards.begin());
+
+            objPlayers[j].dun[0].b = static_cast<Deck::Brand>(protoPlayers[j].dun0().first());
+            objPlayers[j].dun[1].b = static_cast<Deck::Brand>(protoPlayers[j].dun1().first());
+            objPlayers[j].dun[2].b = static_cast<Deck::Brand>(protoPlayers[j].dun2().first());
+            objPlayers[j].dun[0].point = protoPlayers[j].dun0().second();
+            objPlayers[j].dun[1].point = protoPlayers[j].dun1().second();
+            objPlayers[j].dun[2].point = protoPlayers[j].dun2().second();
+
+            objPlayers[j].spec  = static_cast<Deck::G13SpecialBrand>(protoPlayers[j].spec());
+            objPlayers[j].prize = protoPlayers[j].prize();
+
+            for (const auto& loser : protoPlayers[j].losers())
+            {
+                objPlayers[j].losers[loser.k()][0] = loser.f0();
+                objPlayers[j].losers[loser.k()][1] = loser.f1();
+            }
+
+            objPlayers[j].quanLeiDa = protoPlayers[j].quanleida();
+        }
+        
+    }
     return obj;
 }
 
 std::string Game13::serialize(Game13::Ptr obj)
 {
+    return obj->serialize();
+}
+
+std::string Game13::serialize()
+{
     permanent::GameRoom proto;
-    proto.set_roomid(obj->getId());
-    proto.set_roomtp(0);
+    proto.set_roomid(getId());
     proto.set_type(underlying(GameType::xm13));
-    proto.set_owner_cuid(obj->ownerCuid());
+    proto.set_owner_cuid(ownerCuid());
     
+    //游戏房间基本数据
     auto gameData = proto.mutable_g13data();
-    gameData->set_status(underlying(obj->m_status));
-    gameData->set_rounds(obj->m_rounds);
-    gameData->set_start_vote_time(obj->m_startVoteTime);
-    gameData->set_vote_sponsor_cuid(obj->m_voteSponsorCuid);
-    gameData->set_settle_all_time(obj->m_settleAllTime);
+    gameData->set_status(underlying(m_status));
+    gameData->set_rounds(m_rounds);
+    gameData->set_start_vote_time(m_startVoteTime);
+    gameData->set_vote_sponsor_cuid(m_voteSponsorCuid);
+    gameData->set_settle_all_time(m_settleAllTime);
 
+    //房间固定属性
     auto attrData = gameData->mutable_attr();
-    attrData->set_play_type(obj->m_attr.playType);
-    attrData->set_rounds(obj->m_attr.rounds);
-    attrData->set_payor(obj->m_attr.payor);
-    attrData->set_daqiang(obj->m_attr.daQiang);
-    attrData->set_quanleida(obj->m_attr.quanLeiDa);
-    attrData->set_yitiaolong(obj->m_attr.yiTiaoLong);
-    attrData->set_size(obj->m_attr.playerSize);
+    attrData->set_play_type(m_attr.playType);
+    attrData->set_rounds(m_attr.rounds);
+    attrData->set_payor(m_attr.payor);
+    attrData->set_daqiang(m_attr.daQiang);
+    attrData->set_quanleida(m_attr.quanLeiDa);
+    attrData->set_yitiaolong(m_attr.yiTiaoLong);
+    attrData->set_size(m_attr.playerSize);
 
-    for (const auto& playerInfo : obj->m_players)
+    //玩家列表
+    for (const auto& playerInfo : m_players)
     {
         auto playerData = gameData->add_players();
         playerData->set_cuid(playerInfo.cuid);
         playerData->set_name(playerInfo.name);
         playerData->set_status(playerInfo.status);
         playerData->set_vote(playerInfo.vote);
+        playerData->set_rank(playerInfo.rank);
         for (auto card : playerInfo.cards)
             playerData->add_cards(card);
+    }
+
+    //结算记录
+    for (const auto& settle : m_settleData)
+    {
+        auto settleData = gameData->add_settles();
+        for (const auto& player : settle->players)
+        {
+            auto playerData = settleData->add_players();
+            playerData->set_cuid(player.cuid);
+            for (auto card : player.cards)
+                playerData->add_cards(card);
+            playerData->mutable_dun0()->set_first(underlying(player.dun[0].b));
+            playerData->mutable_dun0()->set_second(player.dun[0].point);
+            playerData->mutable_dun1()->set_first(underlying(player.dun[1].b));
+            playerData->mutable_dun1()->set_second(player.dun[1].point);
+            playerData->mutable_dun2()->set_first(underlying(player.dun[2].b));
+            playerData->mutable_dun2()->set_second(player.dun[2].point);
+            playerData->set_prize(player.prize);
+            for (const auto& item : player.losers)
+            {
+                auto loserData = playerData->add_losers();
+                loserData->set_k(item.first);
+                loserData->set_f0(item.second[0]);
+                loserData->set_f1(item.second[1]);
+            }
+            playerData->set_quanleida(player.quanLeiDa);
+        }
     }
 
     std::string ret;
     return proto.SerializeToString(&ret) ? ret : "";
 }
 
-Game13::Ptr Game13::getByRoomId(RoomId roomId)
+Game13::Ptr Game13::getByRoomId(RoomId roomid)
 {
-    return std::static_pointer_cast<Game13>(Room::get(roomId));
+    return std::static_pointer_cast<Game13>(Room::get(roomid));
 }
 
 void Game13::regMsgHandler()
@@ -126,7 +267,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (client == nullptr)
         return;
 
-    if (client->roomId() != 0)
+    if (client->roomid() != 0)
     {
         client->noticeMessageBox("已经在房间中, 无法创建新房间!");
         return;
@@ -149,7 +290,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     //初始化游戏信息
     auto& attr      = game->m_attr;
-//    attr.roomId     = game->getId();
+//    attr.roomid     = game->getId();
     attr.playType   = rcv->play_type() > GP_52 ? GP_65 : GP_52;
     attr.rounds     = rcv->rounds();
     attr.payor      = rcv->payor();
@@ -167,7 +308,10 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     }
 
     //最后进房间, 因为进房间要预扣款, 进入后再有什么原因失败需要回退
-    game->enterRoom(client);
+    if (!game->enterRoom(client))
+        return;
+
+    saveToDB(game, "create room", client);
 }
 
 void Game13::proto_C_G13_JionGame(ProtoMsgPtr proto, ClientConnectionId ccid)
@@ -184,7 +328,9 @@ void Game13::proto_C_G13_JionGame(ProtoMsgPtr proto, ClientConnectionId ccid)
         LOG_DEBUG("申请加入房间失败, 房间号不存在, ccid={}, openid={}, roomid={}", client->ccid(), client->openid(), rcv->room_id());
         return;
     }
-    game->enterRoom(client);
+    if(!game->enterRoom(client))
+        return;
+    saveToDB(game, "join room", client);
 }
 
 void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
@@ -193,24 +339,29 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (client == nullptr)
         return;
 
-    if (client->roomId() == 0)
+    if (client->roomid() == 0)
     {
         client->noticeMessageBox("已经不在房间内了");
         return;
     }
 
-    auto game = getByRoomId(client->roomId());
+    auto game = getByRoomId(client->roomid());
     if (game == nullptr)
     {
-        LOG_ERROR("C_G13_GiveUp, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
-                  client->roomId(), client->ccid(), client->cuid(), client->openid());
-        client->afterLeaveRoom(); //ERR_HANDLER
+        LOG_ERROR("C_G13_GiveUp, client上记录的房间号不存在, roomid={}, ccid={}, cuid={}, openid={}", 
+                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        client->afterLeaveRoom();
         return;
     }
 
     PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
     if (info == nullptr)
+    {
+        client->afterLeaveRoom();
         return;
+    }
+
+    ON_EXIT_SCOPE_DO(saveToDB(game, "give up game", client));
 
     switch (game->m_status)
     {
@@ -218,15 +369,15 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
         {
             if (client->cuid() == game->ownerCuid()) //房主
             {
-                LOG_TRACE("准备期间房主离开房间, roomId={}, ccid={}, cuid={}, openid={}",
-                          client->roomId(), client->ccid(), client->cuid(), client->openid()); 
-                LOG_TRACE("准备期间终止游戏, 销毁房间, roomId={}", game->getId());
+                LOG_TRACE("准备期间房主离开房间, roomid={}, ccid={}, cuid={}, openid={}",
+                          client->roomid(), client->ccid(), client->cuid(), client->openid()); 
+                LOG_TRACE("准备期间终止游戏, 销毁房间, roomid={}", game->getId());
                 game->abortGame();
                 return;
             }
             else
             {
-                LOG_TRACE("准备期间普通成员离开房间, roomId={}, ccid={}, cuid={}, openid={}",
+                LOG_TRACE("准备期间普通成员离开房间, roomid={}, ccid={}, cuid={}, openid={}",
                           game->getId(), client->ccid(), client->cuid(), client->openid()); 
                game->removePlayer(client);
                return;
@@ -252,7 +403,7 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
     case GameStatus::settleAll:
     case GameStatus::closed:
         {
-            LOG_TRACE("结算完毕后主动离开房间, roomId={}, ccid={}, cuid={}, openid={}",
+            LOG_TRACE("结算完毕后主动离开房间, roomid={}, ccid={}, cuid={}, openid={}",
                       game->getId(), client->ccid(), client->cuid(), client->openid()); 
             game->removePlayer(client);
             return;
@@ -266,11 +417,21 @@ void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId c
     auto client = ClientManager::me().getByCcid(ccid);
     if (client == nullptr)
         return;
-    auto game = getByRoomId(client->roomId());
+    auto game = getByRoomId(client->roomid());
     if (game == nullptr)
     {
-        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
-                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomid={}, ccid={}, cuid={}, openid={}", 
+                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        client->afterLeaveRoom(); //ERR_HANDLER
+        return;
+    }
+
+    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
+    if (info == nullptr)
+    {
+        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomid={}, ccid={}, cuid={}, openid={}",
+                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
@@ -278,28 +439,18 @@ void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId c
     if (game->m_status != GameStatus::vote)
         return;
 
-
-    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
-    if (info == nullptr)
-    {
-        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
-                  client->roomId(), client->ccid(), client->cuid(), client->openid());
-
-        client->afterLeaveRoom(); //ERR_HANDLER
-        return;
-    }
-
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_VoteFoAbortGame, proto);
     info->vote = rcv->vote();
 
-    LOG_TRACE("voteForAbortGame, 收到投票, vote={}, roomId={}, ccid={}, cuid={}, openid={}",
-              info->vote, client->roomId(), client->ccid(), client->cuid(), client->openid());
+    LOG_TRACE("voteForAbortGame, 收到投票, vote={}, roomid={}, ccid={}, cuid={}, openid={}",
+              info->vote, client->roomid(), client->ccid(), client->cuid(), client->openid());
 
     if (rcv->vote() == PublicProto::VT_NONE) //弃权的不处理
         return;
     
 
     game->checkAllVotes();
+    saveToDB(game, "vote for giveup", client);
     return;
 }
 
@@ -309,17 +460,27 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (client == nullptr)
         return;
 
-    if (client->roomId() == 0)
+    if (client->roomid() == 0)
     {
         client->noticeMessageBox("已经不在房间内了");
         return;
     }
 
-    auto game = getByRoomId(client->roomId());
+    auto game = getByRoomId(client->roomid());
     if (game == nullptr)
     {
-        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
-                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomid={}, ccid={}, cuid={}, openid={}", 
+                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        client->afterLeaveRoom(); //ERR_HANDLER
+        return;
+    }
+
+    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
+    if (info == nullptr)
+    {
+        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomid={}, ccid={}, cuid={}, openid={}",
+                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
@@ -327,16 +488,6 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (game->m_status != GameStatus::prepare)
     {
         client->noticeMessageBox("游戏已开始");
-        return;
-    }
-
-    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
-    if (info == nullptr)
-    {
-        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
-                  client->roomId(), client->ccid(), client->cuid(), client->openid());
-
-        client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
 
@@ -348,10 +499,12 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (oldStatus == newStatus)
         return;
 
+    ON_EXIT_SCOPE_DO(saveToDB(game, "give up game", client));
+
     //改变状态
     info->status = newStatus;
-    LOG_TRACE("ReadyFlag, 玩家设置准备状态, readyFlag={}, roomId={}, ccid={}, cuid={}, openid={}",
-              rcv->ready(), client->roomId(), client->ccid(), client->cuid(), client->openid());
+    LOG_TRACE("ReadyFlag, 玩家设置准备状态, readyFlag={}, roomid={}, ccid={}, cuid={}, openid={}",
+              rcv->ready(), client->roomid(), client->ccid(), client->cuid(), client->openid());
 
     game->syncAllPlayersInfoToAllClients();
     /*
@@ -366,6 +519,7 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     //新的ready确认, 检查是否所有玩家都已确认, 可以启动游戏
     if (newStatus == PublicProto::S_G13_PlayersInRoom::READY)
         game->tryStartRound();
+    saveToDB(game, "set ready flag", client);
 }
 
 void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
@@ -374,17 +528,27 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (client == nullptr)
         return;
 
-    if (client->roomId() == 0)
+    if (client->roomid() == 0)
     {
         client->noticeMessageBox("已经不在房间内了");
         return;
     }
 
-    auto game = getByRoomId(client->roomId());
+    auto game = getByRoomId(client->roomid());
     if (game == nullptr)
     {
-        LOG_ERROR("bring out, client上记录的房间号不存在, roomId={}, ccid={}, cuid={}, openid={}", 
-                  client->roomId(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("bring out, client上记录的房间号不存在, roomid={}, ccid={}, cuid={}, openid={}", 
+                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        client->afterLeaveRoom(); //ERR_HANDLER
+        return;
+    }
+
+    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
+    if (info == nullptr)
+    {
+        LOG_ERROR("bring out, 房间中没有这个玩家的信息, roomid={}, ccid={}, cuid={}, openid={}",
+                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
@@ -395,23 +559,6 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         return;
     }
 
-    //TODO 检查牌型是否合法
-    if (false)
-    {
-        client->noticeMessageBox("牌型不合法, 请重新摆牌");
-        return;
-    }
-
-    PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
-    if (info == nullptr)
-    {
-        LOG_ERROR("bring out, 房间中没有这个玩家的信息, roomId={}, ccid={}, cuid={}, openid={}",
-                  client->roomId(), client->ccid(), client->cuid(), client->openid());
-
-        client->afterLeaveRoom(); //ERR_HANDLER
-        return;
-    }
-
     if (info->status != PublicProto::S_G13_PlayersInRoom::SORT)
     {
          client->noticeMessageBox("当前不能出牌0x02");
@@ -419,10 +566,26 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     }
 
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_BringOut, proto);
-    if (static_cast<uint32_t>(rcv->cards_size()) != info->cards.size())
+    if(rcv->cards_size() != 13)
     {
         client->noticeMessageBox("出牌数量不对");
         return;
+    }
+
+    //TODO 检查牌型是否合法
+    {
+        //是否是自己的牌
+        std::array<Deck::Card, 13> tmp;
+        std::copy(rcv->cards().begin(), rcv->cards().end(), tmp.begin());
+        std::sort(tmp.begin(), tmp.end());
+        for (auto i = 0u; i < tmp.size(); ++i)
+        {
+            if (tmp[i] != info->cards[i])
+            {
+                client->noticeMessageBox("牌组不正确, 请正常游戏");
+                return;
+            }
+        }
     }
     
     //改变玩家状态, 接收玩家牌型数据
@@ -435,8 +598,8 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         cardsStr.append(std::to_string(info->cards[index]));
         cardsStr.append(",");
     }
-    LOG_TRACE("bring out, roomId={}, round={}/{}, cuid={}, openid={}, cards=[{}]",
-             client->roomId(), game->m_rounds, game->m_attr.rounds, client->cuid(), client->openid(), cardsStr);
+    LOG_TRACE("bring out, roomid={}, round={}/{}, cuid={}, openid={}, cards=[{}]",
+             client->roomid(), game->m_rounds, game->m_attr.rounds, client->cuid(), client->openid(), cardsStr);
 
     game->syncAllPlayersInfoToAllClients();
 
@@ -445,6 +608,7 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     //顺利结算完毕, 开下一局
     if (game->m_status == GameStatus::settle)
         game->tryStartRound();
+    saveToDB(game, "bring out", client);
 }
 
 
@@ -460,11 +624,11 @@ bool Game13::enterRoom(Client::Ptr client)
     if (client == nullptr)
         return false;
 
-    if (client->roomId() != 0)
+    if (client->roomid() != 0)
     {
-        if (client->roomId() == getId()) //就在这个房中, 直接忽略
+        if (client->roomid() == getId()) //就在这个房中, 直接忽略
             return true;
-        client->noticeMessageBox("已经在{}号房间中了!", client->roomId());
+        client->noticeMessageBox("已经在{}号房间中了!", client->roomid());
         return false;
     }
 
@@ -484,7 +648,6 @@ bool Game13::enterRoom(Client::Ptr client)
     //加入成员列表
     m_players[index].cuid = client->cuid();
     m_players[index].name = client->name();
-    m_players[index].money = client->money();
     m_players[index].status = PublicProto::S_G13_PlayersInRoom::PREP;
     
     {//钱数检查
@@ -512,10 +675,11 @@ bool Game13::enterRoom(Client::Ptr client)
 
     client->setRoomId(getId());
 
+
     afterEnterRoom(client);
 
-    LOG_TRACE("G13, {}房间成功, roomId={}, ccid={}, cuid={}, openid={}", (ownerCuid() != client->cuid()) ? "进入" : "创建",
-              client->roomId(), client->ccid(), client->cuid(), client->openid());
+    LOG_TRACE("G13, {}房间成功, roomid={}, ccid={}, cuid={}, openid={}", (ownerCuid() != client->cuid()) ? "进入" : "创建",
+              client->roomid(), client->ccid(), client->cuid(), client->openid());
     return true;
 }
 
@@ -524,15 +688,14 @@ void Game13::clientOnlineExec(Client::Ptr client)
     if (client == nullptr)
         return;
     auto info = getPlayerInfoByCuid(client->cuid());
-    if (client->roomId() == getId() && info == nullptr)
+    if (client->roomid() == getId() && info == nullptr)
     {
-        LOG_TRACE("玩家上线, 房间号已被复用, roomId={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
+        LOG_TRACE("玩家上线, 房间号已被复用, roomid={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
         client->setRoomId(0);
         return;
     }
-    info->money = client->money();
 
-    LOG_TRACE("client, sync gameinfo, roomId={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
+    LOG_TRACE("client, sync gameinfo, roomid={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
     afterEnterRoom(client);
 }
 
@@ -620,7 +783,7 @@ void Game13::syncAllPlayersInfoToAllClients()
         player->set_cuid(info.cuid);
         player->set_name(info.name);
         player->set_status(info.status);
-        player->set_money(info.money);
+        player->set_rank(info.rank);
     }
     snd.set_rounds(m_rounds);
     sendToAll(sndCode, snd);
@@ -635,7 +798,25 @@ void Game13::removePlayer(ClientPtr client)
     {
         if (iter->cuid == client->cuid())
         {
-            client->afterLeaveRoom();
+            G13His::Detail::Ptr settleHisDetail = nullptr;
+            if (m_status == GameStatus::settleAll)
+            {
+                auto& info = *iter;
+                settleHisDetail = G13His::Detail::create();
+                settleHisDetail->roomid = getId();
+                settleHisDetail->rank   = info.rank;
+                settleHisDetail->time   = componet::toUnixTime(Room::s_timerTime);
+                settleHisDetail->opps.reserve(m_players.size());
+                for (const PlayerInfo& oppInfo : m_players)
+                {
+                    if (oppInfo.cuid == info.cuid)
+                        continue;
+                    settleHisDetail->opps.resize(settleHisDetail->opps.size() + 1);
+                    settleHisDetail->opps.back().name = info.name;
+                    settleHisDetail->opps.back().rank = info.rank;
+                }
+            }
+            client->afterLeaveRoom(settleHisDetail);
             iter->clear();
             LOG_TRACE("Game13, reomvePlayer, roomid={}, ccid={}, cuid={}, openid={}",
                         getId(), client->ccid(), client->cuid(), client->openid());
@@ -649,16 +830,37 @@ void Game13::removePlayer(ClientPtr client)
 void Game13::abortGame()
 {
     //踢所有人
+
     for (const PlayerInfo& info : m_players)
     {
         LOG_TRACE("Game13, abortGame, 踢人, roomid={}, cuid={}", getId(), info.cuid);
         Client::Ptr client = ClientManager::me().getByCuid(info.cuid);
         if (client != nullptr)
-            client->afterLeaveRoom();
+        {
+            G13His::Detail::Ptr settleHisDetail = nullptr;
+            if (m_status == GameStatus::settleAll)
+            {
+                settleHisDetail = G13His::Detail::create();
+                settleHisDetail->roomid = getId();
+                settleHisDetail->rank   = info.rank;
+                settleHisDetail->time   = componet::toUnixTime(Room::s_timerTime);
+                settleHisDetail->opps.reserve(m_players.size());
+                for (const PlayerInfo& oppInfo : m_players)
+                {
+                    if (oppInfo.cuid == info.cuid)
+                        continue;
+                    settleHisDetail->opps.resize(settleHisDetail->opps.size() + 1);
+                    settleHisDetail->opps.back().name = info.name;
+                    settleHisDetail->opps.back().rank = info.rank;
+                }
+            }
+            client->afterLeaveRoom(settleHisDetail);
+        }
     }
     m_players.clear();
     m_status = GameStatus::closed;
     destroyLater();
+    eraseFromDB("abortgame");
 }
 
 void Game13::tryStartRound()
@@ -685,7 +887,7 @@ void Game13::tryStartRound()
 
     //牌局开始
     ++m_rounds;
-    LOG_TRACE("新一轮开始, rounds={}/{}, roomId={}", m_rounds, m_attr.rounds, getId());
+    LOG_TRACE("新一轮开始, rounds={}/{}, roomid={}", m_rounds, m_attr.rounds, getId());
 
     //shuffle
     {
@@ -767,7 +969,7 @@ void Game13::tryStartRound()
         player->set_status(info.status);
         player->set_cuid(info.cuid);
         player->set_name(info.name);
-        player->set_money(info.money);
+        player->set_rank(info.rank);
     }
     sendToAll(snd1Code, snd1);
 
@@ -793,6 +995,7 @@ void Game13::trySettleGame()
     for (uint32_t i = 0; i < m_players.size(); ++i)
     {
         curRound->players[i].cards = m_players[i].cards;
+        m_players[i].rank += curRound->players[i].prize;
     }
     m_settleData.push_back(curRound);
 
@@ -931,7 +1134,7 @@ void Game13::checkAllVotes()
         m_startVoteTime = 0;
         m_voteSponsorCuid = 0;
         m_status = GameStatus::play;
-        LOG_TRACE("投票失败, 游戏继续, 反对派cuid={}, roomId={}", oppositionCuid, getId());
+        LOG_TRACE("投票失败, 游戏继续, 反对派cuid={}, roomid={}", oppositionCuid, getId());
     }
     else if (ayeSize == m_players.size()) //全同意
     {
@@ -960,7 +1163,7 @@ void Game13::checkAllVotes()
     }
 }
 
-void Game13::timerExec(componet::TimePoint now)
+void Game13::timerExec()
 {
     switch (m_status)
     {
@@ -1021,7 +1224,6 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
         rsd->players.emplace_back();
         auto& data = rsd->players.back();
         data.cuid = info.cuid;
-        data.name = info.name;
         data.cards = info.cards;
 
         //1墩

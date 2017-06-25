@@ -108,7 +108,7 @@ void AnySdkLoginManager::startNameResolve()
                 continue;
             }
 
-            LOG_TRACE("resolve host oauth.anysdk.com ok, ip={}, will expire in 60 seconds ...", resolveRet.first);
+//            LOG_TRACE("resolve host oauth.anysdk.com ok, ip={}, will expire in 60 seconds ...", resolveRet.first);
             this->m_assIp.lock.lock();
             this->m_assIp.ipStr = resolveRet.first;
             this->m_assIp.lock.unlock();

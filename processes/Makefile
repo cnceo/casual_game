@@ -8,9 +8,9 @@ export mysqlcppconn_cc_flag       = $(shell $(MYSQL_CONFIG_CMD) --include)\
 export mysqlcppconn_ln_flag       = $(shell $(MYSQL_CONFIG_CMD) --libs_r)\
 									-L$(MYSQLCPPCONN_INSTALLED_DIR)/lib -lmysqlpp -Wl,-rpath=$(MYSQLCPPCONN_INSTALLED_DIR)/lib
 
-export CPP_REDIS_INSTALLED_DIR	= $(LIBS_DIR)/cpp_redis/installed
-export cpp_redis_cc_flag		= -I$(CPP_REDIS_INSTALLED_DIR)/include
-export cpp_redis_ln_flag		= -L$(CPP_REDIS_INSTALLED_DIR)/lib -lcpp_redis -ltacopie
+export HIREDIS_INSTALLED_DIR	= $(LIBS_DIR)/hiredis/installed
+export hiredis_cc_flag		= -I$(HIREDIS_INSTALLED_DIR)/include
+export hiredis_ln_flag		= -L$(HIREDIS_INSTALLED_DIR)/lib -lhiredis
 
 export PROTOCOL_DIR     = $(ROOT_DIR)/protocol
 

@@ -41,6 +41,7 @@ void ClientManager::regClientMsgRelay()
     /*************转发到client**********/
     PUBLIC_MSG_TO_CLIENT(S_Chat)
     PUBLIC_MSG_TO_CLIENT(S_Notice)
+    PUBLIC_MSG_TO_CLIENT(S_PlayerBasicData)
     PUBLIC_MSG_TO_CLIENT(S_G13_RoomAttr)
     PUBLIC_MSG_TO_CLIENT(S_G13_PlayersInRoom)
     PUBLIC_MSG_TO_CLIENT(S_G13_AbortGameOrNot)

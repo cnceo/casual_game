@@ -4,6 +4,8 @@
 #include "componet/datetime.h"
 #include "protocol/protobuf/proto_manager.h"
 
+#include "hiredis/hiredis.h"
+
 #include <list>
 #include <memory>
 #include <unordered_map>
@@ -13,6 +15,8 @@ namespace lobby{
 using namespace water;
 using namespace process;
 
+
+extern const char* ROOM_TABLE_NAME;
 
 enum class GameType
 {
@@ -40,7 +44,7 @@ protected:
 
 public:
     virtual void clientOnlineExec(ClientPtr client) = 0;
-    virtual void timerExec(componet::TimePoint now) = 0;
+    virtual void timerExec() = 0;
     virtual void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto) = 0;
     virtual void sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto) = 0;
 

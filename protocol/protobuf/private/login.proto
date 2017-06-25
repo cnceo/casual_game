@@ -36,3 +36,8 @@ message ClientBeReplaced
     required string openid = 3;
 }
 
+// gw -> lo
+message ClientDisconnected
+{
+    required int64 ccid = 1;
+}

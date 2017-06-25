@@ -36,10 +36,10 @@ message S_LoginRet
 }
 
 //游戏币
-message S_Money
+message S_PlayerBasicData
 {
-    optional int32  money1      = 1;    //货币1
-    optional int32  money2      = 2;    //货币2
+    optional int32  money       = 1;    //货币1
+    optional int32  money1      = 2;    //货币2
 }
 
 
@@ -74,6 +74,10 @@ message S_Chat
 {
     required int64      cuid    = 1; //发送者
     required C_SendChat content = 2; //内容
+}
+
+message CS_Heartbeat
+{
 }
 
 /*****************************13水消息********************************/
@@ -122,7 +126,7 @@ message S_G13_PlayersInRoom
         required int64 cuid     = 1; //cuid
         required int32 status   = 2; //具体值见上面的枚举定义中的注释
         required string name    = 3; //名字
-        required int32 money    = 4; //金币数量
+        required int32 rank     = 4; //当前分数
     }
     repeated PlayerStatus players   = 1;
     required int32 rounds           = 2; //当前是第几局, 准备阶段值为0
@@ -160,7 +164,7 @@ message S_G13_AbortGameOrNot
 // 投票表决是否赞同终止游戏
 message C_G13_VoteFoAbortGame
 {
-     required G13_VoteOfAbort vote = 1;
+    required G13_VoteOfAbort vote = 1;
 }
 
 // 投票失败, 游戏继续
@@ -245,7 +249,7 @@ message S_G13_GameHistoryCount
 //请求比赛历史详情
 message C_G13_ReqGameHistoryDetial
 {
-    required int32 page = 1;
+    required int32 page = 1; //页码, 从0开始
 }
 
 //返回比赛历史详情
@@ -253,17 +257,17 @@ message S_G13_GameHistoryDetial
 {
     message Game
     {
+        message Opponent
+        {
+            required string name    = 1;
+            required int32  rank    = 2;
+        }
         required int32  roomid  = 1;
         required int32  rank    = 2;
         repeated Opponent opps  = 3;
         required int32  time    = 4;
     }
-    message Opponent
-    {
-        required string name    = 1;
-        required int32  rank    = 2;
-    }
-    
-    repeated Game history = 1;
+
+    repeated Game items = 1;
 }
 

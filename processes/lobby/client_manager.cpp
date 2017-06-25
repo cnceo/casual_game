@@ -12,28 +12,7 @@
 
 namespace lobby{
 
-void Client::afterLeaveRoom()
-{
-    m_roomId = 0;
-    PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
-    sendToMe(sndCode, snd);
-}
 
-bool Client::sendToMe(TcpMsgCode code, const ProtoMsg& proto)
-{
-    ProcessId gatewayPid("gateway", 1);
-    return Lobby::me().relayToPrivate(ccid(), gatewayPid, code, proto);
-}
-
-bool Client::noticeMessageBox(const std::string& text)
-{
-    PROTO_VAR_PUBLIC(S_Notice, snd);
-//    PublicProto::S_Notice snd;
-    snd.set_type(PublicProto::S_Notice::MSG_BOX);
-    snd.set_text(text);
-    return sendToMe(sndCode, snd);
-//    sendToMe(PROTO_CODE_PUBLIC(S_Notice), snd);
-}
 
 /***********************************************/
 
@@ -55,8 +34,27 @@ void ClientManager::init()
 
 void ClientManager::recoveryFromRedis()
 {
-//    std::vector<std::string> redisCmd = {"info"};
-    LOG_DEBUG("recovery clients data from redis");
+    return;
+
+    RedisHandler& redis = RedisHandler::me();
+
+    auto exec = [this](const std::string openid, const std::string& bin) -> bool
+    {
+        auto client = Client::create();
+        if (!client->deserialize(bin))
+        {
+            LOG_ERROR("recovery clients from reids, deserialize client failed, openid={}", openid);
+            return true;
+        }
+        if (!insert(client))
+        {
+            LOG_ERROR("recovery clients from reids, insert client failed, openid={}, cuid={}, name={}",
+                      client->openid(), client->cuid(), client->name());
+        }
+        return true;
+    };
+    redis.htraversal(CLIENT_TABLE_NAME, exec);
+    LOG_TRACE("recovery clients data from redis");
 }
 
 void ClientManager::timerExec()
@@ -121,14 +119,29 @@ Client::Ptr ClientManager::getByOpenid(const std::string& openid)
     return iter->second;
 }
 
-Client::Ptr ClientManager::loadClientFromDB(const std::string& openId)
+std::pair<Client::Ptr, bool> ClientManager::loadClient(const std::string& openid)
 {
-    return nullptr; //TODO 加入真实的数据库访问
+    RedisHandler& redis = RedisHandler::me();
+    const std::string& bin = redis.hget(CLIENT_TABLE_NAME, openid);
+    if (bin == "")
+        return {nullptr, true};
+
+    auto client = Client::create();
+    if( !client->deserialize(bin) )
+    {
+        LOG_ERROR("load client from redis, deserialize failed, openid={}", openid);
+        return {nullptr, false};
+    }
+    LOG_TRACE("load client, successed, openid={}, cuid={}, roomid={}", client->openid(), client->cuid(), client->roomid());
+    return {client, true};
 }
 
-bool ClientManager::saveClientToDB(Client::Ptr client)
+bool ClientManager::saveClient(Client::Ptr client)
 {
-    return true;  //TODO 加入真实的数据库访问
+    if (client == nullptr)
+        return false;
+
+    return client->saveToDB();
 }
 
 void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
@@ -136,43 +149,66 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     //login step2, 获取用户当前状态， 如果是新用户则需要加入数据库
     auto rcv = PROTO_PTR_CAST_PRIVATE(LoginQuest, proto);
     const ClientUniqueId ccid = rcv->ccid();
-    LOG_TRACE("C_Login, ccid={}, openid={}", ccid, rcv->openid());
+    const std::string openid = rcv->openid();
+    LOG_TRACE("C_Login, ccid={}, openid={}", ccid, openid);
 
 
-    PrivateProto::RetLoginQuest ret;
+    PrivateProto::RetLoginQuest retMsg;
     TcpMsgCode retCode = PROTO_CODE_PRIVATE(RetLoginQuest);
-    ret.set_ccid(ccid);
+    retMsg.set_ccid(ccid);
+    retMsg.set_openid(openid);
 
-    Client::Ptr client = getByOpenid(rcv->openid());
+    Client::Ptr client = getByOpenid(openid);
     if (client == nullptr) //不在线
     {
-        client = loadClientFromDB(rcv->openid());
+        const auto& loadRet = loadClient(openid);
+        if (!loadRet.second)
+        {
+            retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
+            Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
+            LOG_ERROR("login, step 2, new client load failed, openid={}", openid);
+            return;
+        }
+        client = loadRet.first;
         if(client == nullptr) //新用户
         {
             client = Client::create();
             client->m_ccid = ccid;
             client->m_cuid = getClientUniqueId();
-            client->m_openid = rcv->openid();
+            client->m_openid = openid;
             client->m_name = rcv->name();
 
-            do {
-                if (insert(client))
+            bool insertRet = insert(client);
+            bool saveRet = false;
+            if (insertRet)
+            {
+                saveRet = saveClient(client);
+                if (!saveRet)
                 {
-                    if(saveClientToDB(client))
-                        break;
+                    erase(client);
+                    LOG_ERROR("login, step 2, new client, saveClient failed, openid={}", openid);
                 }
-                //插入管理器失败, 注册失败,  登陆失败
-                erase(client); //失败要重新删掉
-                ret.set_cuid(client->cuid());
-                ret.set_ret_code(PrivateProto::RLQ_REG_FAILED);
-                Lobby::me().sendToPrivate(gatewayPid, retCode, ret);
-                LOG_TRACE("login, step 2, new client reg failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+            }
+            if (!(insertRet && saveRet))
+            {
+                retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
+                Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
+                LOG_TRACE("login, step 2, new client reg failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), openid);
                 return;
-            } while(false);
+            }
+            LOG_TRACE("login, step 2, new client reg successed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), openid);
         }
         else //登陆过但不在线
         {
             client->m_ccid = ccid;
+            if (!insert(client))
+            {
+                retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
+                Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
+                LOG_ERROR("login, step 2, old client online failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+                return;
+            }
+            LOG_TRACE("login, step 2, old client online successed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), openid);
         }
     }
     else //已经在线了, 把当前在线的挤掉
@@ -195,19 +231,18 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         if (!insert(client))
         {
             //更新ccid失败, 登陆失败
-            ret.set_cuid(client->cuid());
-            ret.set_ret_code(PrivateProto::RLQ_REG_FAILED);
-            Lobby::me().sendToPrivate(gatewayPid, retCode, ret);
+            retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
+            Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
             LOG_TRACE("login, step 2, new client reg failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
         }
 
     }
 
     //登陆成功
-    ret.set_ret_code(PrivateProto::RLQ_SUCCES);
-    ret.set_cuid(client->cuid());
-    ret.set_openid(client->openid());
-    Lobby::me().sendToPrivate(gatewayPid, retCode, ret);
+    retMsg.set_ret_code(PrivateProto::RLQ_SUCCES);
+    retMsg.set_cuid(client->cuid());
+    retMsg.set_openid(client->openid());
+    Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
     LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid(), client->openid());
 
     //更新可能的房间游戏信息
@@ -222,7 +257,7 @@ void ClientManager::proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionI
     if (client == nullptr)
         return;
 
-    auto room = Room::get(client->roomId());
+    auto room = Room::get(client->roomid());
     if (room == nullptr)
         return;
 
@@ -241,12 +276,58 @@ void ClientManager::proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionI
     case PublicProto::CHAT_VOICE:
         {
             sndCtn->set_data_int(rcv->data_int());
+            sndCtn->set_data_text(rcv->data_text());
         }
         break;
     }
     room->sendToOthers(client->cuid(), sndCode, snd);
 }
 
+void ClientManager::proto_C_G13_ReqGameHistoryCount(ClientConnectionId ccid)
+{
+    Client::Ptr client = ClientManager::me().getByCcid(ccid);
+    if (client == nullptr)
+        return;
+
+    PROTO_VAR_PUBLIC(S_G13_GameHistoryCount, snd);
+    snd.set_total(client->m_g13his.details.size());
+    snd.set_win(client->m_g13his.win);
+    snd.set_lose(client->m_g13his.lose);
+    sendToClient(ccid, sndCode, snd);
+}
+
+void ClientManager::proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, ClientConnectionId ccid)
+{
+    auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_ReqGameHistoryDetial, proto);
+    Client::Ptr client = ClientManager::me().getByCcid(ccid);
+    if (client == nullptr)
+        return;
+
+    const uint32_t page     = rcv->page();
+    const uint32_t perPage  = 5;
+    const uint32_t total    = client->m_g13his.details.size();
+
+    uint32_t first = perPage * page;
+    if (first != 0 && first >= total)
+        first = perPage * (page - 1);
+
+    PROTO_VAR_PUBLIC(S_G13_GameHistoryDetial, snd);
+    for (const auto&detail : client->m_g13his.details)
+    {
+        auto item = snd.add_items();
+        item->set_roomid(detail->roomid);
+        item->set_rank(detail->rank);
+        item->set_time(detail->time);
+
+        for (const auto& opp : detail->opps)
+        {
+            auto sndOpp = item->add_opps();
+            sndOpp->set_name(opp.name);
+            sndOpp->set_rank(opp.rank);
+        }
+    }
+    sendToClient(ccid, sndCode, snd);
+}
 
 ClientUniqueId ClientManager::getClientUniqueId()
 {
@@ -259,6 +340,8 @@ void ClientManager::regMsgHandler()
     using namespace std::placeholders;
     /************msg from client***********/
     REG_PROTO_PUBLIC(C_SendChat, std::bind(&ClientManager::proto_C_SendChat, this, _1, _2));
+    REG_PROTO_PUBLIC(C_G13_ReqGameHistoryCount, std::bind(&ClientManager::proto_C_G13_ReqGameHistoryCount, this, _2));
+    REG_PROTO_PUBLIC(C_G13_ReqGameHistoryDetial, std::bind(&ClientManager::proto_C_G13_ReqGameHistoryDetial, this, _1, _2));
     /************msg from cluster**********/
     REG_PROTO_PRIVATE(LoginQuest, std::bind(&ClientManager::proto_LoginQuest, this, _1, _2));
 }

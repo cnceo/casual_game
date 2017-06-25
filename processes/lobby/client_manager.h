@@ -37,19 +37,22 @@ public:
 
     void regMsgHandler();
 
+    bool saveClient(ClientPtr client);
+    bool saveClient(const Client& client);
 private:
     bool insert(ClientPtr client);
     void erase(ClientPtr client);
 
 private:
-    ClientPtr loadClientFromDB(const std::string& openid);
-    bool saveClientToDB(ClientPtr client);
+    std::pair<ClientPtr, bool> loadClient(const std::string& openid);
     //分配uniqueId
     ClientUniqueId getClientUniqueId();
     void recoveryFromRedis();
 //    void dealLogin();
 private:
     void proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionId ccid);
+    void proto_C_G13_ReqGameHistoryCount(ClientConnectionId ccid);
+    void proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, ClientConnectionId ccid);
 private:
     void proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid);
 

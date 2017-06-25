@@ -2,21 +2,62 @@ syntax = "proto3";
 
 package permanent;
 
+
+message Pair
+{
+    int32 first     = 1;
+    int32 second    = 2;
+}
+
+message KeyList
+{
+    reserved 4 to 20;
+
+    int32 k     = 1;
+    int32 f0    = 2;
+    int32 f1    = 3;
+}
+
+
 message ClientData
 {
+    message G13history
+    {
+        message Detail
+        {
+            message Opponent
+            {
+                string name     = 1;
+                int32   rank    = 2;
+            }
+
+            int32 roomid    = 1;
+            int32 rank      = 2;
+            int32 time      = 3;
+            repeated Opponent opps = 4;
+        }
+
+        repeated Detail details = 1;
+        int32 win               = 2;
+        int32 lose              = 3;
+    }
+
+    reserved 8, 9;
+
     string  openid  = 1;
     int64   cuid    = 2;
     string  name    = 3;
     uint32  roomid  = 4;
-    uint32  roomtp  = 5;
     int32   money   = 6;
     int32   money1  = 7;
+    G13history g13his = 10;
 }
 
 message GameRoom
 {
+    reserved 2;
+
     uint32  roomid      = 1;
-    uint32  roomtp      = 2;
     uint32  type        = 3;
     uint64  owner_cuid  = 4;
     G13Data g13data     = 5;
@@ -24,6 +65,25 @@ message GameRoom
 
 message G13Data
 {
+    message G13PlayerSettleData
+    {
+        message PlayerData
+        {
+            reserved 6, 7 ,8;
+
+            int64 cuid              = 1;
+            repeated int32 cards    = 2;
+            Pair  dun0              = 3;
+            Pair  dun1              = 4;
+            Pair  dun2              = 5;
+            int32 spec              = 9;
+            int32 prize             = 10;
+            repeated KeyList losers = 11;
+            bool quanleida          = 12;
+        }
+
+        repeated PlayerData players = 1;
+    }
 
     message G13Player
     {
@@ -31,7 +91,8 @@ message G13Data
         string  name    = 2;
         int32   status  = 3;
         int32   vote    = 4;
-        repeated int32  cards   = 5;
+        int32   rank    = 5;
+        repeated int32  cards   = 6;
     }
 
     message G13Attr
@@ -53,7 +114,8 @@ message G13Data
     int32 vote_sponsor_cuid = 4;
     int32 settle_all_time   = 5;
     G13Attr attr            = 10;
-    repeated G13Player  players = 11;
+    repeated G13Player           players = 11;
+    repeated G13PlayerSettleData settles = 12;
 }
 
 

@@ -57,7 +57,7 @@ private:
 
     virtual void sendToAll(TcpMsgCode msgCode, const ProtoMsg& proto) override;
     virtual void sendToOthers(ClientUniqueId cuid, TcpMsgCode msgCode, const ProtoMsg& proto) override;
-    virtual void timerExec(componet::TimePoint now) override;
+    virtual void timerExec() override;
     virtual void clientOnlineExec(ClientPtr) override;
 
     void syncAllPlayersInfoToAllClients(); //这个有空可以拆成 sendAllToMe和sendMeToAll, 现在懒得搞了
@@ -70,6 +70,8 @@ private:
     struct PlayerInfo;
     PlayerInfo* getPlayerInfoByCuid(ClientUniqueId cuid);
 
+    std::string serialize();
+    void eraseFromDB(const std::string& log) const;
 private:
     Room::Ptr m_room;
 
@@ -101,7 +103,7 @@ private:
         std::string name;
         int32_t status;
         int32_t vote = 0;
-        int32_t money = 0;
+        int32_t rank = 0; //当前为止, 本场比赛中累计得到的分数
         std::array<Deck::Card, 13> cards;
     };
     std::vector<PlayerInfo> m_players;
@@ -120,7 +122,6 @@ private:
         struct PlayerData
         {
             ClientUniqueId cuid;
-            std::string name;
             std::array<Deck::Card, 13> cards;   //所有牌
             std::array<Deck::BrandInfo, 3> dun; //3墩牌型
             Deck::G13SpecialBrand spec;         //特殊牌型
@@ -144,10 +145,13 @@ public:
     static Game13::Ptr getByRoomId(RoomId roomId);
     static void regMsgHandler();
 
+    static bool recoveryFromDB();
+    static bool saveToDB(Game13::Ptr game, const std::string& log, ClientPtr client);
+
+private:
     static Game13::Ptr deserialize(const std::string& bin);
     static std::string serialize(Game13::Ptr obj);
 
-private:
     static Deck s_deck;
 };
 

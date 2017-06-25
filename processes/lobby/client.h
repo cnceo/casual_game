@@ -4,13 +4,40 @@
 
 #include "client_manager.h"
 
+#include <list>
+
 namespace lobby{
 using namespace water;
 using namespace process;
 
+extern const char* CLIENT_TABLE_NAME;
+
+struct G13His
+{
+    struct Detail
+    {
+        TYPEDEF_PTR(Detail)
+        CREATE_FUN_MAKE(Detail)
+
+        struct Opponent
+        {
+            std::string name;
+            int32_t rank = 0;
+        };
+        uint32_t roomid = 0;
+        int32_t  rank = 0;
+        int32_t  time = 0;
+        std::vector<Opponent> opps;
+    };
+    std::list<Detail::Ptr> details;
+    int32_t win  = 0;
+    int32_t lose = 0;
+};
+
 class Client
 {
 friend class ClientManager;
+friend class MysqlHandler;
 private:
     CREATE_FUN_NEW(Client)
     Client() = default;
@@ -22,20 +49,31 @@ public:
     ClientUniqueId cuid() const;
     const std::string& openid() const;
 
-    uint32_t roomId() const;
-    void setRoomId(uint32_t roomId);
-    void afterLeaveRoom();
+    uint32_t roomid() const;
+    void setRoomId(uint32_t roomid);
+    void afterLeaveRoom(G13His::Detail::Ptr detail = nullptr);
 
     int32_t money() const;
     bool enoughMoney(int32_t money);
     int32_t addMoney(int32_t money);
 
+    int32_t money1() const;
+    bool enoughMoney1(int32_t money1);
+    int32_t addMoney1(int32_t money1);
+
     const std::string& name() const;
 
-    bool sendToMe(TcpMsgCode code, const ProtoMsg& proto);
+    bool sendToMe(TcpMsgCode code, const ProtoMsg& proto) const;
     bool noticeMessageBox(const std::string& text);
     template<typename ... Params>
     bool noticeMessageBox(const std::string& format, Params&&...);
+
+    std::string serialize() const;
+    bool deserialize(const std::string& bin);
+
+    bool saveToDB() const;
+
+    void syncBasicDataToClient() const;
 
 private:
     ClientConnectionId m_ccid = INVALID_CCID;
@@ -43,9 +81,12 @@ private:
     std::string m_openid;
     std::string m_name;
     //TODO 更多的字段
-    uint32_t m_roomId;
+    uint32_t m_roomid;
 
-    int32_t m_money = 10000;
+    int32_t m_money  = 10000;
+    int32_t m_money1 = 10000;
+
+    G13His m_g13his;
 };
 
 
@@ -63,14 +104,16 @@ inline const std::string& Client::openid() const
     return m_openid;
 }
 
-inline uint32_t Client::roomId() const
+inline uint32_t Client::roomid() const
 {
-    return m_roomId;
+    return m_roomid;
 }
 
-inline void Client::setRoomId(uint32_t roomId)
+inline void Client::setRoomId(uint32_t roomid)
 {
-    m_roomId = roomId;
+    if (roomid == m_roomid)
+        return;
+    m_roomid = roomid;
 }
 
 inline int32_t Client::money() const
@@ -85,12 +128,38 @@ inline bool Client::enoughMoney(int32_t money)
 
 inline int32_t Client::addMoney(int32_t money)
 {
-    return m_money += money;
+    if (money == 0)
+        return money;
+
+    m_money += money;
+    saveToDB();
+    syncBasicDataToClient();
+    return m_money;
 }
 
 inline const std::string& Client::name() const
 {
     return m_name;
+}
+
+inline int32_t Client::money1() const
+{
+    return m_money;
+}
+
+inline bool Client::enoughMoney1(int32_t money1)
+{
+    return m_money1 > money1;
+}
+
+inline int32_t Client::addMoney1(int32_t money1)
+{
+    if (money1 == 0)
+        return money1;
+
+    m_money1 += money1;
+    saveToDB();
+    return m_money1;
 }
 
 template<typename... Params>
