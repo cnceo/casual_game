@@ -1,10 +1,11 @@
+#替换默认shell
 SHELL = /bin/bash
 
 #当前目录
 CUR_DIR = $(shell pwd)
 
 #源文件名
-SOURCE_PACKGE_BASE_NAME = cpp_redis
+SOURCE_PACKGE_BASE_NAME = hiredis
 
 #安装目录
 INSTALL_DIR = $(CUR_DIR)/installed
@@ -17,10 +18,7 @@ $(INSTALL_DIR):
         tar -xf $(SOURCE_PACKGE_BASE_NAME).tar.gz; \
     fi;
 	cd $(SOURCE_PACKGE_BASE_NAME); \
-		mkdir -p build; \
-		cd build; \
-		cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(INSTALL_DIR) || exit 1; \
-		make && make install; \
+		make && make check && make install; \
 		cd $(CUR_DIR);
 
 clean:
