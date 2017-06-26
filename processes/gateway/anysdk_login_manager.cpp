@@ -315,6 +315,7 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
 
                 //reg conn
                 auto assconn = net::BufferedConnection::create(std::move(*conn));
+                assconn->setNonBlocking();
                 if (!conns.addConnection(asshcid, assconn, HttpConnectionManager::ConnType::server))
                 {
                     LOG_ERROR("ASS, insert ass conn to tcpConnManager failed, hcid={}", clihcid);
@@ -325,25 +326,31 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
             }
         case Status::reqToAss:
             {
-				std::string pattern =
-				"POST /api/User/LoginOauth/ HTTP/1.1\r\n"
-				"Host: oauth.anysdk.com\r\n"
-				"User-Agent: caonimaanysdk\r\n"
-				"Accept: */*\r\n"
-				"Content-Type: application/x-www-form-urlencoded\r\n"
-				"Content-Length: {}\r\n"
-				"\r\n"
-				"{}";
-				const std::string& body = cliReq->msg().body;
-                std::string request = componet::format(pattern, body.size(), body);
-                auto requestPacket = net::HttpPacket::create(net::HttpMsg::Type::request);
-				requestPacket->append(request.data(), request.size());
-                if (!conns.sendPacket(asshcid, requestPacket))
+                std::string pattern =
+                "POST /api/User/LoginOauth/ HTTP/1.1\r\n"
+                "Host: oauth.anysdk.com\r\n"
+                "User-Agent: caonimaanysdk\r\n"
+                "Accept: */*\r\n"
+                "Content-Type: application/x-www-form-urlencoded\r\n"
+                "Content-Length: {}\r\n"
+                "\r\n"
+                "{}";
+                const std::string& body = cliReq->msg().body;
+                std::string reqBuf = componet::format(pattern, body.size(), body);
+                const auto& ret = net::HttpPacket::tryParse(net::HttpMsg::Type::request, reqBuf.data(), reqBuf.size());
+                if (!ret.second)
+                {   
+                    LOG_ERROR("ASS, send to ass, tryParse failed, hcid={}", clihcid);
+                    status = Status::assAbort;
+                    break;
+                }   
+                auto packet = ret.first;
+                if (!conns.sendPacket(asshcid, packet))
                 {
                     corot::this_corot::yield();
                     break;
                 }
-                LOG_TRACE("ASS, send request to ass, hcid={}, packet={}", clihcid, request);
+                LOG_TRACE("ASS, send request to ass, hcid={}, packetsize={}, reqbufsize={}", clihcid, packet->size(), reqBuf.size());
                 status = Status::recvAssRsp;
             }
         case Status::recvAssRsp:

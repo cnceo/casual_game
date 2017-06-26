@@ -26,6 +26,7 @@ bool HttpConnectionManager::addConnection(HttpConnectionId hcid, net::BufferedCo
     auto connHolder = std::make_shared<ConnectionHolder>();
     connHolder->hcid = hcid;
     connHolder->conn = conn;
+    connHolder->type = type;
 
     std::lock_guard<componet::Spinlock> lock(m_lock);
 
