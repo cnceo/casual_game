@@ -146,6 +146,7 @@ void HttpConnectionManager::epollerEventHandler(int32_t socketFD, net::Epoller::
         {
         case net::Epoller::Event::read:
             {
+                LOG_DEBUG("ASS DEBUG,  epoll_enent_read, fd={}, hcid={}", conn->getFD(), connHolder->hcid);
                 if (m_recvQueue.full()) //队列满了, 不收了
                     break;
                 while(conn->tryRecv())

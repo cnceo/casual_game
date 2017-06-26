@@ -51,7 +51,6 @@ public:
         //由于socke太忙而暂时无法发出的包，缓存在这里
         componet::Spinlock sendLock;
         std::list<PacketPtr> sendQueue; 
-        bool keeyAlive = false;
     };
 public:
     HttpConnectionManager();
