@@ -123,7 +123,7 @@ int32_t HttpPacket::onChunkComplete(Parser* parser)
 HttpPacket::HttpPacket(HttpMsg::Type type)
     : m_parser(new http_parser)
 {
-    http_parser_init(m_parser.get(), type == HttpMsg::Type::request ? HTTP_REQUEST : HTTP_REQUEST);
+    http_parser_init(m_parser.get(), type == HttpMsg::Type::request ? HTTP_REQUEST : HTTP_RESPONSE);
     m_parser->data = this;
     m_msg.type = type;
 }
