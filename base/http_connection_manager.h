@@ -37,8 +37,8 @@ public:
 
     enum class ConnType
     {
-        client,
-        server
+        client = 0,
+        server = 1,
     };
     struct ConnectionHolder
     {

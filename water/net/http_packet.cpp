@@ -84,7 +84,7 @@ int32_t HttpPacket::onHeaderValue(Parser* parser, const char* data, size_t size)
 int32_t HttpPacket::onHeadersComplete(Parser* parser)
 {
     auto packet = reinterpret_cast<HttpPacket*>(parser->data);
-    cout << "headerEnd, size=" << packet->m_msg.headers.size();
+    cout << "headerEnd, size=" << packet->m_msg.headers.size() << endl;
     std::string().swap(packet->m_msg.curHeaderFiled);
     return 0;
 }

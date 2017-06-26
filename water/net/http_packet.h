@@ -20,7 +20,8 @@ struct HttpMsg
 {
     enum class Type
     {
-        request, response,
+        request = 0, 
+        response = 1,
     };
 
 

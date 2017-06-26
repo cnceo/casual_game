@@ -139,6 +139,7 @@ Game13::Ptr Game13::deserialize(const std::string& bin)
             return nullptr;
 
         auto& objPlayers = obj->m_settleData[i]->players;
+        objPlayers.resize(obj->m_attr.playerSize);
         for (auto j = 0; j < obj->m_attr.playerSize; ++i)
         {
             objPlayers[j].cuid = protoPlayers[j].cuid();

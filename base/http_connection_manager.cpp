@@ -52,7 +52,8 @@ bool HttpConnectionManager::addConnection(HttpConnectionId hcid, net::BufferedCo
 
         auto recvPacketType = connHolder->type == ConnType::client ? net::HttpMsg::Type::request : net::HttpMsg::Type::response;
         connHolder->recvPacket = net::HttpPacket::create(recvPacketType);
-        LOG_DEBUG("add http conn to epoll, remote ep={}", conn->getRemoteEndpoint());
+        LOG_DEBUG("add http conn to epoll, remote ep={}, conntype={}, pckttype={}", 
+                  conn->getRemoteEndpoint(), connHolder->type, recvPacketType);
     }
     catch (const componet::ExceptionBase& ex)
     {
