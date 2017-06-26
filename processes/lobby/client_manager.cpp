@@ -226,7 +226,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     }
     else //已经在线了, 把当前在线的挤掉
     {
-        client->noticeMessageBox("同一账号在另一台设备商登录, 你已下线");
+        client->noticeMessageBox("本账号在其它终端上登录, 你已下线");
 
         //TODO modify, 发送消息给gw，把老的挤下线
         PrivateProto::ClientBeReplaced cbr;

@@ -4,8 +4,6 @@
 #include "componet/datetime.h"
 #include "protocol/protobuf/proto_manager.h"
 
-#include "hiredis/hiredis.h"
-
 #include <list>
 #include <memory>
 #include <unordered_map>

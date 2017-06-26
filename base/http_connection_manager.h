@@ -59,7 +59,7 @@ public:
 
     bool exec() override;
 
-    void addConnection(HttpConnectionId hcid, std::shared_ptr<net::BufferedConnection> conn, ConnType type);
+    bool addConnection(HttpConnectionId hcid, std::shared_ptr<net::BufferedConnection> conn, ConnType type);
     void eraseConnection(HttpConnectionId hcid);
 
     bool getPacket(ConnectionHolder::Ptr* conn, HttpPacketPtr* packet);

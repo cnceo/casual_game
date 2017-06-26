@@ -47,6 +47,32 @@ TcpConnection::Ptr TcpConnection::connect(const Endpoint& remoteEndpoint)
     return ret;
 }
 
+bool TcpConnection::tryConnect()
+{
+    ::sockaddr_in serverAddrIn;
+    std::memset(&serverAddrIn, 0, sizeof(serverAddrIn));
+
+    serverAddrIn.sin_family      = AF_INET;
+    serverAddrIn.sin_addr.s_addr = m_remoteEndpoint.ip.value;
+    serverAddrIn.sin_port        = htons(m_remoteEndpoint.port);
+
+    setNonBlocking();
+
+    const int32_t connectRet = ::connect(getFD(), (const ::sockaddr*)&serverAddrIn, sizeof(serverAddrIn));
+
+    //直接成功了
+    if(connectRet == 0)
+        return true;
+
+    if(errno == EISCONN)
+        return true;
+
+    if(errno != EINPROGRESS && errno != EALREADY)
+        SYS_EXCEPTION(NetException, "tryConnect, ::connect:");
+
+    return false;
+}
+
 TcpConnection::Ptr TcpConnection::connect(const std::string& endpointStr, const std::chrono::milliseconds& timeout)
 {
     Endpoint ep(endpointStr);

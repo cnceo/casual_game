@@ -43,7 +43,9 @@ uint32_t schedule();
 //仅在main corot内调用才有效 
 bool resume(CorotId coid);
 
-//void dumy();
+//销毁一个corot
+//尽在main corot中调用有效
+//void destroy(CorotId coid);
 
 namespace this_corot
 {

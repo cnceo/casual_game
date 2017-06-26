@@ -3,15 +3,18 @@
  *
  * Last modified: 2017-06-18 04:16 +0800
  *
- * Description: 
+ * Description: AnySdk 接入, 服务器支持
+ *
+ *              这东西难用的要死, 文档严重不全, 通信协议的格式完全没有文档保证, 
+ *              给出的github上的所谓gameserver端的demo竟然是代码片段不支持运行(虽然改为可运行也不难)
+ *              客户端在集成后很高概率会导致打包失败或启动崩溃,
+ *              社区的存在大量挂了数个甚至数十个月没人理的求助帖, 官方一个产品经理在zhihu上态度非常恶劣
+ *              因某些原因本次只能继续接下去, 包格式就hack解决了,
+ *              最好永远不要再碰到这个产品以及这家公司的所有产品并组织其它人使用(端开发者的意见完全一直)
+ *              以下将AnySdkServer简写为ass
  */
 
 
-/*
- * 1, 换掉http_conn_manager中的conn索引的数据类型, 把socketFD换成hcid
- * 2, 普通http_server 用于listen
- * 3, 直接用buffered_connecton进行连接请求, 可以考虑封装一个http_client来做这件事儿
- */
 
 
 #ifndef GATEWAY_ANYSDK_LOGIN_MANAGER_H
@@ -26,6 +29,7 @@
 #include "base/process_id.h"
 
 #include <atomic>
+#include <list>
 
 
 namespace water{ namespace net{ class HttpPacket; } }
@@ -38,7 +42,7 @@ using namespace process;
 class AnySdkLoginManager
 {
 public:
-    AnySdkLoginManager() = default;
+    AnySdkLoginManager();
     ~AnySdkLoginManager() = default;
 
 
@@ -58,17 +62,21 @@ public:
     //包处理循环 
     void dealHttpPackets(componet::TimePoint now);
 
+    //事件响应, 订阅 HttpConnMgr 的 afterEraseConn事件
+    void afterClientDisconnect(HttpConnectionId hcid);
+
 private:
     //得到一个新的hcid
-    HttpConnectionId genHttpConnectionId() const;
+    HttpConnectionId genCliHttpConnectionId() const;
 
     //随机一个访问Token, 时间戳+随机32bits整数, 放在一起搞成hex格式
     std::string genAccessToken();
 
-    //处理client的包
-    void clientVerifyRequest(HttpConnectionId hcid, std::shared_ptr<net::HttpPacket> packet);
-    //处理ass server的包
-    void assVerifyResponse(std::shared_ptr<net::HttpPacket> packet);
+    void eraseLater(HttpConnectionId hcid);
+
+    bool isAssHcid(HttpConnectionId hcid);
+    bool isCliHcid(HttpConnectionId hcid);
+
 
 private:
     struct TokenInfo
@@ -83,15 +91,52 @@ private:
 
     std::unordered_map<HttpConnectionId, std::string> m_openids;
 
-    mutable HttpConnectionId m_lastHcid = 0;
+    mutable HttpConnectionId m_lastHcid = 1;
     net::BufferedConnection::Ptr m_connToAss;
 
-
-    struct
+    struct AssIpInfo
     {
-        componet::Spinlock lock;
-        std::string ipStr; //AnySdkServer的ip
-    } m_assIp;
+        mutable componet::Spinlock lock;
+        std::string ipstr; //ass 验证服务器的ip
+    } m_assip;
+
+    struct AllClients
+    {
+        struct AnySdkClient
+        {
+            TYPEDEF_PTR(AnySdkClient)
+            CREATE_FUN_MAKE(AnySdkClient)
+            enum class Status
+            {
+                recvCliReq  = 0,
+                connToAss   = 1,
+                reqToAss    = 2,
+                recvAssRsp  = 3,
+                rspToCli    = 4,
+                done        = 5,
+                assAbort    = 6,
+                abort       = 8,
+                destroy     = 9,
+            };
+            Status status = Status::recvCliReq;
+            HttpConnectionId clihcid = 0;
+            std::shared_ptr<net::HttpPacket> cliReq;
+            std::shared_ptr<net::HttpPacket> assRsp;
+
+            const AssIpInfo* assip = nullptr;
+            void corotExec();
+        };
+        std::unordered_map<HttpConnectionId, AnySdkClient::Ptr> corotClients;
+
+        //新到的client, 由httpserver线程添加, 然后由主定时器线程中处理, 所以需要锁
+        componet::Spinlock newClentsLock;
+        componet::FastTravelUnorderedMap<HttpConnectionId, AnySdkClient::Ptr> newClients;
+    } m_allClients;
+
+
+    componet::Spinlock m_closedHcidsLock;
+    std::list<HttpConnectionId> m_closedHcids;
+
 
 private:
     static AnySdkLoginManager s_me;

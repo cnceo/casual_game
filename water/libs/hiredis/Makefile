@@ -18,7 +18,7 @@ $(INSTALL_DIR):
         tar -xf $(SOURCE_PACKGE_BASE_NAME).tar.gz; \
     fi;
 	cd $(SOURCE_PACKGE_BASE_NAME); \
-		make && make check && make install; \
+		make && make install; \
 		cd $(CUR_DIR);
 
 clean:

@@ -135,6 +135,7 @@ size_t HttpPacket::parse(const char* data, size_t size)
         return 0;
     http_parser_pause(m_parser.get(), 0);
     size_t ret = http_parser_execute(m_parser.get(), s_settings.get(), data, size);
+    append(data, ret);
     return ret;
 }
 

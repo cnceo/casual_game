@@ -3,8 +3,11 @@
 #include "gateway.h"
 
 #include "componet/logger.h"
+#include "componet/scope_guard.h"
 
 #include "net/http_packet.h"
+
+#include "coroutine/coroutine.h"
 
 #include <sys/socket.h>  
 #include <netinet/in.h>
@@ -38,7 +41,6 @@ std::pair<std::string, bool> resolveHost(const std::string& hostname )
 }
 
 
-
 namespace gateway{
 
 AnySdkLoginManager AnySdkLoginManager::s_me;
@@ -49,6 +51,35 @@ AnySdkLoginManager& AnySdkLoginManager::me()
 }
 
 //////////////////////////////////////////////////////////////////////////
+AnySdkLoginManager::AnySdkLoginManager()
+{
+}
+
+void AnySdkLoginManager::onNewHttpConnection(net::BufferedConnection::Ptr conn)
+{
+    HttpConnectionId hcid = genCliHttpConnectionId();
+    LOG_TRACE("ASS, new client http connection, hcid={}, remote={}", hcid, conn->getRemoteEndpoint());
+    auto& conns = Gateway::me().httpConnectionManager();
+    if (!conns.addConnection(hcid, conn, HttpConnectionManager::ConnType::client))
+    {
+        LOG_ERROR("ASS, insert cli conn to tcpConnManager failed, hcid={}", hcid);
+        return;
+    }
+
+    //create a new client
+    auto client = AllClients::AnySdkClient::create();
+    client->assip = &m_assip;
+    client->clihcid = hcid;
+    {
+        std::lock_guard<componet::Spinlock> lock(m_allClients.newClentsLock);
+        if (m_allClients.newClients.insert({hcid, client}))
+        {
+            LOG_ERROR("ASS, insert client to corotCliets failed, hcid={}", client->clihcid);
+            conns.eraseConnection(hcid);
+            return;
+        }
+    }
+}
 
 void AnySdkLoginManager::dealHttpPackets(componet::TimePoint now)
 {
@@ -58,39 +89,68 @@ void AnySdkLoginManager::dealHttpPackets(componet::TimePoint now)
     net::HttpPacket::Ptr packet;
     while(conns.getPacket(&conn, &packet))
     {
+        const HttpConnectionId clihcid = isCliHcid(conn->hcid) ? conn->hcid : conn->hcid - 1;
+        const HttpConnectionId asshcid = clihcid + 1;
+        auto iter = m_allClients.corotClients.find(clihcid);
+        if (iter == m_allClients.corotClients.end())
+        {
+            LOG_DEBUG("ASS, deal packet, client is gone, conn->hcid={}", conn->hcid);
+            conns.eraseConnection(clihcid);
+            conns.eraseConnection(clihcid + 1);
+            continue;
+        }
+
+        auto client = iter->second;
         if (conn->type == HttpConnectionManager::ConnType::client)
-            clientVerifyRequest(conn->hcid, packet);
+        {
+            if (client->status != AllClients::AnySdkClient::Status::recvCliReq)
+            {
+                LOG_ERROR("ASS, deal packet, recvd cli packet under status={}, conn->hcid={}", client->status, conn->hcid);
+                conns.eraseConnection(clihcid);
+                conns.eraseConnection(clihcid + 1);
+                continue;
+            }
+
+            client->cliReq = packet;
+            client->status = AllClients::AnySdkClient::Status::connToAss;
+            LOG_DEBUG("ASS, deal packet, recved cli packet, status={}, conn->hcid={}", client->status, conn->hcid);
+        }
         else
-            assVerifyResponse(packet);
+        {
+            if (client->status != AllClients::AnySdkClient::Status::recvAssRsp)
+            {
+                LOG_ERROR("ASS, deal packet, recvd ass packet under status={}, conn->hcid={}", client->status, conn->hcid);
+                conns.eraseConnection(clihcid);
+                conns.eraseConnection(clihcid + 1);
+                continue;
+            }
+            client->assRsp = packet;
+            client->status = AllClients::AnySdkClient::Status::rspToCli;
+            conns.eraseConnection(asshcid);
+            LOG_DEBUG("ASS, deal packet, recved ass packet, status={}, conn->hcid={}", client->status, conn->hcid);
+        }
     }
 }
 
-void AnySdkLoginManager::clientVerifyRequest(HttpConnectionId hcid, std::shared_ptr<net::HttpPacket> packet)
+void AnySdkLoginManager::afterClientDisconnect(HttpConnectionId hcid)
 {
-    LOG_DEBUG("http request");
-    if (packet->msgType() != net::HttpMsg::Type::request)
-        return;
-
+    std::lock_guard<componet::Spinlock> lock(m_closedHcidsLock);
+    m_closedHcids.push_back(hcid);
 }
 
-void AnySdkLoginManager::assVerifyResponse(std::shared_ptr<net::HttpPacket> packet)
+bool AnySdkLoginManager::isAssHcid(HttpConnectionId hcid)
 {
-    LOG_DEBUG("http response");
-    if (packet->msgType() != net::HttpMsg::Type::response)
-        return;
+    return hcid % 2 == 0;
 }
 
-void AnySdkLoginManager::onNewHttpConnection(net::BufferedConnection::Ptr conn)
+bool AnySdkLoginManager::isCliHcid(HttpConnectionId hcid)
 {
-    HttpConnectionId hcid = genHttpConnectionId();
-    auto& conns = Gateway::me().httpConnectionManager();
-    LOG_TRACE("anysdk http, new client http connection, remote={}", conn->getRemoteEndpoint());
-    conns.addConnection(hcid, conn, HttpConnectionManager::ConnType::client);
+    return hcid % 2 != 0;
 }
 
-HttpConnectionId AnySdkLoginManager::genHttpConnectionId() const
+HttpConnectionId AnySdkLoginManager::genCliHttpConnectionId() const
 {
-    return ++m_lastHcid;
+    return m_lastHcid += 2;
 }
 
 
@@ -98,6 +158,7 @@ void AnySdkLoginManager::startNameResolve()
 {
     auto resolve = [this]()
     {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
         while (true)
         {
             const auto& resolveRet = resolveHost("oauth.anysdk.com");
@@ -109,9 +170,9 @@ void AnySdkLoginManager::startNameResolve()
             }
 
 //            LOG_TRACE("resolve host oauth.anysdk.com ok, ip={}, will expire in 60 seconds ...", resolveRet.first);
-            this->m_assIp.lock.lock();
-            this->m_assIp.ipStr = resolveRet.first;
-            this->m_assIp.lock.unlock();
+            this->m_assip.lock.lock();
+            this->m_assip.ipstr = resolveRet.first;
+            this->m_assip.lock.unlock();
             std::this_thread::sleep_for(std::chrono::seconds(60));
         }
     };
@@ -141,7 +202,172 @@ void AnySdkLoginManager::timerExec(componet::TimePoint now)
         }
         ++iter;
     }
+
+    {//启动新进连接的处理协程
+        std::lock_guard<componet::Spinlock> lock(m_allClients.newClentsLock);
+        for (auto iter = m_allClients.newClients.begin(); iter != m_allClients.newClients.end(); )
+        {
+            auto client = iter->second;
+            iter = m_allClients.newClients.erase(iter);
+            
+            if (!m_allClients.corotClients.insert({client->clihcid, client}).second)
+            {
+                LOG_ERROR("ASS, move client to corotClients failed, hcid={}", client->clihcid);
+                Gateway::me().httpConnectionManager().eraseConnection(client->clihcid);
+                continue;
+            }
+
+            //为这个连接启一个协程
+            corot::create(std::bind(&AllClients::AnySdkClient::corotExec, client));
+            LOG_TRACE("ASS, CREATE CROTO successed, hcid={}", client->clihcid);
+        }
+    }
+
+    {//处理连接断开事件
+        std::list<HttpConnectionId> closedHcids;
+        {
+            std::lock_guard<componet::Spinlock> lock(m_closedHcidsLock);
+            closedHcids.swap(m_closedHcids);
+        }
+        std::lock_guard<componet::Spinlock> lock(m_allClients.newClentsLock);
+        for (auto hcid : closedHcids)
+        {
+            HttpConnectionId clihcid = isCliHcid(hcid) ? hcid : hcid - 1;
+            auto iter = m_allClients.corotClients.find(clihcid);
+            if (iter == m_allClients.corotClients.end())
+                continue;
+
+            auto client = iter->second;
+
+            //所有处理均已结束, 无所谓了
+            if ( client->status >= AllClients::AnySdkClient::Status::done)
+                continue;
+
+            //client 断开, 且相关逻辑并未处理完成
+            if ( (isCliHcid(hcid) && (client->status <= AllClients::AnySdkClient::Status::rspToCli)) )
+            {
+                client->status = AllClients::AnySdkClient::Status::abort;
+                continue;
+            }
+
+            //ass 断开, 且相关逻辑并未处理完成
+            if(isAssHcid(hcid) && (client->status <= AllClients::AnySdkClient::Status::recvAssRsp))
+            {
+                client->status = AllClients::AnySdkClient::Status::assAbort;
+                continue;
+            }
+        }
+    }
+
+    {//销毁失效的client
+        for (auto iter = m_allClients.corotClients.begin(); iter != m_allClients.corotClients.end(); )
+        {
+            if (iter->second->status == AllClients::AnySdkClient::Status::destroy)
+            {
+                iter = m_allClients.corotClients.erase(iter);
+                continue;
+            }
+            ++iter;
+        }
+    }
 }
 
+void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
+{
+    HttpConnectionId asshcid = clihcid + 1;
+    auto& conns = Gateway::me().httpConnectionManager();
+    ON_EXIT_SCOPE_DO(LOG_TRACE("ASS, CROTO EXIT successed, hcid={}", clihcid));
+    while (true)
+    {
+        switch (status)
+        {
+        case Status::recvCliReq:
+            {
+                corot::this_corot::yield();
+                break;
+            }
+        case Status::connToAss:
+            {
+                //conn to ass
+                std::string ipstr;
+                net::Endpoint ep;
+                {
+                    std::lock_guard<componet::Spinlock> lock(assip->lock);
+                    ipstr = assip->ipstr;
+                }
+                ep.ip.fromString(ipstr);
+                ep.port = 80;
+                auto conn = net::TcpConnection::create(ep);
+                try
+                {
+                    while(!conn->tryConnect())
+                        corot::this_corot::yield();
+                }
+                catch (const net::NetException& ex)
+                {
+                    LOG_ERROR("ASS, conn to ass failed, hcid={}, ipstr={}", asshcid, ipstr);
+                    status = Status::assAbort;
+                    break;
+                }
+
+                //reg conn
+                auto assconn = net::BufferedConnection::create(std::move(*conn));
+                if (!conns.addConnection(asshcid, assconn, HttpConnectionManager::ConnType::server))
+                {
+                    LOG_ERROR("ASS, insert ass conn to tcpConnManager failed, hcid={}", clihcid);
+                    return;
+                }
+                status = Status::reqToAss;
+                LOG_TRACE("ASS, conn to ass successed, hcid={}, ipstr={}", asshcid, ipstr);
+            }
+        case Status::reqToAss:
+            {
+                if (!conns.sendPacket(asshcid, cliReq))
+                {
+                    corot::this_corot::yield();
+                    break;
+                }
+                LOG_TRACE("ASS, send request to ass, hcid={}", clihcid);
+                status = Status::recvAssRsp;
+            }
+        case Status::recvAssRsp:
+            {
+                corot::this_corot::yield();
+                break;
+            }
+        case Status::rspToCli:
+            {
+                if (!conns.sendPacket(clihcid, assRsp))
+                {
+                    corot::this_corot::yield();
+                    break;
+                }
+                LOG_TRACE("ASS, send response to cli, hcid={}", clihcid);
+                status = Status::done;
+            }
+        case Status::done:
+            {
+                LOG_TRACE("ASS, done, destroy later,  hcid={}", clihcid);
+                conns.eraseConnection(clihcid);
+            }
+            return;
+        case Status::assAbort:
+            {
+                //TODO 发送一个http403给cli, 然后关闭
+                conns.eraseConnection(clihcid);
+                LOG_TRACE("ASS, assAbort, destroy later, hcid={}", clihcid);
+            }
+            return;
+        case Status::abort:
+            {
+                conns.eraseConnection(asshcid);
+                LOG_TRACE("ASS, abort, destroy later, hcid={}", clihcid);
+            }
+            return;
+        default:
+            return;
+        }
+    }
+}
 
 }

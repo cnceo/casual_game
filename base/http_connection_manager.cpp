@@ -19,7 +19,7 @@ HttpConnectionManager::HttpConnectionManager()
 {
 }
 
-void HttpConnectionManager::addConnection(HttpConnectionId hcid, net::BufferedConnection::Ptr conn, ConnType type)
+bool HttpConnectionManager::addConnection(HttpConnectionId hcid, net::BufferedConnection::Ptr conn, ConnType type)
 {
     conn->setNonBlocking();
 
@@ -33,7 +33,7 @@ void HttpConnectionManager::addConnection(HttpConnectionId hcid, net::BufferedCo
     if (insertHcid2ConnsRet.second == false)
     {
         LOG_ERROR("ConnectionManager, insert httpConn to m_hcid2Conns failed, remoteEp={}", conn->getRemoteEndpoint());
-        return;
+        return false;
     }
 
     auto insertAllRet = m_allConns.insert({conn->getFD(), connHolder});
@@ -41,6 +41,7 @@ void HttpConnectionManager::addConnection(HttpConnectionId hcid, net::BufferedCo
     {
         LOG_ERROR("ConnectionManager, insert httpConn to m_allConns failed, remoteEp={}", conn->getRemoteEndpoint());
         m_hcid2Conns.erase(insertHcid2ConnsRet.first);
+        return false;
     }
 
     try
@@ -57,7 +58,9 @@ void HttpConnectionManager::addConnection(HttpConnectionId hcid, net::BufferedCo
         LOG_ERROR("ConnectionManager, insert httpConn to epoller failed, ex={}, remoteEp={}",
                   ex.what(), conn->getRemoteEndpoint());
         m_allConns.erase(insertAllRet.first);
+        return false;
     }
+    return true;
 }
 
 void HttpConnectionManager::eraseConnection(net::BufferedConnection::Ptr conn)
@@ -65,19 +68,22 @@ void HttpConnectionManager::eraseConnection(net::BufferedConnection::Ptr conn)
     if (conn == nullptr)
         return;
 
-    std::lock_guard<componet::Spinlock> lock(m_lock);
+    HttpConnectionId hcid = 0;
+    {//删除
+        std::lock_guard<componet::Spinlock> lock(m_lock);
 
+        auto it = m_allConns.find(conn->getFD());
+        if(it == m_allConns.end())
+            return;
 
-    auto it = m_allConns.find(conn->getFD());
-    if(it == m_allConns.end())
-        return;
+        m_hcid2Conns.erase(it->second->hcid);
+        hcid = it->second->hcid;
 
-    m_hcid2Conns.erase(it->second->hcid);
-    e_afterEraseConn(it->second->hcid); //删除事件
-
-
-    m_allConns.erase(it);
-    m_epoller.delSocket(conn->getFD());
+        m_allConns.erase(it);
+        m_epoller.delSocket(conn->getFD());
+    }
+    //触发删除事件
+    e_afterEraseConn(hcid); 
 }
 
 void HttpConnectionManager::eraseConnection(HttpConnectionId hcid)

@@ -21,12 +21,11 @@ namespace net{
 
 class TcpConnection : public TcpSocket
 {
-    friend class TcpListener;
 public:
     TYPEDEF_PTR(TcpConnection)
+    CREATE_FUN_NEW(TcpConnection)
 
 private:
-    CREATE_FUN_NEW(TcpConnection)
     explicit TcpConnection(const Endpoint& remoteEndpoint);
     explicit TcpConnection(int32_t socketFD, const Endpoint& remoteEndpoint);
 
@@ -51,6 +50,10 @@ public:
     void shutdown(ConnState state = ConnState::read_nad_write);
 
     ConnState getState() const;
+
+    //非阻塞的方式发起连接, 成功返回true, 暂时无法成功返回false, 出错抛出异常
+    //调用此函数后, 本对象关联的socketFD会被设置为非阻塞
+    bool tryConnect();
 
 public://发送与接收
     //返回-1时, 表示noblocking的socket, 返回EAGAIN或EWOULDBLOCK, 即socket忙

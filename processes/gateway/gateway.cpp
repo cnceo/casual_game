@@ -52,15 +52,18 @@ void Gateway::init()
     m_conns.e_afterErasePublicConn.reg(std::bind(&ClientManager::clientOffline, m_clientManager, _1));
     m_clientManager->e_afterEraseClient.reg(std::bind(&TcpConnectionManager::erasePublicConnection, &m_conns, _1));
 
-    //aynsdk 定时器
-    m_timer.regEventHandler(std::chrono::milliseconds(3), std::bind(&AnySdkLoginManager::dealHttpPackets, &AnySdkLoginManager::me(), _1));
-    m_timer.regEventHandler(std::chrono::seconds(10), std::bind(&AnySdkLoginManager::timerExec, &AnySdkLoginManager::me(), _1));
-    //anysdk 处理 http 呼入
-//    m_httpServer->e_newConn.reg(std::bind(&HttpConnectionManager::addConnection, &m_httpConns, 
-//                                          AnySdkLoginManager::me().genHttpConnectionId(),  _1, HttpConnectionManager::ConnType::client));
-    AnySdkLoginManager::me().startNameResolve();
     if (m_httpServer)                                          
+    {
+        AnySdkLoginManager::me().startNameResolve();
+        //ASS 处理 http 呼入
         m_httpServer->e_newConn.reg(std::bind(&AnySdkLoginManager::onNewHttpConnection, &AnySdkLoginManager::me(), _1));
+        //ASS 处理 http 的断开
+        m_httpConns.e_afterEraseConn.reg(std::bind(&AnySdkLoginManager::afterClientDisconnect, &AnySdkLoginManager::me(), _1));
+        //ASS 消息处理定时器
+        m_timer.regEventHandler(std::chrono::milliseconds(3), std::bind(&AnySdkLoginManager::dealHttpPackets, &AnySdkLoginManager::me(), _1));
+        //ASS 业务定时器
+        m_timer.regEventHandler(std::chrono::seconds(10), std::bind(&AnySdkLoginManager::timerExec, &AnySdkLoginManager::me(), _1));
+    }
 
     //普通业务注册消息处理事件和主定时器事件
     registerTcpMsgHandler();
