@@ -131,9 +131,12 @@ Game13::Ptr Game13::deserialize(const std::string& bin)
 
     //结算记录
     const auto& settles = proto.g13data().settles();
-    obj->m_settleData.resize(settles.size());
+    obj->m_settleData.resize(settles.size()); //注意, 这里得到一串空指针
+    auto settle = RoundSettleData::create();
     for (auto i = 0; i < settles.size(); ++i)
     {
+        obj->m_settleData[i] = RoundSettleData::create();
+
         const auto& protoPlayers = settles[i].players();
         if (protoPlayers.size() != obj->m_attr.playerSize)
             return nullptr;
