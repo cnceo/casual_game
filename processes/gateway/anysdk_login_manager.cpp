@@ -72,7 +72,7 @@ void AnySdkLoginManager::onNewHttpConnection(net::BufferedConnection::Ptr conn)
     client->clihcid = hcid;
     {
         std::lock_guard<componet::Spinlock> lock(m_allClients.newClentsLock);
-        if (m_allClients.newClients.insert({hcid, client}))
+        if (!m_allClients.newClients.insert({hcid, client}))
         {
             LOG_ERROR("ASS, insert client to corotCliets failed, hcid={}", client->clihcid);
             conns.eraseConnection(hcid);
@@ -94,7 +94,7 @@ void AnySdkLoginManager::dealHttpPackets(componet::TimePoint now)
         auto iter = m_allClients.corotClients.find(clihcid);
         if (iter == m_allClients.corotClients.end())
         {
-            LOG_DEBUG("ASS, deal packet, client is gone, conn->hcid={}", conn->hcid);
+            LOG_DEBUG("ASS, deal packet, client has gone, conn->hcid={}", conn->hcid);
             conns.eraseConnection(clihcid);
             conns.eraseConnection(clihcid + 1);
             continue;
@@ -269,6 +269,9 @@ void AnySdkLoginManager::timerExec(componet::TimePoint now)
             }
             ++iter;
         }
+    }
+    {//从消息队列中取包并处理
+        dealHttpPackets(now);
     }
 }
 

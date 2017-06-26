@@ -59,13 +59,13 @@ public:
     //删除过期的token
     void timerExec(componet::TimePoint now);
 
-    //包处理循环 
-    void dealHttpPackets(componet::TimePoint now);
-
     //事件响应, 订阅 HttpConnMgr 的 afterEraseConn事件
     void afterClientDisconnect(HttpConnectionId hcid);
 
 private:
+    //包处理定时器
+    void dealHttpPackets(componet::TimePoint now);
+
     //得到一个新的hcid
     HttpConnectionId genCliHttpConnectionId() const;
 
