@@ -258,7 +258,7 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                 const std::string& body = cliReq->msg().body;
                 std::string reqBuf = componet::format(pattern, body.size(), body);
                 const auto& ret = net::HttpPacket::tryParse(net::HttpMsg::Type::request, reqBuf.data(), reqBuf.size());
-                if (!ret.second)
+                if (ret.first == nullptr)
                 {   
                     LOG_ERROR("ASS, send to ass, tryParse failed, hcid={}", clihcid);
                     status = Status::assAbort;
@@ -301,6 +301,24 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                     status = Status::assAbort;
                     break;
                 }
+                std::string pattern =
+                "HTTP/1.1 200 OK\n\r"
+                "Server: Tengine/1.5.2\n\r"
+                "Date: Tue, 27 Jun 2017 18:45:56 GMT\n\r"
+                "Content-Type: text/html\n\r"
+                "Content-Length: {}\n\r"
+                "Connection: keep-alive\n\r"
+                "\r\n{}";
+                const std::string& body = assRsp->msg().body;
+                 std::string rspBuf = componet::format(pattern, body.size(), body);
+                 const auto& ret = net::HttpPacket::tryParse(net::HttpMsg::Type::response, rspBuf.data(), rspBuf.size());
+                 if (ret.first == nullptr)
+                 {
+                    LOG_ERROR("ASS, ass response repack failed, rawdata={}, hcid={}", rspBuf, clihcid);
+                    status = Status::assAbort;
+                    break;
+                 }
+
                 if (!conns.sendPacket(clihcid, assRsp))
                 {
                     corot::this_corot::yield();
