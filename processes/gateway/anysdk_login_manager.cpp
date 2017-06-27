@@ -312,7 +312,7 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
         case Status::done:
             {
                 LOG_TRACE("ASS, done, destroy later,  hcid={}", clihcid);
-                conns.eraseConnection(clihcid);
+//                conns.eraseConnection(clihcid);
             }
             return;
         case Status::assAbort:
