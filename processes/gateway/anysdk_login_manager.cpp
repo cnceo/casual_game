@@ -302,22 +302,22 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                     break;
                 }
                 std::string pattern =
-                "HTTP/1.1 200 OK\n\r"
-                "Server: Tengine/1.5.2\n\r"
-                "Date: Tue, 27 Jun 2017 18:45:56 GMT\n\r"
-                "Content-Type: text/html\n\r"
-                "Content-Length: {}\n\r"
-                "Connection: keep-alive\n\r"
+                "HTTP/1.1 200 OK\r\n"
+                "Server: Tengine/1.5.2\r\n"
+                "Date: Tue, 27 Jun 2017 18:45:56 GMT\r\n"
+                "Content-Type: text/html\r\n"
+                "Content-Length: {}\r\n"
+                "Connection: keep-alive\r\n"
                 "\r\n{}";
                 const std::string& body = assRsp->msg().body;
-                 std::string rspBuf = componet::format(pattern, body.size(), body);
-                 const auto& ret = net::HttpPacket::tryParse(net::HttpMsg::Type::response, rspBuf.data(), rspBuf.size());
-                 if (ret.first == nullptr)
-                 {
+                std::string rspBuf = componet::format(pattern, body.size(), body);
+                const auto& ret = net::HttpPacket::tryParse(net::HttpMsg::Type::response, rspBuf.data(), rspBuf.size());
+                if (ret.first == nullptr)
+                {
                     LOG_ERROR("ASS, ass response repack failed, rawdata={}, hcid={}", rspBuf, clihcid);
                     status = Status::assAbort;
                     break;
-                 }
+                }
 
                 if (!conns.sendPacket(clihcid, assRsp))
                 {
