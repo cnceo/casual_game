@@ -25,7 +25,7 @@
 namespace water{
 namespace componet{
 
-DEFINE_EXCEPTION(InvalidIter, ExceptionBase)
+DEFINE_EXCEPTION(FTUM_DataCorruption, ExceptionBase)
 
 
 template<typename Key, typename Value>
@@ -77,6 +77,20 @@ public:
         return true;
     }
 
+    Value& operator[](const Key& key)
+    {
+        auto iter = find(key);
+        if (iter != end())
+            return iter->second;
+
+        const auto insertRet = m_map.insert(std::make_pair(key, m_vec.size()));
+        if (!insertRet.second)
+            EXCEPTION(FTUM_DataCorruption, "FTUM_DataCorruption");
+
+         m_vec.emplace_back();
+         return m_vec.back().second;
+    }
+
     bool insert(const Key& k, const Value& v)
     {
         return insert(std::pair<Key, Value>(k, v));
@@ -84,28 +98,29 @@ public:
 
     iterator find(Key key)
     {
-        auto mapIter = m_map.find(key);
-        if(mapIter == m_map.end())
+        auto mapIt = m_map.find(key);
+        if(mapIt == m_map.end())
             return m_vec.end();
 
-        return m_vec.begin() + mapIter->second;
+        if (mapIt->second >= m_vec.size())
+            EXCEPTION(FTUM_DataCorruption, "consistence of map and vector corrupted");
+        return m_vec.begin() + mapIt->second;
     }
 
     const_iterator find(Key key) const
     {
-        auto mapIter = m_map.find(key);
-        if(mapIter == m_map.end())
+        auto mapIt = m_map.find(key);
+        if(mapIt == m_map.end())
             return m_vec.end();
 
-        return m_vec.begin() + mapIter->second;
+        return m_vec.begin() + mapIt->second;
     }
 
     iterator erase(iterator iter)
     {
         auto mapIt = m_map.find(iter->first);
-        //只要iter合法, 这里mapIt一定合法, so, 这个异常不要抓, 就让宕掉好了
         if(mapIt == m_map.end())
-            EXCEPTION(InvalidIter, "FastTravelUnorderedMap 出现map和vec不一致"); 
+            EXCEPTION(FTUM_DataCorruption, "consistence of map and vector corrupted");
 
         const auto index = mapIt->second;
         erase(iter->first);
@@ -117,6 +132,9 @@ public:
         auto it = m_map.find(key);
         if(it == m_map.end())
             return;
+
+        if (it->second >= m_vec.size())
+            EXCEPTION(FTUM_DataCorruption, "consistence of map and vector corrupted");
 
         if(m_vec.size() == 1)
         {
