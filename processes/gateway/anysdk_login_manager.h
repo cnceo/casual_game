@@ -81,15 +81,14 @@ private:
 private:
     struct TokenInfo
     {
+        CREATE_FUN_MAKE(TokenInfo)
         TYPEDEF_PTR(TokenInfo)
 
         std::string openid;
         std::string token;
-        componet::TimePoint expiryTime;
+        time_t expiry = 0;
     };
     componet::FastTravelUnorderedMap<std::string, TokenInfo::Ptr> m_tokens;
-
-    std::unordered_map<HttpConnectionId, std::string> m_openids;
 
     mutable HttpConnectionId m_lastHcid = 1;
     net::BufferedConnection::Ptr m_connToAss;
@@ -108,15 +107,15 @@ private:
             CREATE_FUN_MAKE(AnySdkClient)
             enum class Status
             {
-                recvCliReq  = 0,
-                connToAss   = 1,
-                reqToAss    = 2,
-                recvAssRsp  = 3,
-                rspToCli    = 4,
-                done        = 5,
-                assAbort    = 6,
-                abort       = 8,
-                destroy     = 9,
+                recvCliReq  = 0, //recv request from client
+                connToAss   = 1, //connect to ass
+                reqToAss    = 2, //send request to ass
+                recvAssRsp  = 3, //recv response from ass
+                rspToCli    = 4, //send respnese to client
+                done        = 5, //every step finished without any errors
+                assAbort    = 6, //error caused by something about ass, need abort
+                cliAbort    = 7, //error caused by something abort client, need abort
+                destroy     = 8, //corot has exited
             };
             Status status = Status::recvCliReq;
             HttpConnectionId clihcid = 0;
@@ -124,6 +123,8 @@ private:
             std::shared_ptr<net::HttpPacket> assRsp;
 
             const AssIpInfo* assip = nullptr;
+            componet::FastTravelUnorderedMap<std::string, TokenInfo::Ptr>* tokens = nullptr;
+            componet::TimePoint* now = nullptr;
             void corotExec();
         };
         std::unordered_map<HttpConnectionId, AnySdkClient::Ptr> corotClients;
@@ -137,7 +138,8 @@ private:
     componet::Spinlock m_closedHcidsLock;
     std::list<HttpConnectionId> m_closedHcids;
 
-
+    componet::TimePoint m_now;
+    
 private:
     static AnySdkLoginManager s_me;
 public:

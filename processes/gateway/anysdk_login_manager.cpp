@@ -4,6 +4,7 @@
 
 #include "componet/logger.h"
 #include "componet/scope_guard.h"
+#include "componet/json.h"
 
 #include "net/http_packet.h"
 
@@ -68,8 +69,10 @@ void AnySdkLoginManager::onNewHttpConnection(net::BufferedConnection::Ptr conn)
 
     //create a new client
     auto client = AllClients::AnySdkClient::create();
-    client->assip = &m_assip;
     client->clihcid = hcid;
+    client->assip = &m_assip;
+    client->tokens = &m_tokens;
+    client->now = &m_now;
     {
         std::lock_guard<componet::Spinlock> lock(m_allClients.newClentsLock);
         if (!m_allClients.newClients.insert({hcid, client}))
@@ -190,12 +193,155 @@ bool AnySdkLoginManager::checkAccessToken(std::string openid, std::string token)
     return iter->second->token == token;
 }
 
+void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
+{
+    HttpConnectionId asshcid = clihcid + 1;
+    auto& conns = Gateway::me().httpConnectionManager();
+    ON_EXIT_SCOPE_DO(LOG_TRACE("ASS, CROTO EXIT successed, hcid={}", clihcid));
+    ON_EXIT_SCOPE_DO(status = Status::destroy);
+    while (true)
+    {
+        switch (status)
+        {
+        case Status::recvCliReq:
+            {
+                corot::this_corot::yield();
+                break;
+            }
+        case Status::connToAss:
+            {
+                //conn to ass
+                std::string ipstr;
+                net::Endpoint ep;
+                {
+                    std::lock_guard<componet::Spinlock> lock(assip->lock);
+                    ipstr = assip->ipstr;
+                }
+                ep.ip.fromString(ipstr);
+                ep.port = 80;
+                auto conn = net::TcpConnection::create(ep);
+                try
+                {
+                    while(!conn->tryConnect())
+                        corot::this_corot::yield();
+                }
+                catch (const net::NetException& ex)
+                {
+                    LOG_ERROR("ASS, conn to ass failed, hcid={}, ipstr={}", asshcid, ipstr);
+                    status = Status::assAbort;
+                    break;
+                }
+
+                //reg conn
+                auto assconn = net::BufferedConnection::create(std::move(*conn));
+                assconn->setNonBlocking();
+                if (!conns.addConnection(asshcid, assconn, HttpConnectionManager::ConnType::server))
+                {
+                    LOG_ERROR("ASS, insert ass conn to tcpConnManager failed, hcid={}", clihcid);
+                    status = Status::assAbort;
+                    break;
+                }
+                status = Status::reqToAss;
+                LOG_TRACE("ASS, conn to ass successed, hcid={}, ipstr={}", asshcid, ipstr);
+            }
+        case Status::reqToAss:
+            {
+                std::string pattern =
+                "POST /api/User/LoginOauth/ HTTP/1.1\r\n"
+                "Host: oauth.anysdk.com\r\n"
+                "User-Agent: caonimaanysdk\r\n"
+                "Accept: */*\r\n"
+                "Content-Type: application/x-www-form-urlencoded\r\n"
+                "Content-Length: {}\r\n"
+                "\r\n"
+                "{}";
+                const std::string& body = cliReq->msg().body;
+                std::string reqBuf = componet::format(pattern, body.size(), body);
+                const auto& ret = net::HttpPacket::tryParse(net::HttpMsg::Type::request, reqBuf.data(), reqBuf.size());
+                if (!ret.second)
+                {   
+                    LOG_ERROR("ASS, send to ass, tryParse failed, hcid={}", clihcid);
+                    status = Status::assAbort;
+                    break;
+                }   
+                auto packet = ret.first;
+                if (!conns.sendPacket(asshcid, packet))
+                {
+                    corot::this_corot::yield();
+                    break;
+                }
+                LOG_TRACE("ASS, send request to ass, hcid={}, packetsize={}, reqbufsize={}", clihcid, packet->size(), reqBuf.size());
+                status = Status::recvAssRsp;
+            }
+        case Status::recvAssRsp:
+            {
+                corot::this_corot::yield();
+                break;
+            }
+        case Status::rspToCli:
+            {
+                const std::string& jsonraw = assRsp->msg().body;
+                try
+                {
+                    auto j = componet::json::parse(jsonraw);
+                    auto tokenInfo = AnySdkLoginManager::TokenInfo::create();
+                    tokenInfo->openid    = j["data"]["openid"];
+                    tokenInfo->token     = j["data"]["access_token"];
+                    time_t expiresIn     = j["data"]["expires_in"];
+                    tokenInfo->expiry = expiresIn + componet::toUnixTime(*now);
+                    LOG_TRACE("ASS, ass response parse successed, hcid={}, openid={}, token={}, expires={}", 
+                              clihcid, tokenInfo->openid, tokenInfo->token, expiresIn);
+                    (*tokens)[tokenInfo->openid] = tokenInfo;
+                }
+                catch (const std::exception& ex)
+                {
+                    LOG_ERROR("ASS, ass response unexpected data, json parse failed, hcid={}, rawdata={}, ex={}", clihcid, jsonraw, ex);
+                    status = Status::assAbort;
+                    break;
+                }
+                if (!conns.sendPacket(clihcid, assRsp))
+                {
+                    corot::this_corot::yield();
+                    break;
+                }
+                LOG_TRACE("ASS, send response to cli, hcid={}", clihcid);
+                status = Status::done;
+            }
+        case Status::done:
+            {
+                LOG_TRACE("ASS, done, destroy later,  hcid={}", clihcid);
+                conns.eraseConnection(clihcid);
+            }
+            return;
+        case Status::assAbort:
+            {
+                //TODO 发送一个http403给cli
+                
+                LOG_TRACE("ASS, assAbort, destroy later, hcid={}", clihcid);
+                // 关闭
+                conns.eraseConnection(clihcid);
+            }
+            return;
+        case Status::cliAbort:
+            {
+                conns.eraseConnection(asshcid);
+                LOG_TRACE("ASS, cliAbort, destroy later, hcid={}", clihcid);
+            }
+            return;
+        default:
+            return;
+        }
+    }
+}
+
 void AnySdkLoginManager::timerExec(componet::TimePoint now)
 {
+    m_now = now;
+
     //删除过期tokens
     for (auto iter = m_tokens.begin(); iter != m_tokens.end(); )
     {
-        if (iter->second->expiryTime <= now)
+        if (iter->second->expiry <= componet::toUnixTime(now))
         {
             iter = m_tokens.erase(iter);
             continue;
@@ -246,7 +392,7 @@ void AnySdkLoginManager::timerExec(componet::TimePoint now)
             //client 断开, 且相关逻辑并未处理完成
             if ( (isCliHcid(hcid) && (client->status <= AllClients::AnySdkClient::Status::rspToCli)) )
             {
-                client->status = AllClients::AnySdkClient::Status::abort;
+                client->status = AllClients::AnySdkClient::Status::cliAbort;
                 continue;
             }
 
@@ -264,132 +410,16 @@ void AnySdkLoginManager::timerExec(componet::TimePoint now)
         {
             if (iter->second->status == AllClients::AnySdkClient::Status::destroy)
             {
+                LOG_DEBUG("ASS destroy client obj, hcid={}", iter->second->clihcid);
                 iter = m_allClients.corotClients.erase(iter);
                 continue;
             }
             ++iter;
         }
     }
+
     {//从消息队列中取包并处理
         dealHttpPackets(now);
-    }
-}
-
-void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
-{
-    HttpConnectionId asshcid = clihcid + 1;
-    auto& conns = Gateway::me().httpConnectionManager();
-    ON_EXIT_SCOPE_DO(LOG_TRACE("ASS, CROTO EXIT successed, hcid={}", clihcid));
-    while (true)
-    {
-        switch (status)
-        {
-        case Status::recvCliReq:
-            {
-                corot::this_corot::yield();
-                break;
-            }
-        case Status::connToAss:
-            {
-                //conn to ass
-                std::string ipstr;
-                net::Endpoint ep;
-                {
-                    std::lock_guard<componet::Spinlock> lock(assip->lock);
-                    ipstr = assip->ipstr;
-                }
-                ep.ip.fromString(ipstr);
-                ep.port = 80;
-                auto conn = net::TcpConnection::create(ep);
-                try
-                {
-                    while(!conn->tryConnect())
-                        corot::this_corot::yield();
-                }
-                catch (const net::NetException& ex)
-                {
-                    LOG_ERROR("ASS, conn to ass failed, hcid={}, ipstr={}", asshcid, ipstr);
-                    status = Status::assAbort;
-                    break;
-                }
-
-                //reg conn
-                auto assconn = net::BufferedConnection::create(std::move(*conn));
-                assconn->setNonBlocking();
-                if (!conns.addConnection(asshcid, assconn, HttpConnectionManager::ConnType::server))
-                {
-                    LOG_ERROR("ASS, insert ass conn to tcpConnManager failed, hcid={}", clihcid);
-                    return;
-                }
-                status = Status::reqToAss;
-                LOG_TRACE("ASS, conn to ass successed, hcid={}, ipstr={}", asshcid, ipstr);
-            }
-        case Status::reqToAss:
-            {
-                std::string pattern =
-                "POST /api/User/LoginOauth/ HTTP/1.1\r\n"
-                "Host: oauth.anysdk.com\r\n"
-                "User-Agent: caonimaanysdk\r\n"
-                "Accept: */*\r\n"
-                "Content-Type: application/x-www-form-urlencoded\r\n"
-                "Content-Length: {}\r\n"
-                "\r\n"
-                "{}";
-                const std::string& body = cliReq->msg().body;
-                std::string reqBuf = componet::format(pattern, body.size(), body);
-                const auto& ret = net::HttpPacket::tryParse(net::HttpMsg::Type::request, reqBuf.data(), reqBuf.size());
-                if (!ret.second)
-                {   
-                    LOG_ERROR("ASS, send to ass, tryParse failed, hcid={}", clihcid);
-                    status = Status::assAbort;
-                    break;
-                }   
-                auto packet = ret.first;
-                if (!conns.sendPacket(asshcid, packet))
-                {
-                    corot::this_corot::yield();
-                    break;
-                }
-                LOG_TRACE("ASS, send request to ass, hcid={}, packetsize={}, reqbufsize={}", clihcid, packet->size(), reqBuf.size());
-                status = Status::recvAssRsp;
-            }
-        case Status::recvAssRsp:
-            {
-                corot::this_corot::yield();
-                break;
-            }
-        case Status::rspToCli:
-            {
-                if (!conns.sendPacket(clihcid, assRsp))
-                {
-                    corot::this_corot::yield();
-                    break;
-                }
-                LOG_TRACE("ASS, send response to cli, hcid={}", clihcid);
-                status = Status::done;
-            }
-        case Status::done:
-            {
-                LOG_TRACE("ASS, done, destroy later,  hcid={}", clihcid);
-                conns.eraseConnection(clihcid);
-            }
-            return;
-        case Status::assAbort:
-            {
-                //TODO 发送一个http403给cli, 然后关闭
-                conns.eraseConnection(clihcid);
-                LOG_TRACE("ASS, assAbort, destroy later, hcid={}", clihcid);
-            }
-            return;
-        case Status::abort:
-            {
-                conns.eraseConnection(asshcid);
-                LOG_TRACE("ASS, abort, destroy later, hcid={}", clihcid);
-            }
-            return;
-        default:
-            return;
-        }
     }
 }
 
