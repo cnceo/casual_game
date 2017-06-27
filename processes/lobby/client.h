@@ -63,6 +63,8 @@ public:
 
     const std::string& name() const;
 
+    const std::string& imgurl() const;
+
     bool sendToMe(TcpMsgCode code, const ProtoMsg& proto) const;
     bool noticeMessageBox(const std::string& text);
     template<typename ... Params>
@@ -87,6 +89,9 @@ private:
     int32_t m_money1 = 10000;
 
     G13His m_g13his;
+
+    std::string m_token;
+    std::string m_imgurl;
 };
 
 
@@ -160,6 +165,11 @@ inline int32_t Client::addMoney1(int32_t money1)
     m_money1 += money1;
     saveToDB();
     return m_money1;
+}
+
+inline const std::string& Client::imgurl() const
+{
+    return m_imgurl;
 }
 
 template<typename... Params>

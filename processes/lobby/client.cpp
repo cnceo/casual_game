@@ -26,6 +26,7 @@ std::string Client::serialize() const
     proto.set_roomid  (m_roomid);
     proto.set_money   (m_money );
     proto.set_money1  (m_money1);
+    proto.set_token   (m_token );
 
     auto protoG13his = proto.mutable_g13his();
     protoG13his->set_win(m_g13his.win);
@@ -61,6 +62,7 @@ bool Client::deserialize(const std::string& bin)
     m_roomid  = proto.roomid();
     m_money   = proto.money ();
     m_money1  = proto.money1();
+    m_token   = proto.token ();
 
     const auto& protoG13his = proto.g13his();
     m_g13his.win  = protoG13his.win();

@@ -5,6 +5,7 @@
 #include "game13.h"
 
 #include "componet/logger.h"
+#include "componet/scope_guard.h"
 
 #include "protocol/protobuf/public/client.codedef.h"
 #include "protocol/protobuf/private/login.codedef.h"
@@ -170,6 +171,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     TcpMsgCode retCode = PROTO_CODE_PRIVATE(RetLoginQuest);
     retMsg.set_ccid(ccid);
     retMsg.set_openid(openid);
+    ON_EXIT_SCOPE_DO(Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg));
 
     Client::Ptr client = getByOpenid(openid);
     if (client == nullptr) //不在线
@@ -178,13 +180,18 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         if (!loadRet.second)
         {
             retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
-            Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
-            LOG_ERROR("login, step 2, new client load failed, openid={}", openid);
+            LOG_ERROR("login, step 2, client load failed, openid={}", openid);
             return;
         }
         client = loadRet.first;
         if(client == nullptr) //新用户
         {
+            if (!rcv->is_wechat())
+            {
+                retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
+                LOG_ERROR("login, step 2, failed,  new client but not from wechat, openid={}", openid);
+                return;
+            }
             client = Client::create();
             client->m_ccid = ccid;
             client->m_cuid = getClientUniqueId();
@@ -199,36 +206,55 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
                 if (!saveRet)
                 {
                     erase(client);
+                    retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
                     LOG_ERROR("login, step 2, new client, saveClient failed, openid={}", openid);
+                    return;
                 }
             }
             if (!(insertRet && saveRet))
             {
                 retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
-                Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
-                LOG_TRACE("login, step 2, new client reg failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), openid);
+                LOG_ERROR("login, step 2, new client reg failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), openid);
                 return;
             }
             LOG_TRACE("login, step 2, new client reg successed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), openid);
         }
         else //登陆过但不在线
         {
+            if ( !rcv->is_wechat() && rcv->token() != client->m_token )
+            {
+                retMsg.set_ret_code(PrivateProto::RLQ_TOKEN_EXPIRIED);
+                LOG_TRACE("login, step 2, old client online failed, ilegal token, openid={}, oldtoken={}, rcvtoken={}", 
+                          client->openid(), client->m_token, rcv->token());
+                return;
+            }
+            client->m_token = rcv->token();
             client->m_ccid = ccid;
             if (!insert(client))
             {
                 retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
-                Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
                 LOG_ERROR("login, step 2, old client online failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
                 return;
             }
             LOG_TRACE("login, step 2, old client online successed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), openid);
         }
     }
-    else //已经在线了, 把当前在线的挤掉
+    else  //本来就在线
     {
+        if ( !rcv->is_wechat() && rcv->token() != client->m_token )
+        {
+            retMsg.set_ret_code(PrivateProto::RLQ_TOKEN_EXPIRIED);
+            LOG_TRACE("login, step 2, old client replaced failed, ilegal token, openid={}, oldtoken={}, rcvtoken={}", 
+                      client->openid(), client->m_token, rcv->token());
+            return;
+        }
+        
         client->noticeMessageBox("本账号在其它终端上登录, 你已下线");
 
-        //TODO modify, 发送消息给gw，把老的挤下线
+        //更新token
+        client->m_token = rcv->token();
+
+        //TODO modify, 发送消息给gw，让老的连接下线
         PrivateProto::ClientBeReplaced cbr;
         TcpMsgCode cbrCode = PROTO_CODE_PRIVATE(ClientBeReplaced);
         cbr.set_cuid(client->cuid());
@@ -245,18 +271,22 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         {
             //更新ccid失败, 登陆失败
             retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
-            Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
             LOG_TRACE("login, step 2, new client reg failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), client->openid());
+            return;
         }
-
     }
 
     //登陆成功
     retMsg.set_ret_code(PrivateProto::RLQ_SUCCES);
     retMsg.set_cuid(client->cuid());
     retMsg.set_openid(client->openid());
-    Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
+//    Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
     LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid(), client->openid());
+
+    client->m_token = rcv->token();
+    client->m_ccid  = rcv->ccid();
+    client->m_name  = rcv->name();
+    client->m_imgurl= rcv->imgurl();
 
     //更新可能的房间游戏信息
     client->syncBasicDataToClient();

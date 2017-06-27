@@ -54,7 +54,7 @@ public:
     void startNameResolve();
     
     //登陆令牌验证
-    bool checkAccessToken(std::string openid, std::string token) const;
+    bool checkAccessToken(const std::string& openid, const std::string& token) const;
 
     //删除过期的token
     void timerExec(componet::TimePoint now);

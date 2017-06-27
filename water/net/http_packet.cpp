@@ -133,7 +133,6 @@ HttpPacket::~HttpPacket() = default;
 
 size_t HttpPacket::parse(const char* data, size_t size)
 {
-    LOG_DEBUG("ASS DEBUG, HttpPacketParse, packettype={}", m_msg.type);
     if (complete())
         return 0;
     http_parser_pause(m_parser.get(), 0);

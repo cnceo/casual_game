@@ -6,24 +6,26 @@ package PublicProto;
 //step 1,  client -> gw
 enum LoginType_C_Login
 {
-    LOGINT_WETCHAT  = 0; //微信登陆
-    LOGINT_SESSION  = 1; //临时token, 此版本暂不支持
+    LOGINT_WETCHAT      = 0; //微信登陆
+    LOGINT_HISTOLKEN    = 1; //历史token登陆
 }
 message C_Login
 {
     required int32  login_type  = 1;  //登陆类型
     required string openid      = 2;  //openid
-    required string token       = 3;  //token, 依据login_type 的区别， 可能是wechat_token 或者 服务器的临时认证 token, 测试期间不做验证
+    required string token       = 3;  //token
     required string nick_name   = 4;  //昵称
+    required string imgurl      = 5;  //头像地址
 }
 
 //step 2, gw -> client
 //登录结果返回
 enum RetCode_S_LoginRet
 {
-    LOGINR_FAILED               = 0;
-    LOGINR_SUCCES               = 1;
-    LOGINR_TEMP_TOKEN_EXPIRY    = 2; // temp_token 过期, 此版本暂不支持
+    LOGINR_FAILED           = 0;
+    LOGINR_SUCCES           = 1;
+    LOGINR_HISTOKEN_ILEGAL  = 2; //历史登陆且token不正确
+    LOGINR_WCHTTOKEN_ILEGAL = 3; //微信登录且token不正确
 }
 message S_LoginRet
 {
@@ -127,6 +129,7 @@ message S_G13_PlayersInRoom
         required int32 status   = 2; //具体值见上面的枚举定义中的注释
         required string name    = 3; //名字
         required int32 rank     = 4; //当前分数
+        required string imgurl  = 5; //头像url //TODO
     }
     repeated PlayerStatus players   = 1;
     required int32 rounds           = 2; //当前是第几局, 准备阶段值为0

@@ -185,7 +185,7 @@ void AnySdkLoginManager::startNameResolve()
 }
 
 
-bool AnySdkLoginManager::checkAccessToken(std::string openid, std::string token) const
+bool AnySdkLoginManager::checkAccessToken(const std::string& openid, const std::string& token) const
 {
     auto iter = m_tokens.find(openid);
     if (iter == m_tokens.end())
@@ -287,10 +287,12 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                     auto tokenInfo = AnySdkLoginManager::TokenInfo::create();
                     tokenInfo->openid    = j["data"]["openid"];
                     tokenInfo->token     = j["data"]["access_token"];
-                    time_t expiresIn     = j["data"]["expires_in"];
+                    time_t rcvExpiresIn  = j["data"]["expires_in"];
+                    time_t expiresIn = rcvExpiresIn < 300 ? rcvExpiresIn : 300;
+
                     tokenInfo->expiry = expiresIn + componet::toUnixTime(*now);
-                    LOG_TRACE("ASS, ass response parse successed, hcid={}, openid={}, token={}, expires={}", 
-                              clihcid, tokenInfo->openid, tokenInfo->token, expiresIn);
+                    LOG_TRACE("ASS, ass response parse successed, hcid={}, openid={}, token={}, rcvExpiresIn={}", 
+                              clihcid, tokenInfo->openid, tokenInfo->token, rcvExpiresIn);
                     (*tokens)[tokenInfo->openid] = tokenInfo;
                 }
                 catch (const std::exception& ex)

@@ -120,6 +120,7 @@ Game13::Ptr Game13::deserialize(const std::string& bin)
     {
         obj->m_players[i].cuid   = players[i].cuid();
         obj->m_players[i].name   = players[i].name();
+        obj->m_players[i].imgurl = players[i].imgurl();
         obj->m_players[i].status = players[i].status();
         obj->m_players[i].vote   = players[i].vote();
         obj->m_players[i].rank   = players[i].rank();
@@ -208,11 +209,12 @@ std::string Game13::serialize()
     for (const auto& playerInfo : m_players)
     {
         auto playerData = gameData->add_players();
-        playerData->set_cuid(playerInfo.cuid);
-        playerData->set_name(playerInfo.name);
+        playerData->set_cuid  (playerInfo.cuid);
+        playerData->set_name  (playerInfo.name);
+        playerData->set_imgurl(playerInfo.imgurl);
         playerData->set_status(playerInfo.status);
-        playerData->set_vote(playerInfo.vote);
-        playerData->set_rank(playerInfo.rank);
+        playerData->set_vote  (playerInfo.vote);
+        playerData->set_rank  (playerInfo.rank);
         for (auto card : playerInfo.cards)
             playerData->add_cards(card);
     }
@@ -691,8 +693,10 @@ void Game13::clientOnlineExec(Client::Ptr client)
 {
     if (client == nullptr)
         return;
+    if (client->roomid() != getId())
+        return;
     auto info = getPlayerInfoByCuid(client->cuid());
-    if (client->roomid() == getId() && info == nullptr)
+    if (info == nullptr)
     {
         LOG_TRACE("玩家上线, 房间号已被复用, roomid={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
         client->setRoomId(0);
@@ -700,6 +704,8 @@ void Game13::clientOnlineExec(Client::Ptr client)
     }
 
     LOG_TRACE("client, sync gameinfo, roomid={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
+    info->name = client->name();
+    info->imgurl = client->imgurl();
     afterEnterRoom(client);
 }
 
@@ -786,6 +792,7 @@ void Game13::syncAllPlayersInfoToAllClients()
         auto player = snd.add_players();
         player->set_cuid(info.cuid);
         player->set_name(info.name);
+        player->set_imgurl(info.imgurl);
         player->set_status(info.status);
         player->set_rank(info.rank);
     }

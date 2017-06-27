@@ -42,7 +42,7 @@ message ClientData
         int32 lose              = 3;
     }
 
-    reserved 8, 9;
+    reserved 9;
 
     string  openid  = 1;
     int64   cuid    = 2;
@@ -50,6 +50,7 @@ message ClientData
     uint32  roomid  = 4;
     int32   money   = 6;
     int32   money1  = 7;
+    string  token   = 8;
     G13history g13his = 10;
 }
 
@@ -87,12 +88,14 @@ message G13Data
 
     message G13Player
     {
+        reserved 7, 8, 9;
         int64   cuid    = 1;
         string  name    = 2;
-        int32   status  = 3;
-        int32   vote    = 4;
-        int32   rank    = 5;
-        repeated int32  cards   = 6;
+        string  imgurl  = 3;
+        int32   status  = 4;
+        int32   vote    = 5;
+        int32   rank    = 6;
+        repeated int32  cards   = 10;
     }
 
     message G13Attr

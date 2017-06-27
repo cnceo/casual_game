@@ -5,24 +5,26 @@ package PrivateProto;
 // step 2, gw -> lo
 message LoginQuest
 {
-    required string openid  = 1;
-    required uint64 ccid    = 2;
-    required string name    = 3;
+    required bool   is_wechat   = 1;
+    required string openid      = 2;
+    required string token       = 3;
+    required uint64 ccid        = 4;
+    required string name        = 5;
+    required string imgurl      = 6;
 };
 
 
 // step 2,  lo -> gw
-// 通知world让user进场景
 enum RetLoginQuest_RetCode
 {
-    RLQ_REG_FAILED  = 0;
-    RLQ_SUCCES      = 1;
-    RLQ_BAND        = 2;
-    RLQ_TEMP_BANK   = 3;
+    RLQ_REG_FAILED      = 0; //失败
+    RLQ_SUCCES          = 1; //成功
+    RLQ_BAND            = 2; //封号
+    RLQ_TOKEN_EXPIRIED  = 4; //token过期
 }
 message RetLoginQuest
 {
-    required uint32 ret_code = 1;  //0 注册失败; 1 成功; 2 封号; 3 临时封号
+    required uint32 ret_code = 1;  //RetLoginQuest_RetCode
     required uint64 ccid     = 2;
     optional uint64 cuid     = 3;
     optional string openid   = 4;

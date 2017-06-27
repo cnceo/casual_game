@@ -101,6 +101,7 @@ private:
         }
         ClientUniqueId cuid;
         std::string name;
+        std::string imgurl;
         int32_t status;
         int32_t vote = 0;
         int32_t rank = 0; //当前为止, 本场比赛中累计得到的分数

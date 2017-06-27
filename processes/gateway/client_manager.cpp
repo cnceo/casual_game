@@ -1,6 +1,7 @@
 #include "client_manager.h"
 
 #include "gateway.h"
+#include "anysdk_login_manager.h"
 
 #include "componet/logger.h"
 #include "componet/datetime.h"
@@ -162,22 +163,35 @@ void ClientManager::proto_C_Login(ProtoMsgPtr proto, ClientConnectionId ccid)
         return;
     }
 
+    PROTO_VAR_PRIVATE(LoginQuest, toserver);
+    toserver.set_openid(rcv->openid());
+    toserver.set_token(rcv->token());
+    toserver.set_ccid(ccid);
+    toserver.set_name(rcv->nick_name());
+    toserver.set_imgurl(rcv->nick_name());
+
     //TODO login step1, 依据登陆类型和登陆信息验证登陆有效性, 微信的
-    bool isLegal = true;
-
-    if (isLegal)
+    if (rcv->login_type() == PublicProto::LOGINT_WETCHAT)
     {
-        PrivateProto::LoginQuest snd;
-        snd.set_openid(rcv->openid());
-        snd.set_ccid(ccid);
-        snd.set_name(rcv->nick_name());
-        Gateway::me().sendToPrivate(ProcessId("lobby", 1), PROTO_CODE_PRIVATE(LoginQuest), snd);
-        LOG_TRACE("login, step 1, openid&token 验证通过, ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
+        if (!AnySdkLoginManager::me().checkAccessToken(rcv->openid(), rcv->token()))
+        {
+            PROTO_VAR_PUBLIC(S_LoginRet, tocli)
+            tocli.set_ret_code(PublicProto::LOGINR_WCHTTOKEN_ILEGAL);
+            Gateway::me().sendToClient(client->ccid, tocliCode, tocli);
+            LOG_DEBUG("login, step 1, wechat token, 验证失败, ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
+            eraseLater(client);
+            return;
+        }
+        toserver.set_is_wechat(true);
+        LOG_TRACE("login, step 1, wechat token 验证通过, ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
     }
-    else //暂时不用处理
+    else
     {
-
+        toserver.set_is_wechat(false);
+        LOG_TRACE("login, step 1, history token, 网关不做验证,  ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
     }
+    
+    Gateway::me().sendToPrivate(ProcessId("lobby", 1), toserverCode, toserver);
 }
 
 void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
@@ -193,7 +207,7 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
     client->cuid = rcv->cuid();
     client->state = Client::State::playing;
 
-    PublicProto::S_LoginRet snd;
+    PROTO_VAR_PUBLIC(S_LoginRet, snd);
     int32_t rc = rcv->ret_code();
     if (rc == PrivateProto::RLQ_SUCCES)
     {
@@ -203,15 +217,19 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
         snd.set_wechat1("douzhen001"); //douzhen001 douzhen002   斗阵游
         snd.set_wechat2("douzhen002");
         snd.set_wechat3("斗阵游");
+        LOG_TRACE("login, step 3, 登陆成功, ccid={}, openid={}, cuid={}", rcv->ccid(), rcv->openid(), rcv->cuid());
     }
     else
     {
-        snd.set_ret_code(PublicProto::LOGINR_FAILED);
+        LOG_TRACE("login, step 3, 登陆失败, code={}, ccid={}, openid={}, cuid={}", rc, rcv->ccid(), rcv->openid(), rcv->cuid());
+        if (rc == PrivateProto::RLQ_TOKEN_EXPIRIED)
+            snd.set_ret_code(PublicProto::LOGINR_HISTOKEN_ILEGAL);
+        else //if (rc == PrivateProto::RLQ_FAILED)
+            snd.set_ret_code(PublicProto::LOGINR_FAILED);
         //在定时器中延迟删除, 保证最后一条消息能够有机会发出
         eraseLater(client);
     }
-    LOG_TRACE("login, step 3, 登陆成功, ccid={}, openid={}, cuid={}", rcv->ccid(), rcv->openid(), rcv->cuid());
-    Gateway::me().sendToClient(client->ccid, PROTO_CODE_PUBLIC(S_LoginRet), snd);
+    Gateway::me().sendToClient(client->ccid, sndCode, snd);
 }
 
 void ClientManager::proto_ClientBeReplaced(ProtoMsgPtr proto)
