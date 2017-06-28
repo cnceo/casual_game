@@ -149,7 +149,7 @@ inline const std::string& Client::name() const
 
 inline int32_t Client::money1() const
 {
-    return m_money;
+    return m_money1;
 }
 
 inline bool Client::enoughMoney1(int32_t money1)
