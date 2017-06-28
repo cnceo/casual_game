@@ -2,6 +2,7 @@
 #include "client.h"
 
 #include "componet/logger.h"
+#include "componet/random.h"
 
 namespace lobby{
 
@@ -15,11 +16,15 @@ componet::TimePoint Room::s_timerTime;
 
 RoomId Room::getRoomId()
 {
-    RoomId id = 0;
+    componet::Random<RoomId> rander(100001, 999999);
+    RoomId id = rander.get();
     while (id == 0 || get(id) != nullptr)
     {
         if (s_expiredIds.empty())
-            id = ++s_lastRoomId;
+        {
+            if(++id > 999999)
+                id = 100001;
+        }
         else
         {
             id = s_expiredIds.front();
