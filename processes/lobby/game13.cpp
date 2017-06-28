@@ -1,6 +1,7 @@
 #include "game13.h"
 #include "client.h"
 #include "redis_handler.h"
+#include "game_config.h"
 
 #include "componet/logger.h"
 #include "componet/scope_guard.h"
@@ -110,6 +111,7 @@ Game13::Ptr Game13::deserialize(const std::string& bin)
     obj->m_attr.quanLeiDa  = attr.quanleida();
     obj->m_attr.yiTiaoLong = attr.yitiaolong();
     obj->m_attr.playerSize = attr.size();
+    obj->m_attr.playerPrice= attr.price();
 
     //玩家列表
     const auto& players = proto.g13data().players();
@@ -204,6 +206,7 @@ std::string Game13::serialize()
     attrData->set_quanleida(m_attr.quanLeiDa);
     attrData->set_yitiaolong(m_attr.yiTiaoLong);
     attrData->set_size(m_attr.playerSize);
+    attrData->set_price(m_attr.playerPrice);
 
     //玩家列表
     for (const auto& playerInfo : m_players)
@@ -280,10 +283,44 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     }
 
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_CreateGame, proto);
-    if (false) // TODO 检查创建消息中的数据是否合法
-    {
-        client->noticeMessageBox("创建房间失败, 非法的房间属性设定!");
-        return;
+    
+    int32_t playerPrice = 0;
+    {//检查创建消息中的数据是否合法
+        int32_t attrCheckResult = 0;
+        do {
+            if (rcv->play_type() != GP_52 && rcv->play_type() != GP_65)
+            {
+                attrCheckResult = 1;
+                break;
+            }
+            const auto& priceCfg = GameConfig::me().data().pricePerPlayer;
+            auto priceCfgIter = priceCfg.find(rcv->rounds());
+            if (priceCfgIter  == priceCfg.end())
+            {
+                attrCheckResult = 2;
+                break;
+            }
+            playerPrice = priceCfgIter->second;
+            const auto& roomSizeCfg = GameConfig::me().data().allRoomSize;
+            if (roomSizeCfg.find(rcv->player_size()) == roomSizeCfg.end())
+            {
+                attrCheckResult = 3;
+                break;
+            }
+            if (rcv->payor() != PAY_BANKER && rcv->payor() != PAY_SHARE_EQU && rcv->payor() != PAY_WINNER)
+            {
+                attrCheckResult = 4;
+                break;
+            }
+            attrCheckResult = true;
+        } while (false);
+
+        //是否出错
+        if (attrCheckResult > 0)
+        {
+            client->noticeMessageBox(componet::format("创建房间失败, 非法的房间属性设定({})!", attrCheckResult));
+            return;
+        }
     }
 
     //房间
@@ -296,7 +333,6 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     //初始化游戏信息
     auto& attr      = game->m_attr;
-//    attr.roomid     = game->getId();
     attr.playType   = rcv->play_type() > GP_52 ? GP_65 : GP_52;
     attr.rounds     = rcv->rounds();
     attr.payor      = rcv->payor();
@@ -304,14 +340,10 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     attr.quanLeiDa  = rcv->quan_lei_da();
     attr.yiTiaoLong = rcv->yi_tiao_long();
     attr.playerSize = rcv->player_size();
+    attr.playerPrice= playerPrice;
 
-    //依据属性检查创建资格,并初始化游戏的动态数据
-    {
-        LOG_DEBUG("init deck,  rcv_play_type={}", rcv->play_type());
-
-        //玩家座位数量
-        game->m_players.resize(attr.playerSize);
-    }
+    //玩家座位数量
+    game->m_players.resize(attr.playerSize);
 
     //最后进房间, 因为进房间要预扣款, 进入后再有什么原因失败需要回退
     if (!game->enterRoom(client))
@@ -915,7 +947,7 @@ void Game13::tryStartRound()
             for (int32_t i = 0; i < 52; ++i)
                 Game13::s_deck.cards[i] = i + 1;
             for (int32_t i = 0; i < 13; ++i)
-                Game13::s_deck.cards[i] = i + 39 + 1;
+                Game13::s_deck.cards[i + 52] = i + 39 + 1;
         }
 
         static std::random_device rd;
@@ -954,13 +986,15 @@ void Game13::tryStartRound()
             {
                 if(m_attr.payor == PAY_BANKER && client->cuid() == ownerCuid())
                 {
-                    client->addMoney(-10);
+                    const int32_t price = m_attr.playerPrice * m_attr.playerSize;
+                    client->addMoney(-price);
                     LOG_TRACE("游戏开始扣钱, 房主付费, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
                               -10, getId(), client->ccid(), info.cuid, client->openid());
                 }
                 else if(m_attr.payor == PAY_SHARE_EQU)
                 {
-                    client->addMoney(-5);
+                    const int32_t price = m_attr.playerPrice;
+                    client->addMoney(-price);
                     LOG_TRACE("游戏开始扣钱, 均摊, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
                               -5, getId(), client->ccid(), info.cuid, client->openid());
                 }
@@ -1502,7 +1536,7 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             auto& winner = datas[d];
 
             //判断是否是全垒打
-            winner.quanLeiDa = false;
+            winner.quanLeiDa = true;
             if ((m_attr.quanLeiDa)  //全垒打启用
                 && (m_attr.playerSize > 2) //两人房无全垒打
                 && (winner.losers.size() + 1 == datas.size()) ) //全胜

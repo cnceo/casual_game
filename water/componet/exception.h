@@ -33,6 +33,8 @@ protected:
     mutable std::string m_what;
 };
 
+}}
+
 #define DEFINE_EXCEPTION(ExceptionClass, Base)\
 class ExceptionClass : public Base\
 {\
@@ -51,8 +53,6 @@ public:\
         return #ExceptionClass;\
     }\
 };
-
-}}
 
 #define EXCEPTION(ExceptionType, formatMsg...)\
     throw ExceptionType(water::componet::format(formatMsg), __FILE__, __PRETTY_FUNCTION__, __LINE__);

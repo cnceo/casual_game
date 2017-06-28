@@ -35,6 +35,13 @@ message S_LoginRet
     optional string wechat1     = 4;    //微信号1
     optional string wechat2     = 5;    //微信号2
     optional string wechat3     = 6;    //微信号3
+    repeated RoomPrice price_list    = 7;
+    
+    message RoomPrice
+    {
+        required int32 rounds   = 1;
+        required int32 money    = 2;
+    }
 }
 
 //玩家基本数据

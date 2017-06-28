@@ -3,6 +3,7 @@
 
     <!-- TODO, mysql的配置应该放到需要连mysql的进程的自有配置中-->
     <mysql dbName="test" host ="127.0.0.1" userName="water" pwd="111111" port="3306"/>
+    <redis host ="127.0.0.1" port="3306"/>
 
     <allProcesses allType="router gateway lobby hall">
         <!--网关服务器-->

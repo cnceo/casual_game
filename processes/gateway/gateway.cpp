@@ -1,5 +1,6 @@
 #include "gateway.h"
 
+#include "game_config.h"
 #include "anysdk_login_manager.h"
 
 #include "water/componet/logger.h"
@@ -179,6 +180,7 @@ HttpConnectionManager& Gateway::httpConnectionManager()
 void Gateway::loadConfig()
 {
     ProtoManager::me().loadConfig(m_cfgDir);
+    GameConfig::me().load(m_cfgDir);
 }
 
 void Gateway::newClientConnection(net::BufferedConnection::Ptr conn)

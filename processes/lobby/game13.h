@@ -85,6 +85,7 @@ private:
         bool    quanLeiDa  = false;        //打枪, 全垒打
         int32_t yiTiaoLong = 1;            //一条龙
         int32_t playerSize = 0;            //人数
+        int32_t playerPrice = 0;
     } m_attr;
 
     struct PlayerInfo

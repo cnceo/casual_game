@@ -7,6 +7,7 @@ objects = \
 		  register_client_msg_relay.o\
 		  client_manager.o\
 		  gm.o\
+		  game_config.o\
 
 
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <customService wechat1="douzhen001" wechat2="douzhen002" wechat3="斗阵游"/>
+
+    <systemNotice internalSec="120">
+        <item text="hello, 快来赌钱啦 (*゜ロ゜)ノ"/>
+        <item text="hello, 你想赢么 ( ͡° ͜ʖ ͡°)✧"/>
+        <item text="hello, 还没输光啊 （°ο°）!"/>
+    </systemNotice>
+
+    <pricePerPlayer roomSizeList="2,3,4,5">
+        <item rounds="10" money="8"/>
+        <item rounds="15" money="12"/>
+        <item rounds="20" money="16"/>
+    </pricePerPlayer>
+</root>

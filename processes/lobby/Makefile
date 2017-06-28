@@ -9,6 +9,7 @@ objects = \
 		  redis_handler.o\
 		  register_timer_handler.o\
 		  register_tcp_msg_handler.o\
+		  game_config.o\
 
 
 

@@ -2,6 +2,7 @@
 
 #include "client_manager.h"
 #include "game13.h"
+#include "game_config.h"
 
 #include "water/componet/logger.h"
 #include "water/componet/scope_guard.h"
@@ -42,6 +43,7 @@ void Lobby::init()
 
     //加载配置
     ProtoManager::me().loadConfig(m_cfgDir);
+    GameConfig::me().load(m_cfgDir);
     //初始化初始化ClientManager
     ClientManager::me().init();
     //加载G13游戏房间数据

@@ -2,6 +2,7 @@
 
 #include "gateway.h"
 #include "anysdk_login_manager.h"
+#include "game_config.h"
 
 #include "componet/logger.h"
 #include "componet/datetime.h"
@@ -214,9 +215,16 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
         snd.set_ret_code(PublicProto::LOGINR_SUCCES);
         snd.set_cuid(client->cuid);
         snd.set_temp_token("xxxx"); //此版本一律返回xxxx， 此字段暂不启用
-        snd.set_wechat1("douzhen001"); //douzhen001 douzhen002   斗阵游
-        snd.set_wechat2("douzhen002");
-        snd.set_wechat3("斗阵游");
+        snd.set_wechat1(GameConfig::me().data().customService.wechat1);
+        snd.set_wechat2(GameConfig::me().data().customService.wechat2);
+        snd.set_wechat3(GameConfig::me().data().customService.wechat3);
+        const auto& priceCfg = GameConfig::me().data().pricePerPlayer;
+        for (const auto& item : priceCfg)
+        {
+            auto price = snd.add_price_list();
+            price->set_rounds(item.first);
+            price->set_money(item.second);
+        }
         LOG_TRACE("login, step 3, 登陆成功, ccid={}, openid={}, cuid={}", rcv->ccid(), rcv->openid(), rcv->cuid());
     }
     else
@@ -258,6 +266,7 @@ void ClientManager::regMsgHandler()
     REG_PROTO_PRIVATE(RetLoginQuest, std::bind(&ClientManager::proto_RetLoginQuest, this, _1));
     REG_PROTO_PRIVATE(ClientBeReplaced, std::bind(&ClientManager::proto_ClientBeReplaced, this, _1));
 }
+
 
 }
 

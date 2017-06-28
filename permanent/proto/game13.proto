@@ -107,6 +107,7 @@ message G13Data
         bool    quanleida   = 5;
         int32   yitiaolong  = 6;
         int32   size        = 7;
+        int32   price       = 8;
     }
 
     reserved 6, 7, 8, 9;
