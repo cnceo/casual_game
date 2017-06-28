@@ -60,7 +60,7 @@ void Gateway::init()
         //ASS 处理 http 的断开
         m_httpConns.e_afterEraseConn.reg(std::bind(&AnySdkLoginManager::afterClientDisconnect, &AnySdkLoginManager::me(), _1));
         //ASS 业务定时器
-        m_timer.regEventHandler(std::chrono::seconds(8), std::bind(&AnySdkLoginManager::timerExec, &AnySdkLoginManager::me(), _1));
+        m_timer.regEventHandler(std::chrono::milliseconds(10), std::bind(&AnySdkLoginManager::timerExec, &AnySdkLoginManager::me(), _1));
     }
 
     //普通业务注册消息处理事件和主定时器事件
