@@ -327,8 +327,6 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
                 attrCheckResult = 5;
                 break;
             }
-
-            attrCheckResult = true;
         } while (false);
 
         //是否出错
