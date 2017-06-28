@@ -57,7 +57,7 @@ private:
     void proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid);
 
 private:
-    uint32_t m_uniqueIdCounter = 0;
+    uint32_t m_uniqueIdCounter = 100000;
     const std::string cuid2ClientsName = "openid2Clients"; //redis hashtable 用的名字
     componet::FastTravelUnorderedMap<std::string, ClientPtr> m_openid2Clients; //此map进redis
     componet::FastTravelUnorderedMap<ClientUniqueId, ClientPtr> m_cuid2Clients; //此map不进redis
