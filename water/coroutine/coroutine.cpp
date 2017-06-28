@@ -106,14 +106,16 @@ inline CorotId Scheduler::create(const std::function<void(void)>& func)
     {
         this->tasks.push_back(co);
         co->id = this->tasks.size() - 1;
-//        cout << "scheduler create corot=" << runningCoid << ", sub=" << co->id << endl;
+        //DEBUG
+        //cout << "scheduler create corot=" << runningCoid << ", sub=" << co->id << endl;
     }
     else
     {
         co->id = this->avaliableIds.front();
         this->avaliableIds.pop_front();
         this->tasks[co->id] = co;
-//       cout << "create reuse new corot=" << runningCoid << ", sub=" << co->id << endl;
+        //DEBUG
+        //cout << "create reuse new corot=" << runningCoid << ", sub=" << co->id << endl;
     }
     co->status = CorotStatus::ready;
     return co->id;
@@ -146,7 +148,8 @@ inline bool Scheduler::resumeCorot(Corot* co)
         return true;
 
     CorotId coid = co->id;
-//    cout << "scheduler resume, corot=" << runningCoid << ", sub=" << coid << endl;
+    //DEBUG
+    //cout << "scheduler resume, corot=" << runningCoid << ", sub=" << coid << endl; 
 
     auto& taskCtx = co->ctx;
     auto& schedulerCtx = this->ctx;
@@ -197,8 +200,8 @@ inline void Scheduler::yieldRunningCorot()
     Corot* co = getRunningCorot();
     if (co == nullptr) //是main corot, 直接返回即可, 即main corot继续执行
         return;
-
-//    cout << "scheduler yield, corotid=" << runningCoid << endl;
+    //DEBUG
+    //cout << "scheduler yield, corotid=" << runningCoid << endl;  
 
     assert(static_cast<void*>(&co) > static_cast<void*>(this->stack.data())); //栈溢出检查
     /*
@@ -225,7 +228,8 @@ inline uint32_t Scheduler::doSchedule()
 {
     if (this->runningCoid != MAIN_COROT_ID)
     {
-//        cout << "corot used error, scheduler is not running in main task, this_corotid=" << runningCoid << endl;
+        //DEBUG
+        //cout << "corot used error, scheduler is not running in main task, this_corotid=" << runningCoid << endl;
         return 0;
     }
     uint32_t ret = 0;
@@ -235,7 +239,8 @@ inline uint32_t Scheduler::doSchedule()
         if (co == nullptr)
             continue;
 
-//        cout << "scheduler auto resume, coroid=" << runningCoid <<  ", sub=" << coid << ", tasks.size=" << tasks.size() << endl;
+        //DEBUG
+        //cout << "scheduler auto resume, coroid=" << runningCoid <<  ", sub=" << coid << ", tasks.size=" << tasks.size() << endl;
         if(!resumeCorot(coid))
         {
             cout << "resume failed, coid=" << coid << endl;
@@ -244,7 +249,8 @@ inline uint32_t Scheduler::doSchedule()
         }
         ret++;
     }
-//    cout << "scheduler return, coroid=" << runningCoid << ", tasks.size=" << tasks.size() << endl;
+    //DEBUG
+    //cout << "scheduler return, coroid=" << runningCoid << ", tasks.size=" << tasks.size() << endl;
     return ret;
 }
 
@@ -274,9 +280,12 @@ void Scheduler::invoke()
     CorotId coid = Scheduler::me().runningCoid;
     Corot* co = Scheduler::me().getCorot(coid);
     co->exec();
-
-    //co->exe()没有调用yield()而调用return才会走到这里
-//    cout << "schedule invoke, corot exit, this_coroid=" << coid << endl;
+    //co->exe()正常执行完毕退出会走到这里, 期间:
+    //里面执行yield时会返回到resume函数swapcontent的下一行继续执行, 即跳转到main_corot
+    //yield之后, 在主进程再次调用resume函数时会到yield函数内swapcontent的下一行继续执行, 即回到自身执行绪
+    
+    //DEBUG
+    //cout << "schedule invoke, corot exit, this_coroid=" << coid << endl;
     Scheduler::me().destroy(coid); //协程正常退出, 销毁
     Scheduler::me().runningCoid = MAIN_COROT_ID; //控制权即将返回调度器
 }

@@ -17,7 +17,6 @@ std::map<int, int> m;
 
 void p()
 {
-    corot::create(c);
     {
         m[corot::this_corot::getId()] = 0;
         cout << "tid:" << corot::this_corot::getId() << ", produce 1 goods, total=" << g << endl;
@@ -49,19 +48,12 @@ a*/
     for(int i = 0; i < 1000; ++i)
         corot::create(p);
 
-
     while(corot::schedule())
     {
         cout << "main corot id while: " << corot::this_corot::getId() << endl;
         corot::create(p);
         corot::create(p);
-        if(g == 0)
-        {
-            running = false;
-            continue;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(5));
         c();
     }
     return 0;
