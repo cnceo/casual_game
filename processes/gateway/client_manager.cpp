@@ -169,7 +169,7 @@ void ClientManager::proto_C_Login(ProtoMsgPtr proto, ClientConnectionId ccid)
     toserver.set_token(rcv->token());
     toserver.set_ccid(ccid);
     toserver.set_name(rcv->nick_name());
-    toserver.set_imgurl(rcv->nick_name());
+    toserver.set_imgurl(rcv->imgurl());
 
     //TODO login step1, 依据登陆类型和登陆信息验证登陆有效性, 微信的
     if (rcv->login_type() == PublicProto::LOGINT_WETCHAT)
