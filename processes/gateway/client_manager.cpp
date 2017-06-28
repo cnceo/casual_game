@@ -174,15 +174,15 @@ void ClientManager::proto_C_Login(ProtoMsgPtr proto, ClientConnectionId ccid)
     //TODO login step1, 依据登陆类型和登陆信息验证登陆有效性, 微信的
     if (rcv->login_type() == PublicProto::LOGINT_WETCHAT)
     {
-        if (!AnySdkLoginManager::me().checkAccessToken(rcv->openid(), rcv->token()))
-        {
-            PROTO_VAR_PUBLIC(S_LoginRet, tocli)
-            tocli.set_ret_code(PublicProto::LOGINR_WCHTTOKEN_ILEGAL);
-            Gateway::me().sendToClient(client->ccid, tocliCode, tocli);
-            LOG_DEBUG("login, step 1, wechat token, 验证失败, ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
-            eraseLater(client);
-            return;
-        }
+        //if (!AnySdkLoginManager::me().checkAccessToken(rcv->openid(), rcv->token()))
+        //{
+        //    PROTO_VAR_PUBLIC(S_LoginRet, tocli)
+        //    tocli.set_ret_code(PublicProto::LOGINR_WCHTTOKEN_ILEGAL);
+        //    Gateway::me().sendToClient(client->ccid, tocliCode, tocli);
+        //    LOG_DEBUG("login, step 1, wechat token, 验证失败, ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
+        //    eraseLater(client);
+        //    return;
+        //}
         toserver.set_is_wechat(true);
         LOG_TRACE("login, step 1, wechat token 验证通过, ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
     }
