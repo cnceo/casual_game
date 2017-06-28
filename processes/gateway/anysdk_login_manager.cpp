@@ -280,6 +280,7 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
             }
         case Status::rspToCli:
             {
+                std::string body = assRsp->msg().body;
                 const std::string& jsonraw = assRsp->msg().body;
                 try
                 {
@@ -294,6 +295,11 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                     LOG_TRACE("ASS, ass response parse successed, hcid={}, openid={}, token={}, rcvExpiresIn={}", 
                               clihcid, tokenInfo->openid, tokenInfo->token, rcvExpiresIn);
                     (*tokens)[tokenInfo->openid] = tokenInfo;
+                    if (j["status"].is_string() && j["status"] == "ok")
+                    {
+                        j["ext"] = j["data"];
+                        body = j.dump();
+                    }
                 }
                 catch (const std::exception& ex)
                 {
@@ -309,7 +315,6 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                 "Content-Length: {}\r\n"
                 "Connection: keep-alive\r\n"
                 "\r\n{}";
-                const std::string& body = assRsp->msg().body;
                 std::string rspBuf = componet::format(pattern, body.size(), body);
                 const auto& ret = net::HttpPacket::tryParse(net::HttpMsg::Type::response, rspBuf.data(), rspBuf.size());
                 if (ret.first == nullptr)
@@ -318,8 +323,8 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                     status = Status::assAbort;
                     break;
                 }
-
-                if (!conns.sendPacket(clihcid, assRsp))
+                auto packet = ret.first;
+                if (!conns.sendPacket(clihcid, packet))
                 {
                     corot::this_corot::yield();
                     break;
