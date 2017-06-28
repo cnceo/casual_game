@@ -35,9 +35,10 @@ message S_LoginRet
     optional string wechat1     = 4;    //微信号1
     optional string wechat2     = 5;    //微信号2
     optional string wechat3     = 6;    //微信号3
-    repeated RoomPrice price_list    = 7;
+    repeated Price price_list   = 7; //不同局数的房间, 人头费列表
+    repeated int32 room_size_list   = 8; //房间可能的容纳人数列表
     
-    message RoomPrice
+    message Price
     {
         required int32 rounds   = 1;
         required int32 money    = 2;
