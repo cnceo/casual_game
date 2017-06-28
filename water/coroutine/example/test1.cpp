@@ -17,15 +17,13 @@ std::map<int, int> m;
 
 void p()
 {
-//    corot::create(c);
+    corot::create(c);
     {
         m[corot::this_corot::getId()] = 0;
         cout << "tid:" << corot::this_corot::getId() << ", produce 1 goods, total=" << g << endl;
         //corot::resume(coc);
         m[corot::this_corot::getId()] = 0;
-        cout << "tid:" <<  corot::this_corot::getId() << ", before yield" <<  endl;
         corot::this_corot::yield();
-        cout << "tid:" <<  corot::this_corot::getId() << ", aftter yield" <<  endl;
     }
 }
 
@@ -35,6 +33,8 @@ void c()
     {
         iter = m.erase(iter);
     }
+
+    cout << "main corot id: " << corot::this_corot::getId() << endl;
 }
 
 
@@ -46,24 +46,22 @@ int main()
 //    coc = corot::create(c);
  /*   corot::run(cop);
 a*/
-
-//    for(int i = 0; i < 1000; ++i)
-//        corot::create(p);
-
-
-    while(true)
-    {
-        int i;
-        cout << "timer call schedule, this_corotid=" << corot::this_corot::getId() << endl;
-        cin >> i;
-        corot::schedule();
-        cout << "thimer call create, this_corotid=" << corot::this_corot::getId() << endl;
-        cin >> i;
+    for(int i = 0; i < 1000; ++i)
         corot::create(p);
-//        corot::create(p);
+
+
+    while(corot::schedule())
+    {
+        cout << "main corot id while: " << corot::this_corot::getId() << endl;
+        corot::create(p);
+        corot::create(p);
+        if(g == 0)
+        {
+            running = false;
+            continue;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        cout << "thimer call func(), this_corotid=" << corot::this_corot::getId() << endl;
-        cin >> i;
         c();
     }
     return 0;

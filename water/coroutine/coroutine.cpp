@@ -72,20 +72,16 @@ private:
     std::list<CorotId> avaliableIds; //当前已经回收的taskId
     ucontext_t ctx;
 
-//    static thread_local Scheduler* s_me;
 public:
     static Scheduler& me();
 };
 
-//thread_local Scheduler* Scheduler::s_me;
 Scheduler& Scheduler::me()
 {
     static thread_local Scheduler* s_me = new Scheduler();
     return *s_me;
 
-    //下面的写法会宕机, 不知道为什么
-    //上面的写法已测试, 在不同thread中是不同的对象, 
-    //也就是说不会是多线程写坏的问题, 对象写法具体宕机原因还不清楚
+    //下面的写法, 在栈上直接构建thread_local对象, 会在进程启动时宕机, 原因尚未查明
     //static thread_local Scheduler s_me;
     //return s_me;
 }
@@ -110,12 +106,14 @@ inline CorotId Scheduler::create(const std::function<void(void)>& func)
     {
         this->tasks.push_back(co);
         co->id = this->tasks.size() - 1;
+//        cout << "scheduler create corot=" << runningCoid << ", sub=" << co->id << endl;
     }
     else
     {
         co->id = this->avaliableIds.front();
         this->avaliableIds.pop_front();
         this->tasks[co->id] = co;
+//       cout << "create reuse new corot=" << runningCoid << ", sub=" << co->id << endl;
     }
     co->status = CorotStatus::ready;
     return co->id;
@@ -148,6 +146,8 @@ inline bool Scheduler::resumeCorot(Corot* co)
         return true;
 
     CorotId coid = co->id;
+//    cout << "scheduler resume, corot=" << runningCoid << ", sub=" << coid << endl;
+
     auto& taskCtx = co->ctx;
     auto& schedulerCtx = this->ctx;
 
@@ -164,9 +164,9 @@ inline bool Scheduler::resumeCorot(Corot* co)
             taskCtx.uc_stack.ss_sp = this->stack.data();   //这里使用scheduler持有的buf作为task的执行堆栈, 每个task都用这个栈来执行
             taskCtx.uc_stack.ss_size = this->stack.size();
             taskCtx.uc_link = &schedulerCtx; //taskCtx的继承者ctx的存储地址, 这个ctx中现在还是无效数据，将在下面调用swapcontext时将其填充为当前上下文
-            makecontext(&taskCtx, &Scheduler::invoke, 0); //此函数要求本行必须在以上三行之后调用
             this->runningCoid = coid;
             co->status = CorotStatus::running;
+            makecontext(&taskCtx, &Scheduler::invoke, 0); //此函数要求本行必须在以上三行之后调用
             if (-1 == swapcontext(&schedulerCtx, &taskCtx)) //切换上下文到taskCtx，并把当前的ctx保存在schedulerCtx中, 实现longjump
                 return false;
         }
@@ -178,7 +178,6 @@ inline bool Scheduler::resumeCorot(Corot* co)
             memcpy(stackTop, co->stackData.data(), co->stackData.size()); /*恢复堆栈数据到运行堆栈, 这里恢复后不调用vector::clear(), 
                                                                             因为clear()后只能节省最大一个STACK_SIZE的空间，与每次切换都重新内存的开销对比性价比太低
                                                                             */
-            //cout << "coro resume, restore stack, stack size=" << co->stackData.size() << endl;
             this->runningCoid = coid;
             co->status = CorotStatus::running;
             if (-1 == swapcontext(&schedulerCtx, &taskCtx)) //切换上下文到taskCtx，并把当前的ctx保存在schedulerCtx中, 实现longjump
@@ -199,6 +198,8 @@ inline void Scheduler::yieldRunningCorot()
     if (co == nullptr) //是main corot, 直接返回即可, 即main corot继续执行
         return;
 
+//    cout << "scheduler yield, corotid=" << runningCoid << endl;
+
     assert(static_cast<void*>(&co) > static_cast<void*>(this->stack.data())); //栈溢出检查
     /*
        下面计算当前的堆栈使用情况，并保存当前的栈。注意：
@@ -216,9 +217,7 @@ inline void Scheduler::yieldRunningCorot()
     memcpy(co->stackData.data(), stackTop, stackSize);
     co->status = CorotStatus::sleeping;
     this->runningCoid = MAIN_COROT_ID;
-    //cout << "coro yield, save stack, stack size=" << stackSize << endl;
     if (-1 == swapcontext(&(co->ctx), &(this->ctx))) //此行执行完必须return
-        //cout << "coro yield, swapcontext failed" << endl; //TODO log
         return;
 }
 
@@ -226,7 +225,7 @@ inline uint32_t Scheduler::doSchedule()
 {
     if (this->runningCoid != MAIN_COROT_ID)
     {
-        //cout << "error, scheduler is not running is main task" << endl;
+//        cout << "corot used error, scheduler is not running in main task, this_corotid=" << runningCoid << endl;
         return 0;
     }
     uint32_t ret = 0;
@@ -235,18 +234,17 @@ inline uint32_t Scheduler::doSchedule()
         Corot* co = this->tasks[coid];
         if (co == nullptr)
             continue;
-        /*
-           if (co->isDetached)
-           continue;
-           */
+
+//        cout << "scheduler auto resume, coroid=" << runningCoid <<  ", sub=" << coid << ", tasks.size=" << tasks.size() << endl;
         if(!resumeCorot(coid))
         {
-            //cout << "resume failed, coid=" << coid << endl;
+            cout << "resume failed, coid=" << coid << endl;
             destroy(coid);
             continue;
         }
         ret++;
     }
+//    cout << "scheduler return, coroid=" << runningCoid << ", tasks.size=" << tasks.size() << endl;
     return ret;
 }
 
@@ -278,7 +276,7 @@ void Scheduler::invoke()
     co->exec();
 
     //co->exe()没有调用yield()而调用return才会走到这里
-    //cout << "task exit, coid=" << coid << endl;
+//    cout << "schedule invoke, corot exit, this_coroid=" << coid << endl;
     Scheduler::me().destroy(coid); //协程正常退出, 销毁
     Scheduler::me().runningCoid = MAIN_COROT_ID; //控制权即将返回调度器
 }
