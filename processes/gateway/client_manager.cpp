@@ -225,11 +225,6 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
             price->set_rounds(item.first);
             price->set_money(item.second);
         }
-        const auto& roomSizeCfg = GameConfig::me().data().allRoomSize;
-        for (const auto& size : roomSizeCfg)
-        {
-            snd.add_room_size_list(size);
-        }
         LOG_TRACE("login, step 3, 登陆成功, ccid={}, openid={}, cuid={}", rcv->ccid(), rcv->openid(), rcv->cuid());
     }
     else

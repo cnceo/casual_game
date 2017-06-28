@@ -1,3 +1,11 @@
+/*
+ * Author: LiZhaojia - waterlzj@gmail.com
+ *
+ * Last modified: 2017-06-29 01:25 +0800
+ *
+ * Description: 
+ */
+
 #include "game13.h"
 #include "client.h"
 #include "redis_handler.h"
@@ -293,25 +301,33 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
                 attrCheckResult = 1;
                 break;
             }
-            const auto& priceCfg = GameConfig::me().data().pricePerPlayer;
-            auto priceCfgIter = priceCfg.find(rcv->rounds());
-            if (priceCfgIter  == priceCfg.end())
+
+            if (rcv->player_size() < 2 || rcv->player_size() > 5)
             {
                 attrCheckResult = 2;
                 break;
             }
-            playerPrice = priceCfgIter->second;
-            const auto& roomSizeCfg = GameConfig::me().data().allRoomSize;
-            if (roomSizeCfg.find(rcv->player_size()) == roomSizeCfg.end())
+
+            if (rcv->play_type() != GP_65 && rcv->player_size() == 5)
             {
                 attrCheckResult = 3;
                 break;
             }
-            if (rcv->payor() != PAY_BANKER && rcv->payor() != PAY_SHARE_EQU && rcv->payor() != PAY_WINNER)
+
+            const auto& priceCfg = GameConfig::me().data().pricePerPlayer;
+            auto priceCfgIter = priceCfg.find(rcv->rounds());
+            if (priceCfgIter  == priceCfg.end())
             {
                 attrCheckResult = 4;
                 break;
             }
+
+            if (rcv->payor() != PAY_BANKER && rcv->payor() != PAY_SHARE_EQU && rcv->payor() != PAY_WINNER)
+            {
+                attrCheckResult = 5;
+                break;
+            }
+
             attrCheckResult = true;
         } while (false);
 
@@ -332,15 +348,15 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     }
 
     //初始化游戏信息
-    auto& attr      = game->m_attr;
-    attr.playType   = rcv->play_type() > GP_52 ? GP_65 : GP_52;
-    attr.rounds     = rcv->rounds();
-    attr.payor      = rcv->payor();
-    attr.daQiang    = rcv->da_qiang();
-    attr.quanLeiDa  = rcv->quan_lei_da();
-    attr.yiTiaoLong = rcv->yi_tiao_long();
-    attr.playerSize = rcv->player_size();
-    attr.playerPrice= playerPrice;
+    auto& attr       = game->m_attr;
+    attr.playType    = rcv->play_type() > GP_52 ? GP_65 : GP_52;
+    attr.rounds      = rcv->rounds();
+    attr.payor       = rcv->payor();
+    attr.daQiang     = rcv->da_qiang();
+    attr.quanLeiDa   = rcv->quan_lei_da();
+    attr.yiTiaoLong  = rcv->yi_tiao_long();
+    attr.playerSize  = rcv->player_size();
+    attr.playerPrice = playerPrice;
 
     //玩家座位数量
     game->m_players.resize(attr.playerSize);
@@ -610,7 +626,6 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         return;
     }
 
-    //TODO 检查牌型是否合法
     {
         //是否是自己的牌
         std::array<Deck::Card, 13> tmp;
@@ -624,6 +639,8 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
                 return;
             }
         }
+
+        //是否相公, TODO
     }
     
     //改变玩家状态, 接收玩家牌型数据
@@ -690,23 +707,24 @@ bool Game13::enterRoom(Client::Ptr client)
     
     {//钱数检查
         bool enoughMoney = false;
+        const int32_t totalPrice = m_attr.playerPrice * m_attr.playerSize;
         switch (m_attr.payor)
         {
         case PAY_BANKER:
-            enoughMoney = (ownerCuid() != client->cuid()) || client->enoughMoney(10);
+            enoughMoney = (ownerCuid() == client->cuid()) ?  client->enoughMoney(totalPrice) : client->enoughMoney( m_attr.playerPrice);
             break;
         case PAY_SHARE_EQU:
-            enoughMoney = client->enoughMoney(5);
+            enoughMoney = client->enoughMoney(m_attr.playerPrice);
             break;
         case PAY_WINNER:
-            enoughMoney = client->enoughMoney(10);
+            enoughMoney = client->enoughMoney(totalPrice);
             break;
         default:
             return false;
         }
         if (!enoughMoney)
         {
-            (ownerCuid() != client->cuid()) ? client->noticeMessageBox("创建失败, 钻石不足") : client->noticeMessageBox("进入失败, 钻石不足");
+            (ownerCuid() == client->cuid()) ? client->noticeMessageBox("创建失败, 钻石不足") : client->noticeMessageBox("进入失败, 钻石不足");
             return false;
         }
     }
@@ -989,14 +1007,14 @@ void Game13::tryStartRound()
                     const int32_t price = m_attr.playerPrice * m_attr.playerSize;
                     client->addMoney(-price);
                     LOG_TRACE("游戏开始扣钱, 房主付费, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
-                              -10, getId(), client->ccid(), info.cuid, client->openid());
+                              -price, getId(), client->ccid(), info.cuid, client->openid());
                 }
                 else if(m_attr.payor == PAY_SHARE_EQU)
                 {
                     const int32_t price = m_attr.playerPrice;
                     client->addMoney(-price);
                     LOG_TRACE("游戏开始扣钱, 均摊, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
-                              -5, getId(), client->ccid(), info.cuid, client->openid());
+                              -price, getId(), client->ccid(), info.cuid, client->openid());
                 }
             }
 
@@ -1030,11 +1048,11 @@ void Game13::trySettleGame()
     //everyone compare
     for (const PlayerInfo& info : m_players)
     {
-        if (info.cuid == 0 || info.status != PublicProto::S_G13_PlayersInRoom::COMPARE)
+        if (info.status != PublicProto::S_G13_PlayersInRoom::COMPARE ||
+            info.cuid == 0 || ClientManager::me().getByCuid(info.cuid) == nullptr)
             return;
     }
 
-    //TODO 比牌型, 算的分
     //先算牌型
     auto curRound = calcRound();
     for (uint32_t i = 0; i < m_players.size(); ++i)
@@ -1063,7 +1081,7 @@ void Game13::trySettleGame()
         player->mutable_spec()->set_point(static_cast<int32_t>(0));
     }
     sendToAll(sndCode, snd);
-    LOG_TRACE("单轮结算结束, round={}/{}, roomid={}", m_rounds, m_attr.rounds, getId());
+    LOG_TRACE("G13, 单轮结算结束, round={}/{}, roomid={}", m_rounds, m_attr.rounds, getId());
 
     //总结算
     if (m_rounds >= m_attr.rounds)
@@ -1077,6 +1095,12 @@ void Game13::trySettleGame()
             int32_t quanleida = 0;
             int32_t rank = 0;
         };
+
+        auto finalCounGreater = [](const FinalCount& fc1, const FinalCount& fc2)
+        {
+            return fc1.rank > fc2.rank;
+        };
+
         std::vector<FinalCount> allFinalCount(m_players.size());;
         for (const auto& round : m_settleData)
         {
@@ -1095,7 +1119,8 @@ void Game13::trySettleGame()
                 count.rank += pd.prize;
             }
         }
-        //发送
+
+        //生成统计消息
         PROTO_VAR_PUBLIC(S_G13_AllRounds, sndFinal)
         for (const auto& count : allFinalCount)
         {
@@ -1107,9 +1132,36 @@ void Game13::trySettleGame()
             player->set_rank(count.rank);
         }
         sendToAll(sndFinalCode, sndFinal);
-        LOG_TRACE("所有轮结束, 总结算完成 round={}/{}, roomid={}", m_rounds, m_attr.rounds, getId());
+        LOG_TRACE("G13, 所有轮结束, 总结算完成 round={}/{}, roomid={}", m_rounds, m_attr.rounds, getId());
+        //扣钱
+        if (m_attr.payor == PAY_WINNER)
+        {
+            std::sort(allFinalCount.begin(), allFinalCount.end(), finalCounGreater);
+            //找到排名靠前的并列名次的最后一个
+            uint32_t lastBigWinnerIndex = 0;
+            for (uint32_t i = 1; i < allFinalCount.size(); ++i)
+            {
+                if (allFinalCount[lastBigWinnerIndex].rank > allFinalCount[i].rank)
+                    break;
+                lastBigWinnerIndex = i;
+            }
 
-        //房间状态
+            const uint32_t bigwinnerSize = lastBigWinnerIndex + 1;
+            const int32_t price = m_attr.playerPrice * m_attr.playerSize / bigwinnerSize;
+            for (uint32_t i = 0; i < lastBigWinnerIndex; ++i)
+            {
+                auto winner = ClientManager::me().getByCuid(allFinalCount[i].cuid);
+                if (winner == nullptr)
+                {//理论上不可能, 安全期间出日志
+                    LOG_ERROR("G13, 游戏结束赢家扣费, 失败, 不在线, 应扣money={}, 大赢家总数={}, cuid={}, openid={}", price, bigwinnerSize, winner->cuid(), winner->openid());
+                    continue;
+                }
+                winner->addMoney(-price);
+                LOG_TRACE("G13, 游戏结束赢家扣费, 成功, moneyChange={}, 大赢家总数={}, cuid={}, openid={}", -price, bigwinnerSize, winner->cuid(), winner->openid());
+            }
+        }
+
+        //房间状态更新
         m_status = GameStatus::settleAll;
         m_settleAllTime = componet::toUnixTime(s_timerTime);
         return;
@@ -1183,7 +1235,22 @@ void Game13::checkAllVotes()
     }
     else if (ayeSize == m_players.size()) //全同意
     {
-        //结束投票, 并终止游戏
+        //扣钱
+        if (m_attr.payor == PAY_WINNER)
+        {
+            const int32_t price = m_attr.playerPrice * m_attr.playerSize;
+            auto roomOwner = ClientManager::me().getByCuid(ownerCuid());
+            if (roomOwner == nullptr)
+            {//理论上不可能, 安全期间出日志
+                LOG_ERROR("G13, 游戏投票终止, 赢家付费, 房主扣费, 失败, 不在线, 应扣money={}, cuid={}, openid={}", price, roomOwner->cuid(), roomOwner->openid());
+            }
+            else
+            {
+                roomOwner->addMoney(-price);
+                LOG_TRACE("G13, 游戏投票终止, 赢家付费, 房主扣费, 成功, moneyChange={}, cuid={}, openid={}", -price, roomOwner->cuid(), roomOwner->openid());
+            }
+        }
+        //结束投票, 并终止游戏的通知
         for (PlayerInfo& info : m_players)
         {
             info.vote = PublicProto::VT_NONE;

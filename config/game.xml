@@ -8,7 +8,7 @@
         <item text="hello, 还没输光啊 （°ο°）!"/>
     </systemNotice>
 
-    <pricePerPlayer roomSizeList="2,3,4,5">
+    <pricePerPlayer>
         <item rounds="10" money="8"/>
         <item rounds="15" money="12"/>
         <item rounds="20" money="16"/>

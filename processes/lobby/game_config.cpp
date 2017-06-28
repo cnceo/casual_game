@@ -54,9 +54,9 @@ void GameConfig::load(const std::string& cfgDir)
         if (!pricePerPlayerNode)
             EXCEPTION(LoadGameCfgFailedGW, "pricePerPlayer node dose not exist");
 
-        m_data.allRoomSize.clear();
-        const std::string& roomSizeListStr = pricePerPlayerNode.getAttr<std::string>("roomSizeList");
-        componet::fromString(&m_data.allRoomSize, roomSizeListStr, ",");
+        //m_data.allRoomSize.clear();
+        //const std::string& roomSizeListStr = pricePerPlayerNode.getAttr<std::string>("roomSizeList");
+        //componet::fromString(&m_data.allRoomSize, roomSizeListStr, ",");
 
         m_data.pricePerPlayer.clear();
         for (XmlParseNode itemNode = pricePerPlayerNode.getChild("item"); itemNode; ++itemNode)

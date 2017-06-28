@@ -35,7 +35,7 @@ class Game13 : public Room
 
         PAY_BANKER      = 10, //支付，庄家
         PAY_SHARE_EQU   = 11, //支付，均摊
-        PAY_WINNER      = 12, //支付，赢家, 这个较为复杂，暂不支持
+        PAY_WINNER      = 12, //支付，赢家
         DQ_3_DAO        = 3,  //打枪，3道
         DQ_SHUANG_BEI   = 2,  //打枪，双倍
     };

@@ -1,3 +1,12 @@
+/*
+ * Author: LiZhaojia - waterlzj@gmail.com
+ *
+ * Last modified: 2017-06-29 01:28 +0800
+ *
+ * Description: 
+ */
+
+
 #include "anysdk_login_manager.h"
 
 #include "gateway.h"
