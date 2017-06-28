@@ -197,21 +197,9 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
             client->m_cuid = getClientUniqueId();
             client->m_openid = openid;
             client->m_name = rcv->name();
+            client->m_token = rcv->token();
 
-            bool insertRet = insert(client);
-            bool saveRet = false;
-            if (insertRet)
-            {
-                saveRet = saveClient(client);
-                if (!saveRet)
-                {
-                    erase(client);
-                    retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
-                    LOG_ERROR("login, step 2, new client, saveClient failed, openid={}", openid);
-                    return;
-                }
-            }
-            if (!(insertRet && saveRet))
+            if (!insert(client))
             {
                 retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
                 LOG_ERROR("login, step 2, new client reg failed, ccid={}, cuid={}, openid={}", client->ccid(), client->cuid(), openid);
@@ -276,17 +264,24 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         }
     }
 
+    client->m_token = rcv->token();
+    client->m_ccid  = rcv->ccid();
+    client->m_name  = rcv->name();
+    client->m_imgurl= rcv->imgurl();
+    if (rcv->is_wechat() && !saveClient(client))
+    {
+        erase(client);
+        retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
+        LOG_ERROR("login, step 2, new client, saveClient failed, openid={}", openid);
+        return;
+    }
+
     //登陆成功
     retMsg.set_ret_code(PrivateProto::RLQ_SUCCES);
     retMsg.set_cuid(client->cuid());
     retMsg.set_openid(client->openid());
 //    Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
     LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid(), client->openid());
-
-    client->m_token = rcv->token();
-    client->m_ccid  = rcv->ccid();
-    client->m_name  = rcv->name();
-    client->m_imgurl= rcv->imgurl();
 
     //更新可能的房间游戏信息
     client->syncBasicDataToClient();
