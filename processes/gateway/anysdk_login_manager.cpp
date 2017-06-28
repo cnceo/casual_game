@@ -373,15 +373,15 @@ void AnySdkLoginManager::timerExec(componet::TimePoint now)
     m_now = now;
 
     //删除过期tokens
-    for (auto iter = m_tokens.begin(); iter != m_tokens.end(); )
-    {
-        if (iter->second->expiry <= componet::toUnixTime(now))
-        {
-            iter = m_tokens.erase(iter);
-            continue;
-        }
-        ++iter;
-    }
+    //for (auto iter = m_tokens.begin(); iter != m_tokens.end(); )
+    //{
+    //    if (iter->second->expiry <= componet::toUnixTime(now))
+    //    {
+    //        iter = m_tokens.erase(iter);
+    //        continue;
+    //    }
+    //    ++iter;
+    //}
 
     {//启动新进连接的处理协程
         std::lock_guard<componet::Spinlock> lock(m_allClients.newClentsLock);

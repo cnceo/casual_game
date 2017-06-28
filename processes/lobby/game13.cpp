@@ -394,6 +394,10 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (client->roomid() == 0)
     {
         client->noticeMessageBox("已经不在房间内了");
+
+        //端有时会卡着没退出去, 多给它发个消息
+        PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
+        client->sendToMe(sndCode, snd);
         return;
     }
 
