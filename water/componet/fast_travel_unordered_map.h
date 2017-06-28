@@ -88,6 +88,7 @@ public:
             EXCEPTION(FTUM_DataCorruption, "FTUM_DataCorruption");
 
          m_vec.emplace_back();
+         m_vec.back().first = key;
          return m_vec.back().second;
     }
 
