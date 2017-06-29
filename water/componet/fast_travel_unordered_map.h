@@ -83,13 +83,11 @@ public:
         if (iter != end())
             return iter->second;
 
-        const auto insertRet = m_map.insert(std::make_pair(key, m_vec.size()));
-        if (!insertRet.second)
-            EXCEPTION(FTUM_DataCorruption, "FTUM_DataCorruption");
+        m_map[key] = m_vec.size();
 
-         m_vec.emplace_back();
-         m_vec.back().first = key;
-         return m_vec.back().second;
+        m_vec.emplace_back();
+        m_vec.back().first = key;
+        return m_vec.back().second;
     }
 
     bool insert(const Key& k, const Value& v)
