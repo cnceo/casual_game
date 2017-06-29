@@ -70,7 +70,7 @@ void GameConfig::load(const std::string& cfgDir)
     {
         m_data.testDeck.index = -1u;
         m_data.testDeck.decks.clear();
-        XmlParseNode testDeckNode = root.getChild("");
+        XmlParseNode testDeckNode = root.getChild("testDeck");
         if (!testDeckNode) //测试配置, 可有可无, 不报错
             return;
         m_data.testDeck.index = testDeckNode.getAttr<uint32_t>("index");
