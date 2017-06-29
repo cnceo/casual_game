@@ -327,6 +327,12 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
                 attrCheckResult = 5;
                 break;
             }
+
+            if (rcv->da_qiang() != DQ_3_DAO && rcv->da_qiang() != DQ_SHUANG_BEI)
+            {
+                attrCheckResult = 6;
+                break;
+            }
         } while (false);
 
         //是否出错
@@ -875,8 +881,8 @@ void Game13::removePlayer(ClientPtr client)
                     if (oppInfo.cuid == info.cuid)
                         continue;
                     settleHisDetail->opps.resize(settleHisDetail->opps.size() + 1);
-                    settleHisDetail->opps.back().name = info.name;
-                    settleHisDetail->opps.back().rank = info.rank;
+                    settleHisDetail->opps.back().name = oppInfo.name;
+                    settleHisDetail->opps.back().rank = oppInfo.rank;
                 }
             }
             client->afterLeaveRoom(settleHisDetail);
@@ -913,8 +919,8 @@ void Game13::abortGame()
                     if (oppInfo.cuid == info.cuid)
                         continue;
                     settleHisDetail->opps.resize(settleHisDetail->opps.size() + 1);
-                    settleHisDetail->opps.back().name = info.name;
-                    settleHisDetail->opps.back().rank = info.rank;
+                    settleHisDetail->opps.back().name = oppInfo.name;
+                    settleHisDetail->opps.back().rank = oppInfo.rank;
                 }
             }
             client->afterLeaveRoom(settleHisDetail);
@@ -1043,6 +1049,7 @@ void Game13::tryStartRound()
         player->set_status(info.status);
         player->set_cuid(info.cuid);
         player->set_name(info.name);
+        player->set_imgurl(info.imgurl);
         player->set_rank(info.rank);
     }
     sendToAll(snd1Code, snd1);
