@@ -294,18 +294,20 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                 try
                 {
                     auto j = componet::json::parse(jsonraw);
-                    auto tokenInfo = AnySdkLoginManager::TokenInfo::create();
-                    tokenInfo->openid    = j["data"]["openid"];
-                    tokenInfo->token     = j["data"]["access_token"];
-                    time_t rcvExpiresIn  = j["data"]["expires_in"];
-                    time_t expiresIn = rcvExpiresIn < 300 ? rcvExpiresIn : 300;
-
-                    tokenInfo->expiry = expiresIn + componet::toUnixTime(*now);
-                    LOG_TRACE("ASS, ass response parse successed, hcid={}, openid={}, token={}, rcvExpiresIn={}", 
-                              clihcid, tokenInfo->openid, tokenInfo->token, rcvExpiresIn);
-                    (*tokens)[tokenInfo->openid] = tokenInfo;
                     if (j["status"].is_string() && j["status"] == "ok")
                     {
+                        auto tokenInfo = AnySdkLoginManager::TokenInfo::create();
+                        tokenInfo->openid    = j["data"]["openid"];
+                        tokenInfo->token     = j["data"]["access_token"];
+                        time_t rcvExpiresIn  = j["data"]["expires_in"];
+                        time_t expiresIn = rcvExpiresIn < 300 ? rcvExpiresIn : 300;
+
+                        tokenInfo->expiry = expiresIn + componet::toUnixTime(*now);
+                        LOG_TRACE("ASS, ass response parse successed, hcid={}, openid={}, token={}, rcvExpiresIn={}", 
+                                  clihcid, tokenInfo->openid, tokenInfo->token, rcvExpiresIn);
+                        (*tokens)[tokenInfo->openid] = tokenInfo;
+
+                        //用data的值填充ext, 以便cli编程抓取
                         j["ext"] = j["data"];
                         body = j.dump();
                     }
@@ -314,13 +316,14 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                 {
                     LOG_ERROR("ASS, ass response unexpected data, json parse failed, hcid={}, rawdata={}, ex={}", clihcid, jsonraw, ex);
                     status = Status::assAbort;
+                    conns.eraseConnection(asshcid);
                     break;
                 }
                 std::string pattern =
                 "HTTP/1.1 200 OK\r\n"
                 "Server: Tengine/1.5.2\r\n"
                 "Date: Tue, 27 Jun 2017 18:45:56 GMT\r\n"
-                "Content-Type: text/html\r\n"
+                "Content-Type: application/json\r\n"
                 "Content-Length: {}\r\n"
                 "Connection: keep-alive\r\n"
                 "\r\n{}";
@@ -330,14 +333,17 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                 {
                     LOG_ERROR("ASS, ass response repack failed, rawdata={}, hcid={}", rspBuf, clihcid);
                     status = Status::assAbort;
+                    conns.eraseConnection(asshcid);
                     break;
                 }
                 auto packet = ret.first;
-                if (!conns.sendPacket(clihcid, packet))
+                while (!conns.sendPacket(clihcid, packet))
                 {
                     corot::this_corot::yield();
-                    break;
+                    if (status != Status::rspToCli)
+                        break;
                 }
+
                 LOG_TRACE("ASS, send response to cli, hcid={}", clihcid);
                 status = Status::done;
             }
@@ -349,11 +355,28 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
             return;
         case Status::assAbort:
             {
-                //TODO 发送一个http403给cli
-                
-                LOG_TRACE("ASS, assAbort, destroy later, hcid={}", clihcid);
-                // 关闭
+                //TODO 发送一个http404给cli
+                std::string rspRaw =
+                "HTTP/1.1 404 Not Found\r\n"
+                "Server: Tengine/1.5.2\r\n"
+                "Content-Type: text/html\r\n"
+                "Content-Length: 13\r\n"
+                "Connection: keep-alive\r\n"
+                "\r\n404 Not Found";
+
+                const auto& ret = net::HttpPacket::tryParse(net::HttpMsg::Type::response, rspRaw.data(), rspRaw.size());
+                if (ret.first == nullptr)
+                {
+                    LOG_ERROR("ASS, ass response repack failed, rawdata={}, hcid={}", rspRaw, clihcid);
+                }
+                else
+                {
+                    auto packet = ret.first;
+                    if (!conns.sendPacket(clihcid, packet))
+                        corot::this_corot::yield();
+                }
                 conns.eraseConnection(clihcid);
+                LOG_TRACE("ASS, assAbort, destroy later, hcid={}", clihcid);
             }
             return;
         case Status::cliAbort:
@@ -373,15 +396,15 @@ void AnySdkLoginManager::timerExec(componet::TimePoint now)
     m_now = now;
 
     //删除过期tokens
-    //for (auto iter = m_tokens.begin(); iter != m_tokens.end(); )
-    //{
-    //    if (iter->second->expiry <= componet::toUnixTime(now))
-    //    {
-    //        iter = m_tokens.erase(iter);
-    //        continue;
-    //    }
-    //    ++iter;
-    //}
+    for (auto iter = m_tokens.begin(); iter != m_tokens.end(); )
+    {
+        if (iter->second->expiry <= componet::toUnixTime(now))
+        {
+            iter = m_tokens.erase(iter);
+            continue;
+        }
+        ++iter;
+    }
 
     {//启动新进连接的处理协程
         std::lock_guard<componet::Spinlock> lock(m_allClients.newClentsLock);

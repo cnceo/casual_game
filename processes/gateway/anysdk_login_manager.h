@@ -88,7 +88,6 @@ private:
         std::string token;
         time_t expiry = 0;
     };
-//    std::map<std::string, TokenInfo::Ptr> m_tokens;
     componet::FastTravelUnorderedMap<std::string, TokenInfo::Ptr> m_tokens;
 
     mutable HttpConnectionId m_lastHcid = 1;
@@ -124,7 +123,6 @@ private:
             std::shared_ptr<net::HttpPacket> assRsp;
 
             const AssIpInfo* assip = nullptr;
-            //std::map<std::string, TokenInfo::Ptr>* tokens = nullptr;
             componet::FastTravelUnorderedMap<std::string, TokenInfo::Ptr>* tokens = nullptr;
             componet::TimePoint* now = nullptr;
             void corotExec();
