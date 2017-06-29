@@ -1622,11 +1622,12 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             auto& winner = datas[d];
 
             //判断是否是全垒打
-            winner.quanLeiDa = true;
+            winner.quanLeiDa = false;
             if ((m_attr.quanLeiDa)  //全垒打启用
                 && (m_attr.playerSize > 2) //两人房无全垒打
                 && (winner.losers.size() + 1 == datas.size()) ) //全胜
             {
+                winner.quanLeiDa = true;
                 for (auto iter = winner.losers.begin(); iter != winner.losers.end(); ++iter)
                 {
                     if (iter->second[1] == 0)
