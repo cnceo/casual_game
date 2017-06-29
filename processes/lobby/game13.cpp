@@ -711,7 +711,7 @@ bool Game13::enterRoom(Client::Ptr client)
     //加入成员列表
     m_players[index].cuid = client->cuid();
     m_players[index].name = client->name();
-    m_players[index].imgurl = client->name();
+    m_players[index].imgurl = client->imgurl();
     m_players[index].status = PublicProto::S_G13_PlayersInRoom::PREP;
     
     {//钱数检查
