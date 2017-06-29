@@ -711,6 +711,7 @@ bool Game13::enterRoom(Client::Ptr client)
     //加入成员列表
     m_players[index].cuid = client->cuid();
     m_players[index].name = client->name();
+    m_players[index].imgurl = client->name();
     m_players[index].status = PublicProto::S_G13_PlayersInRoom::PREP;
     
     {//钱数检查
@@ -1639,7 +1640,6 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             //开始对losers逐人结算分数
             for (auto iter = winner.losers.begin(); iter != winner.losers.end(); ++iter)
             {
-
                 auto& loser = datas[iter->first];
                 int32_t prize = iter->second[0]; //分数得失
                 if (iter->second[1] > 0) //打枪
