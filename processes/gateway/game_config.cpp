@@ -74,8 +74,8 @@ void GameConfig::load(const std::string& cfgDir)
         for (XmlParseNode itemNode = pricePerPlayerNode.getChild("item"); itemNode; ++itemNode)
         {
             uint32_t rounds = itemNode.getAttr<uint32_t>("rounds");
-            int32_t  price  = itemNode.getAttr<int32_t>("money");
-            m_data.pricePerPlayer[rounds] = price;
+            int32_t  money  = itemNode.getAttr<int32_t>("money");
+            m_data.pricePerPlayer[rounds] = money;
         }
 
     }

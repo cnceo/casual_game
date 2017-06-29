@@ -973,6 +973,15 @@ void Game13::tryStartRound()
         static std::random_device rd;
         static std::mt19937 rg(rd());
         std::shuffle(Game13::s_deck.cards.begin(), Game13::s_deck.cards.end(), rg);
+
+        //是否配置了固定发牌(测试用)
+        const auto& testDeckCfg = GameConfig::me().data().testDeck;
+        if (testDeckCfg.index != -1u)
+        {
+            for (auto i = 0u; i < Game13::s_deck.cards.size(); ++i)
+                Game13::s_deck.cards[i] = testDeckCfg.decks[testDeckCfg.index][i];
+            LOG_TRACE("G13, deal deck, fixd hands by config, cfgindex={}", testDeckCfg.index);
+        }
     }
 
     //deal cards, then update player status and send to client

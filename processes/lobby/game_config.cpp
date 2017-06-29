@@ -62,10 +62,33 @@ void GameConfig::load(const std::string& cfgDir)
         for (XmlParseNode itemNode = pricePerPlayerNode.getChild("item"); itemNode; ++itemNode)
         {
             uint32_t rounds = itemNode.getAttr<uint32_t>("rounds");
-            int32_t  price  = itemNode.getAttr<int32_t>("money");
-            m_data.pricePerPlayer[rounds] = price;
+            int32_t  money  = itemNode.getAttr<int32_t>("money");
+            m_data.pricePerPlayer[rounds] = money;
         }
     }
+
+    {
+        m_data.testDeck.index = -1u;
+        m_data.testDeck.decks.clear();
+        XmlParseNode testDeckNode = root.getChild("");
+        if (!testDeckNode) //测试配置, 可有可无, 不报错
+            return;
+        m_data.testDeck.index = testDeckNode.getAttr<uint32_t>("index");
+        if (m_data.testDeck.index == -1u)
+            return;
+        for (XmlParseNode deckNode = testDeckNode.getChild("deck"); deckNode; ++deckNode)
+        {
+            std::vector<uint16_t> deck;
+            componet::fromString(&deck, deckNode.getAttr<std::string>("cards"), ",");
+            if (deck.size() < 65u)
+                EXCEPTION(LoadGameCfgFailedGW, "testDeck, deck-{} size={}", m_data.testDeck.decks.size(), deck.size());
+            m_data.testDeck.decks.push_back(std::move(deck));
+
+        }
+        if (m_data.testDeck.index >= m_data.testDeck.decks.size())
+            EXCEPTION(LoadGameCfgFailedGW, "testDeck, index={}, decks.size={}", m_data.testDeck.index,  m_data.testDeck.decks.size());
+    }
+
     LOG_TRACE("load {} successed", configFile);
 }
 
