@@ -321,6 +321,7 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
                 attrCheckResult = 4;
                 break;
             }
+            playerPrice = priceCfgIter->second;
 
             if (rcv->payor() != PAY_BANKER && rcv->payor() != PAY_SHARE_EQU && rcv->payor() != PAY_WINNER)
             {
