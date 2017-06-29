@@ -75,19 +75,12 @@ public:
         regIDs.erase(it);
     }
 
-//    void raise(ParamsType... args) noexcept
-    void operator()(ParamsType... args) noexcept
+    // raise
+    void operator()(ParamsType... args)
     {
         for(auto& cb : callbackList)
         {
-            try
-            {
-                cb.second(std::forward<ParamsType>(args)...);
-               // cb.second(args...);
-            }
-            catch(...)
-            {
-            }
+            cb.second(std::forward<ParamsType>(args)...);
         }
     }
 
