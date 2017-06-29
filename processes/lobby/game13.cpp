@@ -1644,9 +1644,16 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 auto& loser = datas[iter->first];
                 int32_t prize = iter->second[0]; //分数得失
                 if (iter->second[1] > 0) //打枪
-                    prize *= 2;
+                {
+                    if (m_attr.daQiang == DQ_3_DAO)
+                        prize += 3;
+                    else
+                        prize *= 2;
+                }
                 if (winner.quanLeiDa) //全垒打
+                {
                     prize *= 2;
+                }
                 winner.prize += prize;
                 loser.prize -= prize;
             }
