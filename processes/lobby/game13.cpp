@@ -1415,13 +1415,13 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
 
                 if (specCmpValueI > specCmpValueJ)
                 {
-                    specWinner.losers[i][0] = specPrize;
-                    specWinner.losers[i][1] = 0;
+                    specWinner.losers[j][0] = specPrize;
+                    specWinner.losers[j][1] = 0;
                 }
                 else
                 {
-                    specWinner.losers[j][0] = specPrize;
-                    specWinner.losers[j][1] = 0;
+                    specWinner.losers[i][0] = specPrize;
+                    specWinner.losers[i][1] = 0;
                 }
                 //本轮已经不用再比了, 因为至少有一家是特殊牌型, 特殊的都大于一般的
                 continue;
