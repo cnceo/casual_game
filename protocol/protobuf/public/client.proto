@@ -32,10 +32,11 @@ message S_LoginRet
     required int32  ret_code    = 1;
     optional int64  cuid        = 2;    //个人ID
     optional string temp_token  = 3;
-    optional string wechat1     = 4;    //微信号1
-    optional string wechat2     = 5;    //微信号2
-    optional string wechat3     = 6;    //微信号3
-    repeated Price price_list   = 7; //不同局数的房间, 人头费列表
+    optional string ip          = 4;
+    optional string wechat1     = 5;    //微信号1
+    optional string wechat2     = 6;    //微信号2
+    optional string wechat3     = 7;    //微信号3
+    repeated Price price_list   = 8; //不同局数的房间, 人头费列表
     
     message Price
     {
@@ -137,6 +138,7 @@ message S_G13_PlayersInRoom
         required string name    = 3; //名字
         required int32 rank     = 4; //当前分数
         required string imgurl  = 5; //头像url //TODO
+        required string ipstr   = 6; //头像url //TODO
     }
     repeated PlayerStatus players   = 1;
     required int32 rounds           = 2; //当前是第几局, 准备阶段值为0

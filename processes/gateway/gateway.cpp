@@ -192,7 +192,7 @@ void Gateway::newClientConnection(net::BufferedConnection::Ptr conn)
     {
         conn->setNonBlocking();
 
-        ClientConnectionId ccid = m_clientManager->clientOnline();
+        ClientConnectionId ccid = m_clientManager->clientOnline(conn->getRemoteEndpoint());
         if (ccid == INVALID_CCID)
         {
             LOG_ERROR("Gateway::newClientConnection failed, 加入ClientManager失败, {}", conn->getRemoteEndpoint());

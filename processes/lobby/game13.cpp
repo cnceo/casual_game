@@ -713,6 +713,7 @@ bool Game13::enterRoom(Client::Ptr client)
     m_players[index].cuid = client->cuid();
     m_players[index].name = client->name();
     m_players[index].imgurl = client->imgurl();
+    m_players[index].ipstr = client->ipstr();
     m_players[index].status = PublicProto::S_G13_PlayersInRoom::PREP;
     
     {//钱数检查
@@ -764,8 +765,9 @@ void Game13::clientOnlineExec(Client::Ptr client)
     }
 
     LOG_TRACE("client, sync gameinfo, roomid={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
-    info->name = client->name();
+    info->name   = client->name();
     info->imgurl = client->imgurl();
+    info->ipstr  = client->ipstr();
     afterEnterRoom(client);
 }
 

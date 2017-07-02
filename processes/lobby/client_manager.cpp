@@ -272,6 +272,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     client->m_ccid  = rcv->ccid();
     client->m_name  = rcv->name();
     client->m_imgurl= rcv->imgurl();
+    client->m_ipstr = rcv->ipstr();
     if (rcv->is_wechat() && !saveClient(client))
     {
         erase(client);

@@ -65,6 +65,8 @@ public:
 
     const std::string& imgurl() const;
 
+    const std::string& ipstr() const;
+
     bool sendToMe(TcpMsgCode code, const ProtoMsg& proto) const;
     bool noticeMessageBox(const std::string& text);
     template<typename ... Params>
@@ -92,6 +94,7 @@ private:
 
     std::string m_token;
     std::string m_imgurl;
+    std::string m_ipstr;
 };
 
 
@@ -170,6 +173,11 @@ inline int32_t Client::addMoney1(int32_t money1)
 inline const std::string& Client::imgurl() const
 {
     return m_imgurl;
+}
+
+inline const std::string& Client::ipstr() const
+{
+    return m_ipstr;
 }
 
 template<typename... Params>

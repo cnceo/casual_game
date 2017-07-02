@@ -90,7 +90,7 @@ void ClientManager::timerExec(const componet::TimePoint& now)
     }
 }
 
-ClientConnectionId ClientManager::clientOnline()
+ClientConnectionId ClientManager::clientOnline(const net::Endpoint& ep)
 {
     auto client = createNewClient();
     if (!insert(client))
@@ -98,8 +98,9 @@ ClientConnectionId ClientManager::clientOnline()
         LOG_ERROR("ClientManager::clientOnline failed, 生成的ccid出现重复, ccid={}", client->ccid);
         return INVALID_CCID;
     }
+    client->ep = ep;
 
-    LOG_TRACE("客户端接入，分配ClientConnectionId, ccid={}", client->ccid);
+    LOG_TRACE("客户端接入，分配ClientConnectionId, ccid={}, ep={}", client->ccid, ep);
     return client->ccid;
 }
 
@@ -170,6 +171,7 @@ void ClientManager::proto_C_Login(ProtoMsgPtr proto, ClientConnectionId ccid)
     toserver.set_ccid(ccid);
     toserver.set_name(rcv->nick_name());
     toserver.set_imgurl(rcv->imgurl());
+    toserver.set_ipstr(client->ep.ip.toString());
 
     //TODO login step1, 依据登陆类型和登陆信息验证登陆有效性, 微信的
     if (rcv->login_type() == PublicProto::LOGINT_WETCHAT)
@@ -215,6 +217,7 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
         snd.set_ret_code(PublicProto::LOGINR_SUCCES);
         snd.set_cuid(client->cuid);
         snd.set_temp_token("xxxx"); //此版本一律返回xxxx， 此字段暂不启用
+        snd.set_ip(client->ep.ip.toString());
         snd.set_wechat1(GameConfig::me().data().customService.wechat1);
         snd.set_wechat2(GameConfig::me().data().customService.wechat2);
         snd.set_wechat3(GameConfig::me().data().customService.wechat3);
