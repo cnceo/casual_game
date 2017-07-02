@@ -122,6 +122,7 @@ inline void Client::setRoomId(uint32_t roomid)
     if (roomid == m_roomid)
         return;
     m_roomid = roomid;
+    saveToDB();
 }
 
 inline int32_t Client::money() const
