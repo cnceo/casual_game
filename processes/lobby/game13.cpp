@@ -562,8 +562,6 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (oldStatus == newStatus)
         return;
 
-    ON_EXIT_SCOPE_DO(saveToDB(game, "give up game", client));
-
     //改变状态
     info->status = newStatus;
     LOG_TRACE("ReadyFlag, 玩家设置准备状态, readyFlag={}, roomid={}, ccid={}, cuid={}, openid={}",

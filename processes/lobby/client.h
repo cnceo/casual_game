@@ -87,7 +87,7 @@ private:
     //TODO 更多的字段
     uint32_t m_roomid;
 
-    int32_t m_money  = 100;
+    int32_t m_money  = 100000;
     int32_t m_money1 = 1000;
 
     G13His m_g13his;
