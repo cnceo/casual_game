@@ -139,10 +139,10 @@ inline int32_t Deck::cmpBrandInfo(const BrandInfo& bi1, const BrandInfo& bi2)
 {
 
     if (bi1.b != bi2.b)
-        return bi1.b > bi2.b ? 1 : 2;
+        return bi1.b > bi2.b ? -1 : 1;
 
     if( bi1.point != bi2.point )
-       return bi1.point > bi2.point ? 1 : 2;
+       return bi1.point > bi2.point ? -1 : 1;
 
     return 0;
 }

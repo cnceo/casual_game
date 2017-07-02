@@ -208,6 +208,7 @@ message S_G13_HandOfMine
 message C_G13_BringOut
 {
     repeated int32 cards    = 1;
+    required bool special   = 2; //true 按照特殊牌型算; false 按照一般的牌型算
 }
 
 // 所有人的牌, 以及结算结果

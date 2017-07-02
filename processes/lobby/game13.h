@@ -107,6 +107,7 @@ private:
         int32_t status;
         int32_t vote = 0;
         int32_t rank = 0; //当前为止, 本场比赛中累计得到的分数
+        bool cardsSpecBrand = false;
         std::array<Deck::Card, 13> cards;
     };
     std::vector<PlayerInfo> m_players;
@@ -127,7 +128,7 @@ private:
             ClientUniqueId cuid;
             std::array<Deck::Card, 13> cards;   //所有牌
             std::array<Deck::BrandInfo, 3> dun; //3墩牌型
-            Deck::G13SpecialBrand spec;         //特殊牌型
+            Deck::G13SpecialBrand spec = Deck::G13SpecialBrand::none;         //特殊牌型
             int32_t prize = 0;
             std::map<uint32_t, std::array<int32_t, 2>> losers; //<loserIndex, <price, 打枪>>
             bool quanLeiDa = false;

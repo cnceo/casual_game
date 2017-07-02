@@ -134,6 +134,7 @@ Game13::Ptr Game13::deserialize(const std::string& bin)
         obj->m_players[i].status = players[i].status();
         obj->m_players[i].vote   = players[i].vote();
         obj->m_players[i].rank   = players[i].rank();
+        obj->m_players[i].cardsSpecBrand = players[i].cards_spec_brand();
 
         if (players[i].cards().size() != 13)
             return nullptr;
@@ -226,6 +227,7 @@ std::string Game13::serialize()
         playerData->set_status(playerInfo.status);
         playerData->set_vote  (playerInfo.vote);
         playerData->set_rank  (playerInfo.rank);
+        playerData->set_cards_spec_brand(playerInfo.cardsSpecBrand);
         for (auto card : playerInfo.cards)
             playerData->add_cards(card);
     }
@@ -383,7 +385,7 @@ void Game13::proto_C_G13_JionGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     auto game = Game13::getByRoomId(rcv->room_id());
     if (game == nullptr)
     {
-        client->noticeMessageBox("要加入的房间已解散");
+        client->noticeMessageBox("房间号不存在");
         LOG_DEBUG("申请加入房间失败, 房间号不存在, ccid={}, openid={}, roomid={}", client->ccid(), client->openid(), rcv->room_id());
         return;
     }
@@ -633,10 +635,10 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         return;
     }
 
-    {
-        //是否是自己的牌
+    {//合法性判断
         std::array<Deck::Card, 13> tmp;
         std::copy(rcv->cards().begin(), rcv->cards().end(), tmp.begin());
+        // 1, 是否是自己的牌
         std::sort(tmp.begin(), tmp.end());
         for (auto i = 0u; i < tmp.size(); ++i)
         {
@@ -646,10 +648,32 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
                 return;
             }
         }
-
-        //是否相公, TODO
+        // 2, 摆牌的牌型是否合法
+        std::copy(rcv->cards().begin(), rcv->cards().end(), tmp.begin());
+        auto dun0 = Deck::brandInfo(tmp.data(), 3);
+        auto dun1 = Deck::brandInfo(tmp.data() + 3, 5);
+        auto dun2 = Deck::brandInfo(tmp.data() + 8, 5);
+        if (rcv->special())
+        {
+            auto spec = Deck::g13SpecialBrand(tmp.data(), dun1.b, dun2.b);
+            if (spec == Deck::G13SpecialBrand::none)
+            {
+                client->noticeMessageBox("不是特殊牌型, 请重新理牌");
+                return;
+            }
+            info->cardsSpecBrand = true;
+        }
+        else
+        {
+            if (Deck::cmpBrandInfo(dun0, dun1) == 1 || 
+                Deck::cmpBrandInfo(dun1, dun2) == 1)
+            {
+                client->noticeMessageBox("相公啦, 请重新理牌");
+                return;
+            }
+            info->cardsSpecBrand = false;
+        }
     }
-    
     //改变玩家状态, 接收玩家牌型数据
     info->status = PublicProto::S_G13_PlayersInRoom::COMPARE;
     std::string cardsStr;
@@ -703,7 +727,7 @@ bool Game13::enterRoom(Client::Ptr client)
     const uint32_t index = getEmptySeatIndex();
     if (index == NO_POS)
     {
-        client->noticeMessageBox("进入失败, 房间人数已满");
+        client->noticeMessageBox("房间已满, 无法加入");
         return false;
     }
 
@@ -1369,7 +1393,8 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
         data.dun[0] = Deck::brandInfo(data.cards.data(), 3);
         data.dun[1] = Deck::brandInfo(data.cards.data() + 3, 5);
         data.dun[2] = Deck::brandInfo(data.cards.data() + 8, 5);
-        data.spec = Deck::g13SpecialBrand(data.cards.data(), data.dun[1].b, data.dun[2].b);
+        if (info.cardsSpecBrand)
+            data.spec = Deck::g13SpecialBrand(data.cards.data(), data.dun[1].b, data.dun[2].b);
         data.prize = 0;
     }
 
@@ -1382,7 +1407,8 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             auto& dataJ = datas[j];
             ///////////////////////////////以下为特殊牌型//////////////////////////
 
-            if (dataI.spec != Deck::G13SpecialBrand::none || dataJ.spec != Deck::G13SpecialBrand::none)
+            if (dataI.spec != Deck::G13SpecialBrand::none || 
+                dataJ.spec != Deck::G13SpecialBrand::none)
             {
                 auto specCmpValueI = underlying(dataI.spec) % 10;
                 auto specCmpValueJ = underlying(dataJ.spec) % 10;
@@ -1456,7 +1482,7 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 case 1: //I赢
                     dunPrize[d] += 1;
                     break;
-                case 2: //J赢
+                case -1: //J赢
                     dunPrize[d] -= 1;
                     break;
                 case 0: //平
