@@ -32,7 +32,7 @@ message S_LoginRet
     required int32  ret_code    = 1;
     optional int64  cuid        = 2;    //个人ID
     optional string temp_token  = 3;
-    optional string ipstr          = 4;
+    optional string ipstr       = 4;
     optional string wechat1     = 5;    //微信号1
     optional string wechat2     = 6;    //微信号2
     optional string wechat3     = 7;    //微信号3

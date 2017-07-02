@@ -859,6 +859,7 @@ void Game13::syncAllPlayersInfoToAllClients()
         player->set_cuid(info.cuid);
         player->set_name(info.name);
         player->set_imgurl(info.imgurl);
+        player->set_ipstr(info.ipstr);
         player->set_status(info.status);
         player->set_rank(info.rank);
     }
