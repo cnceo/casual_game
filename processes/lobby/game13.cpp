@@ -801,10 +801,14 @@ void Game13::afterEnterRoom(ClientPtr client)
         for (const PlayerInfo& info : m_players)
         {
             //同步手牌到端
-            PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
-            for (auto card : info.cards)
-                snd2.add_cards(card);
-            client->sendToMe(snd2Code, snd2);
+            if (info.cuid == client->cuid())
+            {
+                PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
+                snd2.set_rounds(m_rounds);
+                for (auto card : info.cards)
+                    snd2.add_cards(card);
+                client->sendToMe(snd2Code, snd2);
+            }
 
             auto voteInfo = snd3.add_votes();
             voteInfo->set_cuid(info.cuid);
@@ -971,7 +975,7 @@ void Game13::tryStartRound()
         }
         else// if(m_attr.playType == GP_65)
         {
-            Game13::s_deck.cards.reserve(65);
+            Game13::s_deck.cards.resize(65);
             for (int32_t i = 0; i < 52; ++i)
                 Game13::s_deck.cards[i] = i + 1;
             for (int32_t i = 0; i < 13; ++i)
@@ -1007,6 +1011,7 @@ void Game13::tryStartRound()
 
         //同步手牌到端
         PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
+        snd2.set_rounds(m_rounds);
         std::string cardsStr;
         cardsStr.reserve(42);
         for (auto card : info.cards)
@@ -1375,7 +1380,7 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             auto& dataJ = datas[j];
             ///////////////////////////////以下为特殊牌型//////////////////////////
 
-            if (dataI.spec != dataJ.spec)
+            if (dataI.spec != Deck::G13SpecialBrand::none || dataJ.spec != Deck::G13SpecialBrand::none)
             {
                 auto specCmpValueI = underlying(dataI.spec) % 10;
                 auto specCmpValueJ = underlying(dataJ.spec) % 10;

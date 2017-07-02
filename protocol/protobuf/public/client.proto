@@ -198,7 +198,8 @@ message C_G13_ReadyFlag
 //拥有的牌(发牌的结果)
 message S_G13_HandOfMine
 {
-    repeated int32 cards    = 1;
+    required int32 rounds   = 1;
+    repeated int32 cards    = 2;
 }
 
 //确认出牌

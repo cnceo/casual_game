@@ -234,8 +234,7 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
             snd.set_ret_code(PublicProto::LOGINR_HISTOKEN_ILEGAL);
         else //if (rc == PrivateProto::RLQ_FAILED)
             snd.set_ret_code(PublicProto::LOGINR_FAILED);
-        //在定时器中延迟删除, 保证最后一条消息能够有机会发出
-        eraseLater(client);
+        //eraseLater(client); //登陆失败不删连接, 让端自己断掉即可
     }
     Gateway::me().sendToClient(client->ccid, sndCode, snd);
 }
