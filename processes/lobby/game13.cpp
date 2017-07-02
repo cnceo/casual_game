@@ -905,7 +905,7 @@ void Game13::removePlayer(ClientPtr client)
                 settleHisDetail = G13His::Detail::create();
                 settleHisDetail->roomid = getId();
                 settleHisDetail->rank   = info.rank;
-                settleHisDetail->time   = componet::toUnixTime(Room::s_timerTime);
+                settleHisDetail->time   = componet::toUnixTime(s_timerTime);
                 settleHisDetail->opps.reserve(m_players.size());
                 for (const PlayerInfo& oppInfo : m_players)
                 {
@@ -943,7 +943,7 @@ void Game13::abortGame()
                 settleHisDetail = G13His::Detail::create();
                 settleHisDetail->roomid = getId();
                 settleHisDetail->rank   = info.rank;
-                settleHisDetail->time   = componet::toUnixTime(Room::s_timerTime);
+                settleHisDetail->time   = componet::toUnixTime(s_timerTime);
                 settleHisDetail->opps.reserve(m_players.size());
                 for (const PlayerInfo& oppInfo : m_players)
                 {
