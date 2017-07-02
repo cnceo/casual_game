@@ -217,7 +217,7 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
         snd.set_ret_code(PublicProto::LOGINR_SUCCES);
         snd.set_cuid(client->cuid);
         snd.set_temp_token("xxxx"); //此版本一律返回xxxx， 此字段暂不启用
-        snd.set_ip(client->ep.ip.toString());
+        snd.set_ipstr(client->ep.ip.toString());
         snd.set_wechat1(GameConfig::me().data().customService.wechat1);
         snd.set_wechat2(GameConfig::me().data().customService.wechat2);
         snd.set_wechat3(GameConfig::me().data().customService.wechat3);
