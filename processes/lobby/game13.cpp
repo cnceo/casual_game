@@ -665,8 +665,8 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         }
         else
         {
-            if (Deck::cmpBrandInfo(dun0, dun1) == 1 || 
-                Deck::cmpBrandInfo(dun1, dun2) == 1)
+            if (Deck::cmpBrandInfo(dun0, dun1) == -1 || 
+                Deck::cmpBrandInfo(dun1, dun2) == -1)
             {
                 client->noticeMessageBox("相公啦, 请重新理牌");
                 return;
@@ -1479,10 +1479,10 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             {
                 switch (dunCmps[d])
                 {
-                case 1: //I赢
+                case -1: //I赢
                     dunPrize[d] += 1;
                     break;
-                case -1: //J赢
+                case 1: //J赢
                     dunPrize[d] -= 1;
                     break;
                 case 0: //平
