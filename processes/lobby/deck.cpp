@@ -161,7 +161,7 @@ Deck::BrandInfo Deck::brandInfo5(Card* c)
             return {Brand::twoPairs, point};
     }
     {// check 1, 对子
-        uint32_t pairIndex = -1;
+        uint32_t pairIndex = -1u;
         for (uint32_t i = 1; i < size; ++i)
         {
             if (r[i - 1] == r[i])
@@ -170,7 +170,7 @@ Deck::BrandInfo Deck::brandInfo5(Card* c)
                 break;
             }
         }
-        if (pairIndex != uint32_t(-1))
+        if (pairIndex != -1u)
         {
             int32_t point = 0; //rank(对子) * 14^^5 + point(3张乌龙)
             point += rtoi(pairIndex) * pow[5];
@@ -217,7 +217,7 @@ Deck::BrandInfo Deck::brandInfo3(Card* c)
         if (r[0] == r[1])
             point = rtoi(1) * pow[3] + rtoi(2);
         else if (r[1] == r[2])
-            point = rtoi(2) * pow[4] + rtoi(0);
+            point = rtoi(2) * pow[3] + rtoi(0);
         if (point > 0)
             return {Brand::onePair, point};
     }
@@ -600,31 +600,33 @@ void showDeck()
 
 H dunArr[] = 
 {
-    {6, 19, 32, 45, 45},  //9
-    {34, 35, 36 ,37, 38}, //8
-    {22, 23, 24, 25, 26}, //8
-    {27, 28 ,29, 30, 39}, //8
-    {3, 16, 29, 42, 1},   //7
-    {3, 16, 29, 42, 48},   //7
-    {1, 40, 11, 24, 50},  //6
-    {11, 24, 50, 52, 52},  //6
-    {29, 31, 35, 38, 33}, //5
-    {40, 15, 16, 30, 13}, //4
-    {35, 36 ,37, 25 ,39}, //4
-    {12, 11, 24, 50, 13},  //3
-    {1, 11, 24, 50, 13},  //3
-    {1, 45, 11, 24, 50},  //3
-    {14, 4, 30, 36, 49}, //2
-    {4, 30, 7, 36, 49}, //2
-    {4, 30, 36, 49, 12}, //2
-    {20, 33, 21, 35, 36}, //1
-    {40, 20, 33, 21, 35}, //1
-    {2, 42, 20, 33, 21}, //1
-    {1 , 41, 42, 20, 33}, //1
-    {1, 2, 3, 4, 37}, //0
-    {13,13,26}, //3
-    {1, 15, 27},          //1
-    {10, 37, 52}, //0
+//    {6, 19, 32, 45, 45},  //9
+//    {34, 35, 36 ,37, 38}, //8
+//    {22, 23, 24, 25, 26}, //8
+//    {27, 28 ,29, 30, 39}, //8
+//    {3, 16, 29, 42, 1},   //7
+//    {3, 16, 29, 42, 48},   //7
+//    {1, 40, 11, 24, 50},  //6
+//    {11, 24, 50, 52, 52},  //6
+//    {29, 31, 35, 38, 33}, //5
+//    {40, 15, 16, 30, 13}, //4
+//    {35, 36 ,37, 25 ,39}, //4
+//    {12, 11, 24, 50, 13},  //3
+//    {1, 11, 24, 50, 13},  //3
+//    {1, 45, 11, 24, 50},  //3
+//    {14, 4, 30, 36, 49}, //2
+//    {4, 30, 7, 36, 49}, //2
+//    {4, 30, 36, 49, 12}, //2
+//    {20, 33, 21, 35, 36}, //1
+//    {40, 20, 33, 21, 35}, //1
+//    {2, 42, 20, 33, 21}, //1
+//    {1 , 41, 42, 20, 33}, //1
+//    {1, 2, 3, 4, 37}, //0
+//    {13,13,26}, //3
+//    {1, 15, 27},          //1
+//    {10, 37, 52}, //0
+    {11, 24, 13}, //1
+    {50, 37, 20}, //1
 };
 
 H allArr[] =
@@ -639,16 +641,19 @@ H allArr[] =
 };
 
 
-void testBrand(H& h)
+void testBrand()
 {
-    cout << "--------------------------" << endl;
-    cout << "收到: " << detailH(h) << endl;
-    std::shuffle(h.begin(), h.end(), std::default_random_engine(::time(0)));
-    cout << "洗牌: " << detailH(h) << endl;
-    auto info = Deck::brandInfo(h.data(), h.size());
-    cout << "整理: " << detailH(h) << endl;
-    cout << "牌型:  " << (int)(info.b) <<  ", " << info.point << endl;
-    Deck::cmpBrandInfo(info, info);
+    for (auto& h : dunArr)
+    {
+        cout << "--------------------------" << endl;
+        cout << "收到: " << detailH(h) << endl;
+        std::shuffle(h.begin(), h.end(), std::default_random_engine(::time(0)));
+        cout << "洗牌: " << detailH(h) << endl;
+        auto info = Deck::brandInfo(h.data(), h.size());
+        cout << "整理: " << detailH(h) << endl;
+        cout << "牌型:  " << (int)(info.b) <<  ", " << info.point << endl;
+        Deck::cmpBrandInfo(info, info);
+    }
 }
 
 void testAll()
@@ -672,20 +677,13 @@ void testAll()
 }
 
 
-void testDun()
-{
-    for (auto& h : dunArr)
-        testBrand(h);
-}
-
 }
 
 int main()
 {
     using namespace deck_unit_test;
- //   table();
-    
-    testAll();
+    //testAll();
+    testBrand();
     return 0;
 
 }
