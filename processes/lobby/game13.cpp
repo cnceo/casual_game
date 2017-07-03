@@ -336,6 +336,12 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
                 attrCheckResult = 6;
                 break;
             }
+
+            if (rcv->yi_tiao_long() != YI_TIAO_LONG1 && rcv->yi_tiao_long() != YI_TIAO_LONG2 && rcv->yi_tiao_long() != YI_TIAO_LONG4)
+            {
+                attrCheckResult = 7;
+                break;
+            }
         } while (false);
 
         //是否出错
@@ -1420,10 +1426,10 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
                 switch (specWinner.spec)
                 {
                 case Deck::G13SpecialBrand::flushStriaght: //11.   清龙（同花十三水）：若大于其他玩家，每家赢取104分
-                    specPrize = 104;
+                    specPrize = 104 * m_attr.yiTiaoLong;
                     break;
                 case Deck::G13SpecialBrand::straight:
-                    specPrize = 52;
+                    specPrize = 52 * m_attr.yiTiaoLong;
                     break;
                 case Deck::G13SpecialBrand::royal:
                 case Deck::G13SpecialBrand::tripleStraightFlush:

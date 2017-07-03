@@ -38,6 +38,9 @@ class Game13 : public Room
         PAY_WINNER      = 12, //支付，赢家
         DQ_3_DAO        = 3,  //打枪，3道
         DQ_SHUANG_BEI   = 2,  //打枪，双倍
+        YI_TIAO_LONG1   = 1,
+        YI_TIAO_LONG2   = 2,
+        YI_TIAO_LONG4   = 4,
     };
 
 private:
