@@ -100,7 +100,6 @@ private:
         void clear()
         {
             cuid = 0;
-            name.clear();
             status = 0;
         }
         ClientUniqueId cuid;
