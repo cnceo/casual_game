@@ -88,13 +88,14 @@ message G13Data
 
     message G13Player
     {
-        reserved 7, 8, 9;
+        reserved 7, 8;
         int64   cuid    = 1;
         string  name    = 2;
         string  imgurl  = 3;
         int32   status  = 4;
         int32   vote    = 5;
         int32   rank    = 6;
+        bool   cards_spec_brand = 9;
         repeated int32  cards   = 10;
     }
 

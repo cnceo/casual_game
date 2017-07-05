@@ -134,6 +134,7 @@ Game13::Ptr Game13::deserialize(const std::string& bin)
         obj->m_players[i].status = players[i].status();
         obj->m_players[i].vote   = players[i].vote();
         obj->m_players[i].rank   = players[i].rank();
+        obj->m_players[i].cardsSpecBrand = players[i].cards_spec_brand();
 
         if (players[i].cards().size() != 13)
             return nullptr;
@@ -226,6 +227,7 @@ std::string Game13::serialize()
         playerData->set_status(playerInfo.status);
         playerData->set_vote  (playerInfo.vote);
         playerData->set_rank  (playerInfo.rank);
+        playerData->set_cards_spec_brand(playerInfo.cardsSpecBrand);
         for (auto card : playerInfo.cards)
             playerData->add_cards(card);
     }
@@ -334,6 +336,13 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
                 attrCheckResult = 6;
                 break;
             }
+#if 0
+            if (rcv->yi_tiao_long() != YI_TIAO_LONG1) && rcv->yi_tiao_long() != YI_TIAO_LONG2 && rcv->yi_tiao_long() != YI_TIAO_LONG4)
+            {
+                attrCheckResult = 7;
+                break;
+            }
+#endif
         } while (false);
 
         //是否出错
@@ -383,7 +392,7 @@ void Game13::proto_C_G13_JionGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     auto game = Game13::getByRoomId(rcv->room_id());
     if (game == nullptr)
     {
-        client->noticeMessageBox("要加入的房间已解散");
+        client->noticeMessageBox("房间号不存在");
         LOG_DEBUG("申请加入房间失败, 房间号不存在, ccid={}, openid={}, roomid={}", client->ccid(), client->openid(), rcv->room_id());
         return;
     }
@@ -562,8 +571,6 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (oldStatus == newStatus)
         return;
 
-    ON_EXIT_SCOPE_DO(saveToDB(game, "give up game", client));
-
     //改变状态
     info->status = newStatus;
     LOG_TRACE("ReadyFlag, 玩家设置准备状态, readyFlag={}, roomid={}, ccid={}, cuid={}, openid={}",
@@ -635,10 +642,10 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         return;
     }
 
-    {
-        //是否是自己的牌
+    {//合法性判断
         std::array<Deck::Card, 13> tmp;
         std::copy(rcv->cards().begin(), rcv->cards().end(), tmp.begin());
+        // 1, 是否是自己的牌
         std::sort(tmp.begin(), tmp.end());
         for (auto i = 0u; i < tmp.size(); ++i)
         {
@@ -648,10 +655,32 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
                 return;
             }
         }
-
-        //是否相公, TODO
+        // 2, 摆牌的牌型是否合法
+        std::copy(rcv->cards().begin(), rcv->cards().end(), tmp.begin());
+        auto dun0 = Deck::brandInfo(tmp.data(), 3);
+        auto dun1 = Deck::brandInfo(tmp.data() + 3, 5);
+        auto dun2 = Deck::brandInfo(tmp.data() + 8, 5);
+        if (rcv->special())
+        {
+            auto spec = Deck::g13SpecialBrand(tmp.data(), dun1.b, dun2.b);
+            if (spec == Deck::G13SpecialBrand::none)
+            {
+                client->noticeMessageBox("不是特殊牌型, 请重新理牌");
+                return;
+            }
+            info->cardsSpecBrand = true;
+        }
+        else
+        {
+            if (Deck::cmpBrandInfo(dun0, dun1) == 1 || 
+                Deck::cmpBrandInfo(dun1, dun2) == 1)
+            {
+                client->noticeMessageBox("相公啦, 请重新理牌");
+                return;
+            }
+            info->cardsSpecBrand = false;
+        }
     }
-    
     //改变玩家状态, 接收玩家牌型数据
     info->status = PublicProto::S_G13_PlayersInRoom::COMPARE;
     std::string cardsStr;
@@ -705,7 +734,7 @@ bool Game13::enterRoom(Client::Ptr client)
     const uint32_t index = getEmptySeatIndex();
     if (index == NO_POS)
     {
-        client->noticeMessageBox("进入失败, 房间人数已满");
+        client->noticeMessageBox("房间已满, 无法加入");
         return false;
     }
 
@@ -713,6 +742,7 @@ bool Game13::enterRoom(Client::Ptr client)
     m_players[index].cuid = client->cuid();
     m_players[index].name = client->name();
     m_players[index].imgurl = client->imgurl();
+    m_players[index].ipstr = client->ipstr();
     m_players[index].status = PublicProto::S_G13_PlayersInRoom::PREP;
     
     {//钱数检查
@@ -764,8 +794,9 @@ void Game13::clientOnlineExec(Client::Ptr client)
     }
 
     LOG_TRACE("client, sync gameinfo, roomid={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
-    info->name = client->name();
+    info->name   = client->name();
     info->imgurl = client->imgurl();
+    info->ipstr  = client->ipstr();
     afterEnterRoom(client);
 }
 
@@ -801,10 +832,14 @@ void Game13::afterEnterRoom(ClientPtr client)
         for (const PlayerInfo& info : m_players)
         {
             //同步手牌到端
-            PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
-            for (auto card : info.cards)
-                snd2.add_cards(card);
-            client->sendToMe(snd2Code, snd2);
+            if (info.cuid == client->cuid())
+            {
+                PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
+                snd2.set_rounds(m_rounds);
+                for (auto card : info.cards)
+                    snd2.add_cards(card);
+                client->sendToMe(snd2Code, snd2);
+            }
 
             auto voteInfo = snd3.add_votes();
             voteInfo->set_cuid(info.cuid);
@@ -853,6 +888,7 @@ void Game13::syncAllPlayersInfoToAllClients()
         player->set_cuid(info.cuid);
         player->set_name(info.name);
         player->set_imgurl(info.imgurl);
+        player->set_ipstr(info.ipstr);
         player->set_status(info.status);
         player->set_rank(info.rank);
     }
@@ -876,7 +912,7 @@ void Game13::removePlayer(ClientPtr client)
                 settleHisDetail = G13His::Detail::create();
                 settleHisDetail->roomid = getId();
                 settleHisDetail->rank   = info.rank;
-                settleHisDetail->time   = componet::toUnixTime(Room::s_timerTime);
+                settleHisDetail->time   = componet::toUnixTime(s_timerTime);
                 settleHisDetail->opps.reserve(m_players.size());
                 for (const PlayerInfo& oppInfo : m_players)
                 {
@@ -914,7 +950,7 @@ void Game13::abortGame()
                 settleHisDetail = G13His::Detail::create();
                 settleHisDetail->roomid = getId();
                 settleHisDetail->rank   = info.rank;
-                settleHisDetail->time   = componet::toUnixTime(Room::s_timerTime);
+                settleHisDetail->time   = componet::toUnixTime(s_timerTime);
                 settleHisDetail->opps.reserve(m_players.size());
                 for (const PlayerInfo& oppInfo : m_players)
                 {
@@ -971,7 +1007,7 @@ void Game13::tryStartRound()
         }
         else// if(m_attr.playType == GP_65)
         {
-            Game13::s_deck.cards.reserve(65);
+            Game13::s_deck.cards.resize(65);
             for (int32_t i = 0; i < 52; ++i)
                 Game13::s_deck.cards[i] = i + 1;
             for (int32_t i = 0; i < 13; ++i)
@@ -1007,6 +1043,7 @@ void Game13::tryStartRound()
 
         //同步手牌到端
         PROTO_VAR_PUBLIC(S_G13_HandOfMine, snd2)
+        snd2.set_rounds(m_rounds);
         std::string cardsStr;
         cardsStr.reserve(42);
         for (auto card : info.cards)
@@ -1052,6 +1089,7 @@ void Game13::tryStartRound()
         player->set_cuid(info.cuid);
         player->set_name(info.name);
         player->set_imgurl(info.imgurl);
+        player->set_ipstr(info.ipstr);
         player->set_rank(info.rank);
     }
     sendToAll(snd1Code, snd1);
@@ -1362,7 +1400,8 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
         data.dun[0] = Deck::brandInfo(data.cards.data(), 3);
         data.dun[1] = Deck::brandInfo(data.cards.data() + 3, 5);
         data.dun[2] = Deck::brandInfo(data.cards.data() + 8, 5);
-        data.spec = Deck::g13SpecialBrand(data.cards.data(), data.dun[1].b, data.dun[2].b);
+        if (info.cardsSpecBrand)
+            data.spec = Deck::g13SpecialBrand(data.cards.data(), data.dun[1].b, data.dun[2].b);
         data.prize = 0;
     }
 
@@ -1375,7 +1414,8 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             auto& dataJ = datas[j];
             ///////////////////////////////以下为特殊牌型//////////////////////////
 
-            if (dataI.spec != dataJ.spec)
+            if (dataI.spec != Deck::G13SpecialBrand::none || 
+                dataJ.spec != Deck::G13SpecialBrand::none)
             {
                 auto specCmpValueI = underlying(dataI.spec) % 10;
                 auto specCmpValueJ = underlying(dataJ.spec) % 10;
@@ -1415,13 +1455,13 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
 
                 if (specCmpValueI > specCmpValueJ)
                 {
-                    specWinner.losers[i][0] = specPrize;
-                    specWinner.losers[i][1] = 0;
+                    specWinner.losers[j][0] = specPrize;
+                    specWinner.losers[j][1] = 0;
                 }
                 else
                 {
-                    specWinner.losers[j][0] = specPrize;
-                    specWinner.losers[j][1] = 0;
+                    specWinner.losers[i][0] = specPrize;
+                    specWinner.losers[i][1] = 0;
                 }
                 //本轮已经不用再比了, 因为至少有一家是特殊牌型, 特殊的都大于一般的
                 continue;

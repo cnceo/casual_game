@@ -14,6 +14,8 @@
 #include "componet/event.h"
 #include "componet/fast_travel_unordered_map.h"
 
+#include "net/endpoint.h"
+
 #include "base/process_id.h"
 
 #include "protocol/protobuf/proto_manager.h"
@@ -50,6 +52,7 @@ class ClientManager
         ClientConnectionId ccid = INVALID_CCID;
         ClientUniqueId cuid = INVALID_CUID;
         State state = State::logining;
+        net::Endpoint ep;
     };
 
 public:
@@ -64,7 +67,7 @@ public:
     void timerExec(const componet::TimePoint& now);
 
     //添加一个client connection, 返回分配给这个conn的clientId，失败返回INVALID_CLIENT_IDENDITY_VALUE
-    ClientConnectionId clientOnline();
+    ClientConnectionId clientOnline(const net::Endpoint& ep);
     void clientOffline(ClientConnectionId ccid);
     void kickOutClient(ClientConnectionId ccid, bool delay = true);
 

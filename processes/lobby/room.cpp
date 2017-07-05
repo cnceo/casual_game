@@ -11,7 +11,7 @@ const char* ROOM_TABLE_NAME = "tb_room";
 RoomId Room::s_lastRoomId = 100000;
 std::list<RoomId> Room::s_expiredIds;
 std::unordered_map<RoomId, Room::Ptr> Room::s_rooms;
-componet::TimePoint Room::s_timerTime;
+componet::TimePoint Room::s_timerTime = componet::Clock::now();
 
 
 RoomId Room::getRoomId()

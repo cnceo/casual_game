@@ -65,6 +65,8 @@ public:
 
     const std::string& imgurl() const;
 
+    const std::string& ipstr() const;
+
     bool sendToMe(TcpMsgCode code, const ProtoMsg& proto) const;
     bool noticeMessageBox(const std::string& text);
     template<typename ... Params>
@@ -85,13 +87,14 @@ private:
     //TODO 更多的字段
     uint32_t m_roomid;
 
-    int32_t m_money  = 100;
+    int32_t m_money  = 100000;
     int32_t m_money1 = 1000;
 
     G13His m_g13his;
 
     std::string m_token;
     std::string m_imgurl;
+    std::string m_ipstr;
 };
 
 
@@ -119,6 +122,7 @@ inline void Client::setRoomId(uint32_t roomid)
     if (roomid == m_roomid)
         return;
     m_roomid = roomid;
+    saveToDB();
 }
 
 inline int32_t Client::money() const
@@ -170,6 +174,11 @@ inline int32_t Client::addMoney1(int32_t money1)
 inline const std::string& Client::imgurl() const
 {
     return m_imgurl;
+}
+
+inline const std::string& Client::ipstr() const
+{
+    return m_ipstr;
 }
 
 template<typename... Params>

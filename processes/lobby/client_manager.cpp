@@ -171,7 +171,11 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     TcpMsgCode retCode = PROTO_CODE_PRIVATE(RetLoginQuest);
     retMsg.set_ccid(ccid);
     retMsg.set_openid(openid);
-    ON_EXIT_SCOPE_DO(Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg));
+    //RAII的方式在离开函数时, 自动发送登陆结果
+    componet::ScopeGuard autoSendLogRet([&retMsg, &gatewayPid, retCode]()
+                              {
+                                  Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
+                              });
 
     Client::Ptr client = getByOpenid(openid);
     if (client == nullptr) //不在线
@@ -268,6 +272,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     client->m_ccid  = rcv->ccid();
     client->m_name  = rcv->name();
     client->m_imgurl= rcv->imgurl();
+    client->m_ipstr = rcv->ipstr();
     if (rcv->is_wechat() && !saveClient(client))
     {
         erase(client);
@@ -277,10 +282,11 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     }
 
     //登陆成功
+    autoSendLogRet.dismiss(); //取消RAII的自动发送
     retMsg.set_ret_code(PrivateProto::RLQ_SUCCES);
     retMsg.set_cuid(client->cuid());
     retMsg.set_openid(client->openid());
-//    Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
+    Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
     LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid(), client->openid());
 
     //更新可能的房间游戏信息

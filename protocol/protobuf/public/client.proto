@@ -32,10 +32,11 @@ message S_LoginRet
     required int32  ret_code    = 1;
     optional int64  cuid        = 2;    //个人ID
     optional string temp_token  = 3;
-    optional string wechat1     = 4;    //微信号1
-    optional string wechat2     = 5;    //微信号2
-    optional string wechat3     = 6;    //微信号3
-    repeated Price price_list   = 7; //不同局数的房间, 人头费列表
+    optional string ipstr       = 4;
+    optional string wechat1     = 5;    //微信号1
+    optional string wechat2     = 6;    //微信号2
+    optional string wechat3     = 7;    //微信号3
+    repeated Price price_list   = 8; //不同局数的房间, 人头费列表
     
     message Price
     {
@@ -136,7 +137,8 @@ message S_G13_PlayersInRoom
         required int32 status   = 2; //具体值见上面的枚举定义中的注释
         required string name    = 3; //名字
         required int32 rank     = 4; //当前分数
-        required string imgurl  = 5; //头像url //TODO
+        required string imgurl  = 5; //头像url
+        required string ipstr   = 6; //ip字符串
     }
     repeated PlayerStatus players   = 1;
     required int32 rounds           = 2; //当前是第几局, 准备阶段值为0
@@ -198,13 +200,15 @@ message C_G13_ReadyFlag
 //拥有的牌(发牌的结果)
 message S_G13_HandOfMine
 {
-    repeated int32 cards    = 1;
+    required int32 rounds   = 1;
+    repeated int32 cards    = 2;
 }
 
 //确认出牌
 message C_G13_BringOut
 {
     repeated int32 cards    = 1;
+    required bool special   = 2; //true 按照特殊牌型算; false 按照一般的牌型算
 }
 
 // 所有人的牌, 以及结算结果
