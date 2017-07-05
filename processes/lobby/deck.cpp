@@ -448,14 +448,25 @@ Deck::G13SpecialBrand Deck::g13SpecialBrandByAll(Card* c, G13SpecialBrand dun)
          (r[0]==r[2] && r[3]==r[5] && r[6]==r[8] &&  r[9]==r[11]) )
         return G13SpecialBrand::quradThreeOfKind;
 
-    // check 4, 五对+三条
-    uint32_t threeOfKindBegin = -1;
-    for (uint32_t i = 0; i < size - 2; ++i)
+    // check 4, 五对+三条, (这个3条不在4条中)
+    uint32_t threeOfKindBegin = (r[9] != r[10] && r[10] == r[11] && r[11] == r[12]) ? 10 : -1u;
+    if (threeOfKindBegin == -1u)
     {
-        if (r[i] == r[i + 1] && r[i + 1] == r[i + 2])
+        for (uint32_t i = 0; i < size - 3;)
         {
-            threeOfKindBegin = i;
-            break;
+            if (r[i] == r[i + 1] && r[i + 1] == r[i + 2])
+            {
+                if (r[i] != r[i + 3])
+                {
+                    threeOfKindBegin = i;
+                    break;
+                }
+                i += 4;
+            }
+            else
+            {
+                i += 1;
+            }
         }
     }
     if (threeOfKindBegin != -1u)//除了这3张, 剩下的正好要配5对
@@ -659,7 +670,7 @@ H allArr[] =
     { 1,14,27,40, 3,16, 4,43, 5,13,26,39,52}, //6对 + 1
     { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,13}, //5对 + 3条
     {14, 2,15, 3,16,17, 4,43, 5,40,44,39,52}, //5对 + 3条
-    {14, 2,15, 3,16,17, 4,43, 5,40,44,39,52}, //5对 + 3条
+    {14, 2,15,41,28,17, 4,43, 5,40,44,39,52}, //5对 + 3条
     { 1, 2,15, 3,16,17,30, 4,43, 5,44,39,52}, //6对半,  (4条 + 3对 + 1)
     { 1, 2 ,4,15,17,18,21,23,44,50,51,52,43}, //3同花
     { 1, 2 ,3,16,17,18,19,20,47,48,49,50,51}, //3同花顺
