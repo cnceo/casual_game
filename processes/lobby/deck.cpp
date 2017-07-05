@@ -1,4 +1,5 @@
 #include "deck.h"
+#include "componet/tools.h"
 
 namespace lobby{
 
@@ -351,15 +352,16 @@ Deck::G13SpecialBrand Deck::g13SpecialBrandByDun(Card* c, Brand b2, Brand b3)
     std::vector<Suit> s = { suit(c[0]), suit(c[1]), suit(c[2]) };
 
     // 检查花色和连号情况
-    bool isStright = (r[0] == r[1] && r[1] == r[2]);
-    bool isFlush  = (s[0] == s[1] && s[1] == s[2]);
+    bool isStright = ((underlying(r[0]) + 1 == underlying(r[1]) && underlying(r[1]) + 1 == underlying(r[2])) ||
+                      (r[0] == Rank::r2 && r[1] == Rank::r3 && r[2] == Rank::rA));
+    const bool isFlush = (s[0] == s[1] && s[1] == s[2]);
 
     // check 10, 三同花顺 
     if (isStright && isFlush && b2 == Brand::straightFlush && b3 == Brand::straightFlush)
         return G13SpecialBrand::tripleStraightFlush;
 
     // check 2, 三顺子
-    if (isStright && b2 == Brand::straight && b3 == Brand::straight)
+    if (isStright && (b2 == Brand::straight || b2 == Brand::straightFlush) && (b3 == Brand::straight || b3 == Brand::straightFlush))
         return G13SpecialBrand::tripleStraight;
 
     // check 1, 三同花
@@ -629,13 +631,15 @@ H dunArr[] =
 
 H allArr[] =
 {
-    {27,28,29,30,31,32,33,34,35,36,37,38,39}, //青龙
-    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,50}, //6对 + 1
-    { 1,14, 2,15, 3,16, 4,43, 5,44,50,11,52}, //6对 + 1
-    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,13}, //5对 + 3条
-    {14, 2,15, 3,16,17, 4,43, 5,40,44,39,52}, //5对 + 3条
-    { 1, 2,15, 3,16,17,30, 4,43, 5,44,39,52}, //0,  (4条 + 3对 + 1)
-    { 1, 2 ,4,15,17,18,21,23,44,50,51,52,43},
+//    {27,28,29,30,31,32,33,34,35,36,37,38,39}, //青龙
+//    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,50}, //6对 + 1
+//    { 1,14, 2,15, 3,16, 4,43, 5,44,50,11,52}, //6对 + 1
+//    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,13}, //5对 + 3条
+//    {14, 2,15, 3,16,17, 4,43, 5,40,44,39,52}, //5对 + 3条
+//    { 1, 2,15, 3,16,17,30, 4,43, 5,44,39,52}, //0,  (4条 + 3对 + 1)
+//    { 1, 2 ,4,15,17,18,21,23,44,50,51,52,43},
+//    { 1, 2 ,3,16,17,18,19,20,47,48,49,50,51}, //3同花顺
+    { 1, 2 ,16,16,17,18,19,20,47,48,49,50,51}, //3顺子
 };
 
 
@@ -657,8 +661,6 @@ void testAll()
     {
         cout << "--------------------------" << endl;
         cout << "收到: " << detailH(h) << endl;
-        std::shuffle(h.begin(), h.end(), std::default_random_engine(::time(0)));
-        cout << "洗牌: " << detailH(h) << endl;
         auto d1 = Deck::brandInfo(h.data(), 3);
         auto d2 = Deck::brandInfo(h.data() + 3, 5);
         auto d3 = Deck::brandInfo(h.data() + 8, 5);
