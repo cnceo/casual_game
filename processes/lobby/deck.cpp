@@ -448,39 +448,59 @@ Deck::G13SpecialBrand Deck::g13SpecialBrandByAll(Card* c, G13SpecialBrand dun)
          (r[0]==r[2] && r[3]==r[5] && r[6]==r[8] &&  r[9]==r[11]) )
         return G13SpecialBrand::quradThreeOfKind;
 
-    //对子的数量 以及是否含三条 ??? 2个四条算不算4个对子, 现在做了剔除
-    bool have3Kind = false;
-    uint32_t pairSize = (r[11] == r[12] && r[10] != r[12]) ? 1 : 0; //先检查最后两个是否是对子
-    for (uint32_t i = 1; i < size - 1; )          //接下来的对子检查中, 不检查最后一张牌
+    // check 4, 五对+三条
+    uint32_t threeOfKindBegin = -1;
+    for (uint32_t i = 0; i < size - 2; ++i)
     {
-        if (r[i - 1] == r[i])    //前一张相同
+        if (r[i] == r[i + 1] && r[i + 1] == r[i + 2])
         {
-            if (r[i + 1] == r[i])//后一张也相同, 即三条, 不算对子, 直接跳到三条之后两张
+            threeOfKindBegin = i;
+            break;
+        }
+    }
+    if (threeOfKindBegin != -1u)//除了这3张, 剩下的正好要配5对
+    {
+        bool isPentaPairsAndThreeOfKind = true;
+        for (uint32_t i = 0; i < size - 1; )
+        {
+            if (threeOfKindBegin == i) //对子的第一张牌, 直接跳过这个3条
             {
-                have3Kind = true;
                 i += 3;
+                continue;
             }
-            else
+            uint32_t j = i + 1;
+            if (j == threeOfKindBegin) //对子的第二张牌, 也直接跳过这个3条
+                j += 3;
+
+            if (r[i] != r[j])
             {
-                pairSize += 1;
-                i += 2;
+                isPentaPairsAndThreeOfKind = false;
+                break;
             }
+            i = j + 1;
+        }
+        if (isPentaPairsAndThreeOfKind)
+            return G13SpecialBrand::pentaPairsAndThreeOfKind;
+    }
+
+    // check 3, 六对半
+    uint32_t pairSize = 0; 
+    for (uint32_t i = 0; i < size - 1; )
+    {
+        if (r[i] == r[i + 1]) //当前张和下一张放一起是对子
+        {
+            pairSize += 1;
+            i += 2;
         }
         else
         {
             i += 1;
         }
     }
-
-    // check 4, 五对和三条  
-    if (have3Kind && pairSize == 5)
-        return G13SpecialBrand::pentaPairsAndThreeOfKind;
-
-    // check 3, 六对
-    if (pairSize == 6)
+    if (pairSize == 6u)
         return G13SpecialBrand::sixPairs;
 
-    //剩下的直接取dun的值即可
+    // check 1 &  check 2, 直接取dun的值即可
     return dun;
 }
 
@@ -634,10 +654,12 @@ H dunArr[] =
 H allArr[] =
 {
 //    {27,28,29,30,31,32,33,34,35,36,37,38,39}, //青龙
-//    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,50}, //6对 + 1
-//    { 1,14, 2,15, 3,16, 4,43, 5,44,50,11,52}, //6对 + 1
-//    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,13}, //5对 + 3条
-//    {14, 2,15, 3,16,17, 4,43, 5,40,44,39,52}, //5对 + 3条
+    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,50}, //6对 + 1
+    { 1,14, 2,15, 3,16, 4,43, 5,44,50,11,52}, //6对 + 1
+    { 1,14,27,40, 3,16, 4,43, 5,13,26,39,52}, //6对 + 1
+    { 1,14, 2,15, 3,16, 4,43, 5,44,39,52,13}, //5对 + 3条
+    {14, 2,15, 3,16,17, 4,43, 5,40,44,39,52}, //5对 + 3条
+    {14, 2,15, 3,16,17, 4,43, 5,40,44,39,52}, //5对 + 3条
 //    { 1, 2,15, 3,16,17,30, 4,43, 5,44,39,52}, //0,  (4条 + 3对 + 1)
 //    { 1, 2 ,4,15,17,18,21,23,44,50,51,52,43},
 //    { 1, 2 ,3,16,17,18,19,20,47,48,49,50,51}, //3同花顺
@@ -684,8 +706,8 @@ void testAll()
 int main()
 {
     using namespace deck_unit_test;
-    //testAll();
-    testBrand();
+    testAll();
+    //testBrand();
     return 0;
 
 }
