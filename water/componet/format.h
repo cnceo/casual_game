@@ -78,7 +78,7 @@ typename std::enable_if<std::is_integral<T>::value && std::is_signed<T>::value, 
 appendToString(std::string* str, T arg)
 {
     char buf[24];
-    std::snprintf(buf, sizeof(buf) - 1, "%" PRIu64, static_cast<int64_t>(arg));
+    std::snprintf(buf, sizeof(buf) - 1, "%" PRId64, static_cast<int64_t>(arg));
     str->append(buf);
 }
 

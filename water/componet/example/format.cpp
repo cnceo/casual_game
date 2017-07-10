@@ -58,6 +58,8 @@ int main()
     uint8_t ui8 = 77;
     int8_t i8 = 77;
     cout << format("致命错误{ui8}: [{}, {}]", ui8, i8, 'c') << endl;
+
+    cout << format("{}", -1) << endl;
     /*
     uint32_t times = 1000000;
     performance(formatTest, times);
