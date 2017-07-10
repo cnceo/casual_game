@@ -1206,7 +1206,7 @@ void Game13::trySettleGame()
 
             const uint32_t bigwinnerSize = lastBigWinnerIndex + 1;
             const int32_t price = m_attr.playerPrice * m_attr.playerSize / bigwinnerSize;
-            for (uint32_t i = 0; i < lastBigWinnerIndex; ++i)
+            for (uint32_t i = 0; i < bigwinnerSize; ++i)
             {
                 auto winner = ClientManager::me().getByCuid(allFinalCount[i].cuid);
                 if (winner == nullptr)
@@ -1640,7 +1640,7 @@ Game13::RoundSettleData::Ptr Game13::calcRound()
             else //没有打枪
             {
                 if (prize == 0) //平局
-                    break;
+                    continue;
 
                 if (prize > 0) //I胜利
                 {
