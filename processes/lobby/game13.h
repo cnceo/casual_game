@@ -74,7 +74,6 @@ private:
     PlayerInfo* getPlayerInfoByCuid(ClientUniqueId cuid);
 
     std::string serialize();
-    void eraseFromDB(const std::string& log) const;
 private:
     Room::Ptr m_room;
 

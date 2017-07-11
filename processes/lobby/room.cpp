@@ -1,6 +1,8 @@
 #include "room.h"
 #include "client.h"
 
+#include "dbadaptcher/redis_handler.h"
+
 #include "componet/logger.h"
 #include "componet/random.h"
 
@@ -36,7 +38,18 @@ RoomId Room::getRoomId()
 
 void Room::destroyLater()
 {
+    eraseFromDB();
     m_id = 0;
+}
+
+void Room::eraseFromDB() const
+{
+    using water::dbadaptcher::RedisHandler;
+    RedisHandler& redis = RedisHandler::me();
+    if (!redis.hdel(ROOM_TABLE_NAME, componet::format("{}", getId())))
+        LOG_ERROR("Game13, erase from DB, redis failed, roomid={}", getId());
+    else
+        LOG_TRACE("Game13, erase from DB, successed, roomid={}", getId());
 }
 
 bool Room::add(Room::Ptr room)

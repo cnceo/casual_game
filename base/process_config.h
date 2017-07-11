@@ -80,6 +80,11 @@ private:
     std::map<ProcessId, net::Endpoint> m_processIdPrivateListenEps;
     ProcessInfo m_processInfo; //所有进程的信息
 
+    struct
+    {
+        std::string host = "127.0.0.1";
+        int32_t port = 6379;
+    } m_redis;
 };
 
 }}

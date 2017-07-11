@@ -1,6 +1,7 @@
 #include "client.h"
 #include "lobby.h"
-#include "redis_handler.h"
+
+#include "dbadaptcher/redis_handler.h"
 
 #include "componet/logger.h"
 
@@ -92,6 +93,7 @@ bool Client::deserialize(const std::string& bin)
 
 bool Client::saveToDB() const
 {
+    using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
     const std::string& bin = serialize();
     if (bin.size() == 0)

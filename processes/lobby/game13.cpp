@@ -8,8 +8,9 @@
 
 #include "game13.h"
 #include "client.h"
-#include "redis_handler.h"
 #include "game_config.h"
+
+#include "dbadaptcher/redis_handler.h"
 
 #include "componet/logger.h"
 #include "componet/scope_guard.h"
@@ -33,6 +34,7 @@ Deck Game13::s_deck;
 
 bool Game13::recoveryFromDB()
 {
+    using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
     bool successed = true;
     auto exec = [&successed](const std::string roomid, const std::string& bin) -> bool
@@ -70,6 +72,7 @@ bool Game13::saveToDB(Game13::Ptr game, const std::string& log, ClientPtr client
         return false;
     }
 
+    using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
     if (!redis.hset(ROOM_TABLE_NAME, componet::format("{}", game->getId()), bin))
     {
@@ -81,15 +84,6 @@ bool Game13::saveToDB(Game13::Ptr game, const std::string& log, ClientPtr client
     LOG_TRACE("Game13, save to DB, {}, successed, roomid={}, cuid={}, opneid={}",
               log, game->getId(), client->cuid(), client->openid());
     return true;
-}
-
-void Game13::eraseFromDB(const std::string& log) const
-{
-    RedisHandler& redis = RedisHandler::me();
-    if (!redis.hdel(ROOM_TABLE_NAME, componet::format("{}", getId())))
-        LOG_ERROR("Game13, erase from DB, {}, redis failed, roomid={}", log, getId());
-    else
-        LOG_TRACE("Game13, erase from DB, {}, successed, roomid={}", log, getId());
 }
 
 Game13::Ptr Game13::deserialize(const std::string& bin)
@@ -967,7 +961,6 @@ void Game13::abortGame()
     m_players.clear();
     m_status = GameStatus::closed;
     destroyLater();
-    eraseFromDB("abortgame");
 }
 
 void Game13::tryStartRound()

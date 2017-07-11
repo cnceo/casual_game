@@ -4,10 +4,13 @@
 #include "game13.h"
 #include "game_config.h"
 
-#include "water/componet/logger.h"
-#include "water/componet/scope_guard.h"
-#include "water/net/endpoint.h"
+#include "componet/logger.h"
+#include "componet/scope_guard.h"
+#include "net/endpoint.h"
+#include "dbadaptcher/redis_handler.h"
+
 #include "base/tcp_message.h"
+
 #include "protocol/rawmsg/rawmsg_manager.h"
 #include "protocol/protobuf/proto_manager.h"
 
@@ -44,6 +47,7 @@ void Lobby::init()
     //加载配置
     ProtoManager::me().loadConfig(m_cfgDir);
     GameConfig::me().load(m_cfgDir);
+    dbadaptcher::RedisHandler::me().loadConfig(m_cfgDir);
     //初始化初始化ClientManager
     ClientManager::me().init();
     //加载G13游戏房间数据

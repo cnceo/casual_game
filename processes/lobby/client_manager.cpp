@@ -1,8 +1,9 @@
 #include "client_manager.h"
 #include "client.h"
 #include "lobby.h"
-#include "redis_handler.h"
 #include "game13.h"
+
+#include "dbadaptcher/redis_handler.h"
 
 #include "componet/logger.h"
 #include "componet/scope_guard.h"
@@ -36,7 +37,7 @@ void ClientManager::init()
 
 void ClientManager::recoveryFromRedis()
 {
-
+    using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
     std::string maxUinqueIdStr = redis.get(MAX_CLIENT_UNIQUE_ID_NAME);
     if (!maxUinqueIdStr.empty())
@@ -135,6 +136,7 @@ Client::Ptr ClientManager::getByOpenid(const std::string& openid)
 
 std::pair<Client::Ptr, bool> ClientManager::loadClient(const std::string& openid)
 {
+    using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
     const std::string& bin = redis.hget(CLIENT_TABLE_NAME, openid);
     if (bin == "")
@@ -378,6 +380,7 @@ ClientUniqueId ClientManager::getClientUniqueId()
 {
     const ClientUniqueId nextCuid = m_uniqueIdCounter + 1;
 
+    using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
     if (!redis.set(MAX_CLIENT_UNIQUE_ID_NAME, componet::format("{}", nextCuid)))
         return INVALID_CUID;
