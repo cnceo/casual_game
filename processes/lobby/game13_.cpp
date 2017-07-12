@@ -272,7 +272,6 @@ void Game13::regMsgHandler()
     REG_PROTO_PUBLIC(C_G13_VoteFoAbortGame, std::bind(&Game13::proto_C_G13_VoteFoAbortGame, _1, _2));
     REG_PROTO_PUBLIC(C_G13_ReadyFlag, std::bind(&Game13::proto_C_G13_ReadyFlag, _1, _2));
     REG_PROTO_PUBLIC(C_G13_BringOut, std::bind(&Game13::proto_C_G13_BringOut, _1, _2));
-    REG_PROTO_PUBLIC(C_G13_SimulationRound, std::bind(&Game13::proto_C_G13_SimulationRound, _1, _2));
 }
 
 void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
@@ -699,59 +698,6 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     saveToDB(game, "bring out", client);
 }
 
-void Game13::proto_C_G13_SimulationRound(ProtoMsgPtr proto, ClientConnectionId ccid)
-{
-    auto client = ClientManager::me().getByCcid(ccid);
-    if (client == nullptr)
-        return;
-
-    auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_SimulationRound, proto);
-    if (rcv->players().size() < 2)
-    {
-        client->noticeMessageBox("出牌人数过少");
-        return;
-    }
-    struct ItemInfo
-    {
-        bool cardsSpecBrand = false;
-        std::array<Deck::Card, 13> cards;
-        ClientUniqueId cuid;
-    };
-    std::vector<ItemInfo> playerList;
-    for(const auto& item : rcv->players())
-    {
-        if(item.cards_size() != 13)
-        {
-            client->noticeMessageBox("出牌数量不对");
-            return;
-        }
-        playerList.emplace_back();
-        playerList.back().cardsSpecBrand = item.special();
-        std::copy(item.cards().begin(), item.cards().end(), playerList.back().cards.begin());
-        playerList.back().cuid = item.cuid();
-    }
-
-    auto result = calcRound(playerList, DQ_SHUANG_BEI, true);
-    PROTO_VAR_PUBLIC(S_G13_CalcRoundSimulationRet, snd)
-    for (const auto& pd : result->players)
-    {
-        auto player = snd.mutable_result()->add_players();
-        player->set_cuid(pd.cuid);
-        for (Deck::Card crd : pd.cards)
-            player->add_cards(crd);
-        player->set_rank(pd.prize);
-        player->mutable_dun0()->set_brand(static_cast<int32_t>(pd.dun[0].b));
-        player->mutable_dun0()->set_point(static_cast<int32_t>(pd.dun[0].point));
-        player->mutable_dun1()->set_brand(static_cast<int32_t>(pd.dun[1].b));
-        player->mutable_dun1()->set_point(static_cast<int32_t>(pd.dun[1].point));
-        player->mutable_dun2()->set_brand(static_cast<int32_t>(pd.dun[2].b));
-        player->mutable_dun2()->set_point(static_cast<int32_t>(pd.dun[2].point));
-        player->mutable_spec()->set_brand(static_cast<int32_t>(pd.spec));
-        player->mutable_spec()->set_point(static_cast<int32_t>(0));
-    }
-    client->sendToMe(sndCode, snd);
-}
-
 
 /*************************************************************************/
 //
@@ -1159,7 +1105,7 @@ void Game13::trySettleGame()
     }
 
     //先算牌型
-    auto curRound = calcRound(m_players, m_attr.daQiang, m_attr.quanLeiDa);
+    auto curRound = calcRound();
     for (uint32_t i = 0; i < m_players.size(); ++i)
     {
         curRound->players[i].cards = m_players[i].cards;
@@ -1432,12 +1378,11 @@ void Game13::timerExec()
     return;
 }
 
-template<typename Player>
-Game13::RoundSettleData::Ptr Game13::calcRound(const std::vector<Player>& playerList, int32_t daQiang, bool quanLeiDa)
+Game13::RoundSettleData::Ptr Game13::calcRound()
 {
     auto rsd = RoundSettleData::create();
-    rsd->players.reserve(playerList.size());
-    for (const auto& info : playerList)
+    rsd->players.reserve(m_players.size());
+    for (PlayerInfo& info : m_players)
     {
         rsd->players.emplace_back();
         auto& data = rsd->players.back();
@@ -1675,12 +1620,12 @@ Game13::RoundSettleData::Ptr Game13::calcRound(const std::vector<Player>& player
             //如果三墩都比一个玩家大的话，向该玩家收取分数*2,包含特殊分
             //诸如冲三后打枪一个玩家，为5分+5分，共对该玩家收取10分
             const uint32_t prize = dunPrize[0] + dunPrize[1] + dunPrize[2];
-            if (daQiang && (dunPrize[0] > 0 && dunPrize[1] > 0 && dunPrize[2] > 0) ) //I打枪
+            if (m_attr.daQiang && (dunPrize[0] > 0 && dunPrize[1] > 0 && dunPrize[2] > 0) ) //I打枪
             {
                 dataI.losers[j][0] = prize;
                 dataI.losers[j][1] = 1;
             }
-            else if (daQiang && (dunPrize[0] < 0 && dunPrize[1] < 0 && dunPrize[2] < 0) ) //J打枪
+            else if (m_attr.daQiang && (dunPrize[0] < 0 && dunPrize[1] < 0 && dunPrize[2] < 0) ) //J打枪
             {
                 dataJ.losers[i][0] = -prize;
                 dataJ.losers[i][1] = 1;
@@ -1712,8 +1657,8 @@ Game13::RoundSettleData::Ptr Game13::calcRound(const std::vector<Player>& player
 
             //判断是否是全垒打
             winner.quanLeiDa = false;
-            if ((quanLeiDa)  //全垒打启用
-                && (playerList.size() > 2) //两人房无全垒打
+            if ((m_attr.quanLeiDa)  //全垒打启用
+                && (m_attr.playerSize > 2) //两人房无全垒打
                 && (winner.losers.size() + 1 == datas.size()) ) //全胜
             {
                 winner.quanLeiDa = true;
@@ -1734,7 +1679,7 @@ Game13::RoundSettleData::Ptr Game13::calcRound(const std::vector<Player>& player
                 int32_t prize = iter->second[0]; //分数得失
                 if (iter->second[1] > 0) //打枪
                 {
-                    if (daQiang == DQ_3_DAO)
+                    if (m_attr.daQiang == DQ_3_DAO)
                         prize += 3;
                     else
                         prize *= 2;

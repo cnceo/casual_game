@@ -66,8 +66,7 @@ private:
     void syncAllPlayersInfoToAllClients(); //这个有空可以拆成 sendAllToMe和sendMeToAll, 现在懒得搞了
 
     struct RoundSettleData;
-    template<typename Player>
-    static std::shared_ptr<RoundSettleData> calcRound(const std::vector<Player>& players, int32_t daQiang, bool quanLeiDa);
+    std::shared_ptr<RoundSettleData> calcRound();
 
     const uint32_t NO_POS = -1;
     uint32_t getEmptySeatIndex();
@@ -146,7 +145,6 @@ private://消息处理
     static void proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId ccid);
     static void proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid);
     static void proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid);
-    static void proto_C_G13_SimulationRound(ProtoMsgPtr proto, ClientConnectionId ccid);
 
 public:
     static Game13::Ptr getByRoomId(RoomId roomId);
