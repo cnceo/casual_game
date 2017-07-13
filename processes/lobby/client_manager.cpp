@@ -337,6 +337,7 @@ void ClientManager::proto_C_G13_ReqGameHistoryCount(ClientConnectionId ccid)
         return;
 
     PROTO_VAR_PUBLIC(S_G13_GameHistoryCount, snd);
+    snd.set_total(client->m_g13his.details.size());
     snd.set_week_rank(client->m_g13his.weekRank);
     snd.set_week_game(client->m_g13his.weekGame);
     snd.set_today_rank(client->m_g13his.todayRank);
