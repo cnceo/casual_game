@@ -352,17 +352,26 @@ void ClientManager::proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, C
     if (client == nullptr)
         return;
 
-    const uint32_t page     = rcv->page();
     const uint32_t perPage  = 5;
     const uint32_t total    = client->m_g13his.details.size();
+    int32_t maxPage = 0;
+    if (total > 0)
+        maxPage = (total - 1) / perPage;
+    const uint32_t page = rcv->page() <= maxPage ? rcv->page() : maxPage;
 
     uint32_t first = perPage * page;
     if (first != 0 && first >= total)
         first = perPage * (page - 1);
 
     PROTO_VAR_PUBLIC(S_G13_GameHistoryDetial, snd);
+    uint32_t index = 0;
     for (const auto&detail : client->m_g13his.details)
     {
+        if (index++ < first)           //first之前的跳过
+            continue;
+        if (index > first + perPage)   //从first开始, 只读一页的条目数, 注意, 上面++执行过, 所以这里判>而不是>=
+            break;
+
         auto item = snd.add_items();
         item->set_roomid(detail->roomid);
         item->set_rank(detail->rank);
