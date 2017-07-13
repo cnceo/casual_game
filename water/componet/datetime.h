@@ -21,6 +21,7 @@ typedef Clock::time_point TimePoint;
 
 //toUnixTime
 time_t toUnixTime(const TimePoint& tp);
+TimePoint fromUnixTime(time_t t);
 
 //获取当前系统日期(年月日)
 std::string date();

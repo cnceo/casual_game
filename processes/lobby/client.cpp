@@ -4,6 +4,7 @@
 #include "dbadaptcher/redis_handler.h"
 
 #include "componet/logger.h"
+#include "componet/datetime.h"
 
 #include "protocol/protobuf/proto_manager.h"
 #include "protocol/protobuf/public/client.codedef.h"
@@ -30,8 +31,10 @@ std::string Client::serialize() const
     proto.set_token   (m_token );
 
     auto protoG13his = proto.mutable_g13his();
-    protoG13his->set_win(m_g13his.win);
-    protoG13his->set_lose(m_g13his.lose);
+    protoG13his->set_week_rank (m_g13his.weekRank);
+    protoG13his->set_week_game (m_g13his.weekGame);
+    protoG13his->set_today_rank(m_g13his.todayRank);
+    protoG13his->set_today_game(m_g13his.todayGame);
     for (const auto&detail : m_g13his.details)
     {
         auto protoDetail = protoG13his->add_details();
@@ -66,8 +69,10 @@ bool Client::deserialize(const std::string& bin)
     m_token   = proto.token ();
 
     const auto& protoG13his = proto.g13his();
-    m_g13his.win  = protoG13his.win();
-    m_g13his.lose = protoG13his.lose();
+    m_g13his.weekRank     = protoG13his.week_rank();
+    m_g13his.weekGame     = protoG13his.week_game();
+    m_g13his.todayRank     = protoG13his.today_rank();
+    m_g13his.todayGame    = protoG13his.today_game();
 
     for (const auto& protoDetail : protoG13his.details())
     {
@@ -110,7 +115,7 @@ bool Client::saveToDB() const
     }
     LOG_TRACE("save client, successed, openid={}, cuid={}, roomid={}, money={}, money1={}", 
                   openid(), cuid(), roomid(), money(), money1());
-    return true;  //TODO 加入真实的数据库访问
+    return true; 
 }
 
 void Client::afterLeaveRoom(G13His::Detail::Ptr detail)
@@ -119,13 +124,31 @@ void Client::afterLeaveRoom(G13His::Detail::Ptr detail)
 
     if (detail != nullptr)
     {
-        if (detail->rank > 0)
-            m_g13his.win += 1;
-        if (detail->rank < 0)
-            m_g13his.lose += 1;
-        m_g13his.details.push_back(detail);
+        if (!m_g13his.details.empty())
+        {
+            auto lastGameTimePoint = componet::fromUnixTime(m_g13his.details.front()->time);
+            auto thisGameTimePoint = componet::fromUnixTime(detail->time);
+            if (!componet::inSameDay(lastGameTimePoint, thisGameTimePoint))
+            {
+                m_g13his.todayRank = 0;
+                m_g13his.todayGame = 0;
+            }
+            if (!componet::inSameWeek(lastGameTimePoint, thisGameTimePoint, 1))
+            {
+                m_g13his.weekRank = 0;
+                m_g13his.weekGame = 0;
+
+            }
+        }
+
+        m_g13his.weekRank += detail->rank;
+        m_g13his.weekGame += 1;
+        m_g13his.todayRank += detail->rank;
+        m_g13his.todayGame += 1;
+
+        m_g13his.details.push_front(detail);
         if (m_g13his.details.size() > 50)
-            m_g13his.details.pop_front();
+            m_g13his.details.pop_back();
         saveToDB();
     }
 

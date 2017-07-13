@@ -30,8 +30,10 @@ struct G13His
         std::vector<Opponent> opps;
     };
     std::list<Detail::Ptr> details;
-    int32_t win  = 0;
-    int32_t lose = 0;
+    int32_t weekRank   = 0;
+    int32_t weekGame   = 0;
+    int32_t todayRank  = 0;
+    int32_t todayGame  = 0;
 };
 
 class Client

@@ -255,9 +255,10 @@ message C_G13_ReqGameHistoryCount
 //返回历史总统计
 message S_G13_GameHistoryCount
 {
-    required int32 total  = 1;  //总场数
-    required int32 win    = 2;  //胜利
-    required int32 lose   = 3;  //失败
+    required int32 week_rank   = 1;  //本周积分
+    required int32 week_game   = 2;  //本周场数
+    required int32 today_rank  = 3;  //今日积分
+    required int32 today_game  = 4;  //今日场数
 }
 
 //请求比赛历史详情
