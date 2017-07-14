@@ -18,9 +18,17 @@ componet::TimePoint Room::s_timerTime = componet::Clock::now();
 
 RoomId Room::getRoomId()
 {
+    RoomId id = 0;
+    if (s_expiredIds.size() > 1000)
+    {
+        id = s_expiredIds.front();
+        s_expiredIds.pop_front();
+        return id;
+    }
+
     componet::Random<RoomId> rander(100001, 999999);
-    RoomId id = rander.get();
-    while (id == 0 || get(id) != nullptr)
+    id = rander.get();
+    while (id == 0 || get(id) != nullptr) //没有考虑房间号用尽的情况, 毕竟, 一个地方性游戏, 还单服, 支撑90w的房间, 就不考虑啦
     {
         if (s_expiredIds.empty())
         {
