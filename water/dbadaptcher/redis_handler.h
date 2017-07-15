@@ -1,5 +1,5 @@
-#ifndef LOBBY_REDIS_HANDLER_HPP
-#define LOBBY_REDIS_HANDLER_HPP
+#ifndef PERMANENT_REDIS_HANDLER_HPP
+#define PERMANENT_REDIS_HANDLER_HPP
 
 
 #include "hiredis/hiredis.h"
@@ -10,7 +10,8 @@
 #include <memory>
 #include <unordered_map>
 
-namespace lobby{
+namespace water{
+namespace dbadaptcher{
 
 
 class RedisHandler
@@ -29,20 +30,22 @@ public:
     bool hgetall(std::unordered_map<std::string, std::string>* ht, const std::string table);
     int32_t htraversal(const std::string& table, const std::function<bool (const std::string& key, const std::string& data)>& exec);
 
-    static RedisHandler& me();
+    void loadConfig(const std::string& cfgDir);
 
 private:
     RedisHandler();
-    void loadConfig();
     bool init();
 
 private:
-    std::string m_redisServerHost;
+    std::string m_host;
     std::size_t m_port;
     std::unique_ptr<redisContext> m_ctx;
+
+public:
+    static RedisHandler& me();
 };
 
 
-}
+}}
 
 #endif

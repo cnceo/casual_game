@@ -212,7 +212,6 @@ message C_G13_BringOut
 }
 
 // 所有人的牌, 以及结算结果
-// 此消息发完后30s游戏自动解散, 期间可以自由离开
 message S_G13_AllHands
 {
     message BrandInfo //牌型信息
@@ -233,7 +232,8 @@ message S_G13_AllHands
     repeated Player players = 1;
 }
 
-//所有局结束, 总结算 
+// 所有局结束, 总结算 
+// 此消息发完, 游戏会在稍后自动解散, 期间可以自由离开
 message S_G13_AllRounds
 {
     message Player
@@ -255,9 +255,11 @@ message C_G13_ReqGameHistoryCount
 //返回历史总统计
 message S_G13_GameHistoryCount
 {
-    required int32 total  = 1;  //总场数
-    required int32 win    = 2;  //胜利
-    required int32 lose   = 3;  //失败
+    required int32 total       = 1;  //总历史记录条目数量
+    required int32 week_rank   = 2;  //本周积分
+    required int32 week_game   = 3;  //本周场数
+    required int32 today_rank  = 4;  //今日积分
+    required int32 today_game  = 5;  //今日场数
 }
 
 //请求比赛历史详情
@@ -284,4 +286,25 @@ message S_G13_GameHistoryDetial
 
     repeated Game items = 1;
 }
+
+//请求计算模拟牌局的结果
+message C_G13_SimulationRound
+{
+    message BringOutInfo
+    {
+        required uint64 cuid    = 1;
+        repeated int32 cards    = 2;
+        required bool special   = 3; //true 按照特殊牌型算; false 按照一般的牌型算
+    }
+    repeated BringOutInfo players = 1;
+}
+
+//返回模拟牌局的计算结果
+message S_G13_CalcRoundSimulationRet
+{
+    required S_G13_AllHands result = 1;
+}
+
+
+
 

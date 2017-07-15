@@ -1,5 +1,6 @@
 objects = \
     dbconnection_pool.o\
+	redis_handler.o\
 
 
 CC = g++
@@ -9,9 +10,12 @@ MYSQLPP_INSTLLED_DIR = /$(LIBS_DIR)/mysql++/installed
 
 include_flags        = $(shell $(MYSQL_CONFIG_CMD) --include) \
 					   -I$(LIBS_DIR)/mysql++/installed/include \
-					   -I$(BASE_DIR)
+					   -I$(LIBS_DIR)/hiredis/installed/include \
+					   -I$(BASE_DIR)\
+
 lib_flags            = $(shell $(MYSQL_CONFIG_CMD) --libs_r)\
-					   -L$(LIBS_DIR)/mysql++/installed/lib -lmysqlpp
+					   -L$(LIBS_DIR)/mysql++/installed/lib -lmysqlpp\
+					   -L$(LIBS_DIR)/hiredis/installed/lib -lhiredis\
 
 cc_flags = $(CPP_STD_VER) -ggdb -Wall -Werror \
 		   $(optimization_flag)\

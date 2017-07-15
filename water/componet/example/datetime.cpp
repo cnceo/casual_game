@@ -35,6 +35,13 @@ void compare()
     cout << toString(beginOfMonth(now)) << endl;
     cout << toString(beginOfWeek(now)) << endl;
     cout << toString(beginOfWeek(now, 1)) << endl;
+
+    auto tt = toUnixTime(now);
+    cout << "tt now: " << tt << endl;
+    cout << "tt to tp and to tt" << toUnixTime(fromUnixTime(tt)) << endl;
+
+    cout << "tt to today:  " << toString(fromUnixTime(tt)) << endl;
+    cout << "tp to today:  " << toString(now) << endl;
 }
 
 int main()

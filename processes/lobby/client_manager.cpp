@@ -1,8 +1,9 @@
 #include "client_manager.h"
 #include "client.h"
 #include "lobby.h"
-#include "redis_handler.h"
 #include "game13.h"
+
+#include "dbadaptcher/redis_handler.h"
 
 #include "componet/logger.h"
 #include "componet/scope_guard.h"
@@ -36,7 +37,7 @@ void ClientManager::init()
 
 void ClientManager::recoveryFromRedis()
 {
-
+    using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
     std::string maxUinqueIdStr = redis.get(MAX_CLIENT_UNIQUE_ID_NAME);
     if (!maxUinqueIdStr.empty())
@@ -135,6 +136,7 @@ Client::Ptr ClientManager::getByOpenid(const std::string& openid)
 
 std::pair<Client::Ptr, bool> ClientManager::loadClient(const std::string& openid)
 {
+    using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
     const std::string& bin = redis.hget(CLIENT_TABLE_NAME, openid);
     if (bin == "")
@@ -336,8 +338,10 @@ void ClientManager::proto_C_G13_ReqGameHistoryCount(ClientConnectionId ccid)
 
     PROTO_VAR_PUBLIC(S_G13_GameHistoryCount, snd);
     snd.set_total(client->m_g13his.details.size());
-    snd.set_win(client->m_g13his.win);
-    snd.set_lose(client->m_g13his.lose);
+    snd.set_week_rank(client->m_g13his.weekRank);
+    snd.set_week_game(client->m_g13his.weekGame);
+    snd.set_today_rank(client->m_g13his.todayRank);
+    snd.set_today_game(client->m_g13his.todayGame);
     sendToClient(ccid, sndCode, snd);
 }
 
@@ -348,17 +352,26 @@ void ClientManager::proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, C
     if (client == nullptr)
         return;
 
-    const uint32_t page     = rcv->page();
     const uint32_t perPage  = 5;
     const uint32_t total    = client->m_g13his.details.size();
+    int32_t maxPage = 0;
+    if (total > 0)
+        maxPage = (total - 1) / perPage;
+    const uint32_t page = rcv->page() <= maxPage ? rcv->page() : maxPage;
 
     uint32_t first = perPage * page;
     if (first != 0 && first >= total)
         first = perPage * (page - 1);
 
     PROTO_VAR_PUBLIC(S_G13_GameHistoryDetial, snd);
+    uint32_t index = 0;
     for (const auto&detail : client->m_g13his.details)
     {
+        if (index++ < first)           //first之前的跳过
+            continue;
+        if (index > first + perPage)   //从first开始, 只读一页的条目数, 注意, 上面++执行过, 所以这里判>而不是>=
+            break;
+
         auto item = snd.add_items();
         item->set_roomid(detail->roomid);
         item->set_rank(detail->rank);
@@ -378,6 +391,7 @@ ClientUniqueId ClientManager::getClientUniqueId()
 {
     const ClientUniqueId nextCuid = m_uniqueIdCounter + 1;
 
+    using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
     if (!redis.set(MAX_CLIENT_UNIQUE_ID_NAME, componet::format("{}", nextCuid)))
         return INVALID_CUID;

@@ -39,6 +39,8 @@ protected:
     Room(RoomId roomid, ClientUniqueId ownerCuid, GameType gameType);
     Room(ClientUniqueId ownerCuid, GameType gameType);
     void destroyLater();
+private:
+    void eraseFromDB() const;
 
 public:
     virtual void clientOnlineExec(ClientPtr client) = 0;

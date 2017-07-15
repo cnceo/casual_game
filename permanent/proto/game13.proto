@@ -38,8 +38,10 @@ message ClientData
         }
 
         repeated Detail details = 1;
-        int32 win               = 2;
-        int32 lose              = 3;
+        int32 week_rank         = 2;
+        int32 week_game         = 3;
+        int32 today_rank        = 4;
+        int32 today_game        = 5;
     }
 
     reserved 9;

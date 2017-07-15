@@ -21,13 +21,20 @@ void ProcessConfig::load(const std::string& cfgDir)
 
     const std::string configFile = cfgDir + "/process.xml";
 
-    LOG_TRACE("读取主配置文件 {}", configFile);
+    LOG_TRACE("读取集群拓扑配置 {}", configFile);
 
     XmlParseDoc doc(configFile);
     XmlParseNode root = doc.getRoot();
     if(!root)
         EXCEPTION(LoadProcessConfigFailed, configFile + " parse root node failed");
 
+    {//读取redis配置
+        XmlParseNode redisNode = root.getChild("redis");
+        if (!redisNode)
+            LOG_TRACE("redis cfg dose not exisit, use default values");
+        m_redis.host = redisNode.getAttr<std::string>("host");
+        m_redis.port = redisNode.getAttr<int32_t>("port");
+    }
     {//进程拓扑结构
         XmlParseNode allProcessesNode = root.getChild("allProcesses");
         if(!allProcessesNode)
@@ -216,6 +223,7 @@ componet::TimePoint ProcessConfig::opentime() const
 {
     return m_opentime;
 }
+
 
 }}
 

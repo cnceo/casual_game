@@ -14,6 +14,11 @@ time_t toUnixTime(const TimePoint& tp)
     return Clock::to_time_t(tp);
 }
 
+TimePoint fromUnixTime(time_t t)
+{
+    return Clock::from_time_t(t);
+}
+
 
 std::string date()
 {

@@ -1,9 +1,11 @@
 #include "redis_handler.h"
 #include "componet/logger.h"
 #include "componet/format.h"
+#include "componet/xmlparse.h"
 
 
-namespace lobby{
+namespace water{
+namespace dbadaptcher{
 
 using namespace water;
 
@@ -17,15 +19,45 @@ RedisHandler& RedisHandler::me()
 }
 
 RedisHandler::RedisHandler()
-:m_redisServerHost("127.0.0.1"), m_port(6379)
+:m_host("127.0.0.1"), m_port(6379)
 {
 
+}
+
+void RedisHandler::loadConfig(const std::string& cfgDir)
+{
+    using componet::XmlParseDoc;
+    using componet::XmlParseNode;
+
+    const std::string configFile = cfgDir + "/process.xml";
+
+    LOG_TRACE("读取redis配置 {}", configFile);
+
+    XmlParseDoc doc(configFile);
+    XmlParseNode root = doc.getRoot();
+    if(!root)
+    {
+        LOG_TRACE("load redis cfg file failed(1), use default values");
+        return;
+    }
+        
+
+    XmlParseNode redisNode = root.getChild("redis");
+    if (!redisNode)
+    {
+        LOG_TRACE("load redis cfg file failed(2), use default values");
+        return;
+    }
+
+    m_host = redisNode.getAttr<std::string>("host");
+    m_port = redisNode.getAttr<size_t>("port");
+    LOG_TRACE("load redis cfg successful, host={}, port={}", m_host, m_port);
 }
 
 bool RedisHandler::init()
 {
     if (m_ctx == nullptr)
-        m_ctx.reset(redisConnect(m_redisServerHost.c_str(), m_port));
+        m_ctx.reset(redisConnect(m_host.c_str(), m_port));
 
     if (m_ctx == nullptr || m_ctx->err)
     {   
@@ -203,7 +235,7 @@ int32_t RedisHandler::htraversal(const std::string& table, const std::function<b
     return total;
 }
 
-}
+}}
 
 #ifdef REDIS_UNIT_TEST
 //compile cmd:
@@ -215,7 +247,8 @@ int32_t RedisHandler::htraversal(const std::string& table, const std::function<b
 #include <iostream>
 using namespace std;
 
-using namespace lobby;
+using namespace water;
+using namespace process;
 
 void set_get()
 {
