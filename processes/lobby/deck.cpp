@@ -365,7 +365,7 @@ Deck::G13SpecialBrand Deck::g13SpecialBrandByDun(Card* c, Brand b2, Brand b3)
         return G13SpecialBrand::tripleStraight;
 
     // check 1, 三同花
-    if (isFlush && b2 == Brand::flush && b3 == Brand::flush)
+    if (isFlush && (b2 == Brand::flush || b2 == Brand::straightFlush) && (b3 == Brand::flush || b3 == Brand::straightFlush))
         return G13SpecialBrand::tripleFlush;
 
     return G13SpecialBrand::none;

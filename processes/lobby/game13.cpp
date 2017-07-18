@@ -978,7 +978,8 @@ void Game13::removePlayer(ClientPtr client)
             break;
         }
     }
-    syncAllPlayersInfoToAllClients();
+    if (m_status != GameStatus::settleAll && m_status != GameStatus::closed)
+        syncAllPlayersInfoToAllClients();
     return;
 }
 

@@ -149,9 +149,9 @@ void Client::afterLeaveRoom(G13His::Detail::Ptr detail)
         m_g13his.details.push_front(detail);
         if (m_g13his.details.size() > 50)
             m_g13his.details.pop_back();
-        saveToDB();
     }
 
+    saveToDB();
     PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
     sendToMe(sndCode, snd);
 }
