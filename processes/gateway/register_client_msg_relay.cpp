@@ -35,6 +35,7 @@ void ClientManager::regClientMsgRelay()
     PUBLIC_MSG_TO_LOBBY(C_G13_BringOut)
     PUBLIC_MSG_TO_LOBBY(C_G13_ReqGameHistoryCount)
     PUBLIC_MSG_TO_LOBBY(C_G13_ReqGameHistoryDetial)
+    PUBLIC_MSG_TO_LOBBY(C_G13_SimulationRound)
 
     /************转发到hall*************/
 //    PUBLIC_MSG_TO_HALL()
@@ -52,6 +53,7 @@ void ClientManager::regClientMsgRelay()
     PUBLIC_MSG_TO_CLIENT(S_G13_AllRounds)
     PUBLIC_MSG_TO_CLIENT(S_G13_GameHistoryCount)
     PUBLIC_MSG_TO_CLIENT(S_G13_GameHistoryDetial)
+    PUBLIC_MSG_TO_CLIENT(S_G13_CalcRoundSimulationRet)
 };
 
 }
