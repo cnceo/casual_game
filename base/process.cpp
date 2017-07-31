@@ -91,6 +91,13 @@ void Process::lanchThreads()
         m_threads.insert({name, &m_timer});
         LOG_DEBUG("{} thread start ok", name);
     }
+    for (auto& item : m_extraThreads)
+    {
+        item.second->run();
+        const std::string name = item.first;
+        m_threads.insert({item.first, item.second.get()});
+        LOG_DEBUG("{} thread start ok", name);
+    }
 }
 
 void Process::joinThreads()
@@ -157,7 +164,6 @@ void Process::start()
 
         //init()为虚函数， 不能在constructor中调用
         init();
-
 
         lanchThreads();
 

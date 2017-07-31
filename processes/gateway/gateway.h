@@ -55,11 +55,15 @@ private:
     //处理新接入的客户端连接
     void newClientConnection(net::BufferedConnection::Ptr conn);
 
+    //连接到平台成功
+    void newPlatformConnection(net::BufferedConnection::Ptr conn);
+
     void registerTcpMsgHandler();
     void registerTimerHandler();
 
 private:
     ClientManager::Ptr m_clientManager;
+    TcpClient::Ptr m_platformClient;
 
 public:
     static void init(int32_t num, const std::string& configDir, const std::string& logDir);

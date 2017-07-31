@@ -3,11 +3,18 @@ syntax = "proto2";
 package PublicProto; 
 
 
+message S_ServerVersion
+{
+    required string version     = 1;
+    required bool apple_review  = 2; //是否是apple审核版, true 是, false 不是
+}
+
 //step 1,  client -> gw
 enum LoginType_C_Login
 {
     LOGINT_WETCHAT      = 0; //微信登陆
     LOGINT_HISTOLKEN    = 1; //历史token登陆
+    LOGINT_VISTOR       = 2; //游客登录
 }
 message C_Login
 {
@@ -275,8 +282,9 @@ message S_G13_GameHistoryDetial
     {
         message Opponent
         {
-            required string name    = 1;
-            required int32  rank    = 2;
+            required int64  cuid    = 1;
+            required string name    = 2;
+            required int32  rank    = 3;
         }
         required int32  roomid  = 1;
         required int32  rank    = 2;

@@ -70,6 +70,7 @@ public:
     ClientConnectionId clientOnline(const net::Endpoint& ep);
     void clientOffline(ClientConnectionId ccid);
     void kickOutClient(ClientConnectionId ccid, bool delay = true);
+    void sendServerVisionToClient(ClientConnectionId ccid);
 
     void regMsgHandler();
     void regClientMsgRelay();

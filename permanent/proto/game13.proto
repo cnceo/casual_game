@@ -27,8 +27,9 @@ message ClientData
         {
             message Opponent
             {
-                string name     = 1;
-                int32   rank    = 2;
+                int64   cuid    = 1;
+                string  name    = 2;
+                int32   rank    = 3;
             }
 
             int32 roomid    = 1;

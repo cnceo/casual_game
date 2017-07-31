@@ -27,6 +27,12 @@ struct GameConfigData
 {
     struct
     {
+        std::string version;
+        bool appleReview = false;
+    } versionInfo;
+
+    struct
+    {
         std::string wechat1;
         std::string wechat2;
         std::string wechat3;
@@ -40,7 +46,6 @@ struct GameConfigData
 
     std::map<uint32_t, int32_t> pricePerPlayer; //<房间局数, 人头费>
 
-//    std::set<uint32_t> allRoomSize; //所有的房间可能大小
 };
 
 class GameConfig

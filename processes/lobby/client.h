@@ -21,6 +21,7 @@ struct G13His
 
         struct Opponent
         {
+            int64_t cuid = 0;
             std::string name;
             int32_t rank = 0;
         };

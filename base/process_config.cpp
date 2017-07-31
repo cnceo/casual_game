@@ -201,7 +201,7 @@ bool ProcessConfig::parseProcessList(std::set<ProcessId>* ret, const std::string
 void ProcessConfig::parseEndpointList(std::set<net::Endpoint>* ret, const std::string& str)
 {
     ret->clear();
-    std::vector<std::string> endpointStrs = componet::splitString(str, " ");
+    std::vector<std::string> endpointStrs = componet::splitString(str, ",");
     for(const auto& endpointStr : endpointStrs)
     {
         net::Endpoint ep(endpointStr);

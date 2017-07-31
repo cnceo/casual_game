@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
+    <version version="1.0", appleReview="1"/>
     <customService wechat1="douzhen001" wechat2="douzhen002" wechat3="斗阵游"/>
 
     <systemNotice internalSec="120">

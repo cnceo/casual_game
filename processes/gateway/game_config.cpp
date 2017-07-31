@@ -41,6 +41,15 @@ void GameConfig::load(const std::string& cfgDir)
         EXCEPTION(LoadGameCfgFailedGW, configFile + "prase root node failed");
 
     {
+        XmlParseNode versionNode = root.getChild("version");
+        if (!versionNode)
+            EXCEPTION(LoadGameCfgFailedGW, "version node dose not exist");
+
+        m_data.versionInfo.version = versionNode.getAttr<std::string>("version");
+        m_data.versionInfo.appleReview = versionNode.getAttr<bool>("appleReview");
+    }
+
+    {
         XmlParseNode customServiceNode = root.getChild("customService");
         if (!customServiceNode)
             EXCEPTION(LoadGameCfgFailedGW, "customService node dose not exist");
@@ -65,10 +74,6 @@ void GameConfig::load(const std::string& cfgDir)
         XmlParseNode pricePerPlayerNode = root.getChild("pricePerPlayer");
         if (!pricePerPlayerNode)
             EXCEPTION(LoadGameCfgFailedGW, "pricePerPlayer node dose not exist");
-
-        //m_data.allRoomSize.clear();
-        //const std::string& roomSizeListStr = pricePerPlayerNode.getAttr<std::string>("roomSizeList");
-        //componet::fromString(&m_data.allRoomSize, roomSizeListStr, ",");
 
         m_data.pricePerPlayer.clear();
         for (XmlParseNode itemNode = pricePerPlayerNode.getChild("item"); itemNode; ++itemNode)

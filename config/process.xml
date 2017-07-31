@@ -28,7 +28,7 @@
             </process>
         </processType>
 
-        <!--房间服务器-->
+        <!--路由服务器-->
         <processType name="router">
             <process num="1">
                 <private listen="127.0.0.1:6000" connectTo=""/>

@@ -45,7 +45,7 @@ bool TcpClient::exec()
             if(info.retryTimepoint > now) //未到重试时间
                 continue;
 
-            if(!info.conn.expired())
+            if(!info.conn.expired()) //conn对象有效, 认为连接保持完好
                 continue;
 
             try

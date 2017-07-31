@@ -64,8 +64,11 @@ protected:
     ProcessConfig m_cfg;
     const std::string m_logDir;
 
-    //所有标准子线程
+    //所有已启动的标准子线程
     std::map<std::string, ProcessThread*> m_threads;
+
+    //extern threads
+    std::map<std::string, ProcessThread::Ptr> m_extraThreads;
 
     //私网
     TcpServer::Ptr m_privateNetServer;

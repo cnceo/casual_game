@@ -27,6 +27,7 @@ const HttpConnectionId INVALID_HCID = 0;
 //客户连接ID
 typedef uint64_t ClientConnectionId; // |-32bits unixtime-|-8bits gatewayNum-|-24bits counter-|
 const ClientConnectionId INVALID_CCID = 0;
+const ClientConnectionId PLATFORM_CCID = -1;
 //客户唯一ID
 typedef uint64_t ClientUniqueId; // |-32bits unixtime-|-32bits counter-|
 const ClientUniqueId INVALID_CUID = 0;
@@ -45,8 +46,6 @@ const ProcessIdValue INVALID_PROCESS_IDENDITY_VALUE = 0;
 class ProcessId
 {
 public:
-
-
     ProcessId(const std::string& typeStr, int8_t num);
     ProcessId(ProcessIdValue value_ = INVALID_PROCESS_IDENDITY_VALUE);
 

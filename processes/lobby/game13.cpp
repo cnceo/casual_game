@@ -967,6 +967,7 @@ void Game13::removePlayer(ClientPtr client)
                     if (oppInfo.cuid == info.cuid)
                         continue;
                     settleHisDetail->opps.resize(settleHisDetail->opps.size() + 1);
+                    settleHisDetail->opps.back().cuid = info.cuid;
                     settleHisDetail->opps.back().name = oppInfo.name;
                     settleHisDetail->opps.back().rank = oppInfo.rank;
                 }
@@ -1006,6 +1007,7 @@ void Game13::abortGame()
                     if (oppInfo.cuid == info.cuid)
                         continue;
                     settleHisDetail->opps.resize(settleHisDetail->opps.size() + 1);
+                    settleHisDetail->opps.back().cuid = info.cuid;
                     settleHisDetail->opps.back().name = oppInfo.name;
                     settleHisDetail->opps.back().rank = oppInfo.rank;
                 }

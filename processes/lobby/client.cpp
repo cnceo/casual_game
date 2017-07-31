@@ -45,6 +45,7 @@ std::string Client::serialize() const
         for (const auto&opp : detail->opps)
         {
             auto protoOpp = protoDetail->add_opps();
+            protoOpp->set_cuid(opp.cuid);
             protoOpp->set_name(opp.name);
             protoOpp->set_rank(opp.rank);
         }
@@ -86,6 +87,7 @@ bool Client::deserialize(const std::string& bin)
         opps.resize(protoOpps.size());
         for (auto j = 0; j < protoOpps.size(); ++j)
         {
+            opps[j].cuid = protoOpps[j].cuid();
             opps[j].name = protoOpps[j].name();
             opps[j].rank = protoOpps[j].rank();
         }

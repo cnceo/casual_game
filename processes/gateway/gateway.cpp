@@ -43,8 +43,14 @@ void Gateway::init()
     if(m_publicNetServer == nullptr)
         EXCEPTION(componet::ExceptionBase, "无公网监听，请检查配置")
 
-    //create checker
+    //create client manager
     m_clientManager = ClientManager::create(getId());
+
+    //platfrom
+    m_platformClient = TcpClient::create();
+    m_platformClient->addRemoteEndpoint(net::Endpoint("127.0.0.1:10001"), std::chrono::seconds(5));
+    m_extraThreads["platform client"] = m_platformClient;
+    m_platformClient->e_newConn.reg(std::bind(&Gateway::newPlatformConnection, this, _1));
 
     //处理新建立的客户连接
     m_publicNetServer->e_newConn.reg(std::bind(&Gateway::newClientConnection, this, _1));
@@ -183,6 +189,17 @@ void Gateway::loadConfig()
     GameConfig::me().load(m_cfgDir);
 }
 
+void Gateway::newPlatformConnection(net::BufferedConnection::Ptr conn)
+{
+    ClientConnectionId ccid = PLATFORM_CCID;
+    if (!m_conns.addPublicConnection(conn, ccid))
+    {
+        LOG_ERROR("Gateway::newPlatformConnection, failed, {}", conn->getRemoteEndpoint());
+        return;
+    }
+    LOG_TRACE("Gateway::newPlatformConnection successed, {}", conn->getRemoteEndpoint());
+}
+
 void Gateway::newClientConnection(net::BufferedConnection::Ptr conn)
 {
     if(conn == nullptr)
@@ -197,9 +214,12 @@ void Gateway::newClientConnection(net::BufferedConnection::Ptr conn)
         {
             LOG_ERROR("Gateway::newClientConnection failed, 加入ClientManager失败, {}", conn->getRemoteEndpoint());
         }
-        else if (!m_conns.addPublicConnection(conn, ccid))
+        else
         {
-            m_clientManager->kickOutClient(ccid, false);
+            if (!m_conns.addPublicConnection(conn, ccid))
+                m_clientManager->kickOutClient(ccid, false);
+            else
+                m_clientManager->sendServerVisionToClient(ccid);
         }
     }
     catch (const net::NetException& ex)
