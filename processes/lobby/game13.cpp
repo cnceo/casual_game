@@ -717,7 +717,9 @@ void Game13::proto_C_G13_SimulationRound(ProtoMsgPtr proto, ClientConnectionId c
         std::array<Deck::Card, 13> cards;
         ClientUniqueId cuid;
     };
+
     std::vector<ItemInfo> playerList;
+    std::map<ClientUniqueId, std::array<Deck::Card, 13>> cuid2Cards; //多费了内存, 就这样吧
     for(const auto& item : rcv->players())
     {
         if(item.cards_size() != 13)
@@ -729,6 +731,7 @@ void Game13::proto_C_G13_SimulationRound(ProtoMsgPtr proto, ClientConnectionId c
         playerList.back().cardsSpecBrand = item.special();
         std::copy(item.cards().begin(), item.cards().end(), playerList.back().cards.begin());
         playerList.back().cuid = item.cuid();
+        cuid2Cards[item.cuid()] = playerList.back().cards;
     }
 
     auto result = calcRound(playerList, DQ_SHUANG_BEI, true);
@@ -737,7 +740,7 @@ void Game13::proto_C_G13_SimulationRound(ProtoMsgPtr proto, ClientConnectionId c
     {
         auto player = snd.mutable_result()->add_players();
         player->set_cuid(pd.cuid);
-        for (Deck::Card crd : pd.cards)
+        for (Deck::Card crd : cuid2Cards[pd.cuid])
             player->add_cards(crd);
         player->set_rank(pd.prize);
         player->mutable_dun0()->set_brand(static_cast<int32_t>(pd.dun[0].b));
