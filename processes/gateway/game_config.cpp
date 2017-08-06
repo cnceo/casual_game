@@ -34,6 +34,7 @@ void GameConfig::load(const std::string& cfgDir)
     using componet::XmlParseNode;
 
     const std::string configFile = cfgDir + "/game.xml";
+    LOG_TRACE("load game config, file={}", configFile);
 
     XmlParseDoc doc(configFile);
     XmlParseNode root = doc.getRoot();
