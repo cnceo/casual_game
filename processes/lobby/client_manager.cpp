@@ -380,6 +380,7 @@ void ClientManager::proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, C
         for (const auto& opp : detail->opps)
         {
             auto sndOpp = item->add_opps();
+            sndOpp->set_cuid(opp.cuid);
             sndOpp->set_name(opp.name);
             sndOpp->set_rank(opp.rank);
         }
