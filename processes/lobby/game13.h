@@ -94,7 +94,7 @@ private:
     struct PlayerInfo
     {
         PlayerInfo(ClientUniqueId cuid_ = 0, std::string name_ = "", int32_t status_ = 0) //, int32_t money_ = 0)
-        :cuid(cuid_), name(name_), status(status_)//, money(money_)
+        :cuid(cuid_), lastCuid(cuid_), name(name_), status(status_)//, money(money_)
         {
         }
         void clear()
@@ -103,6 +103,7 @@ private:
             status = 0;
         }
         ClientUniqueId cuid;
+        ClientUniqueId lastCuid;
         std::string name;
         std::string imgurl;
         std::string ipstr;

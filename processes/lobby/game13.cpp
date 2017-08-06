@@ -788,6 +788,7 @@ bool Game13::enterRoom(Client::Ptr client)
 
     //加入成员列表
     m_players[index].cuid = client->cuid();
+    m_players[index].lastCuid = client->cuid();
     m_players[index].name = client->name();
     m_players[index].imgurl = client->imgurl();
     m_players[index].ipstr = client->ipstr();
@@ -967,7 +968,7 @@ void Game13::removePlayer(ClientPtr client)
                     if (oppInfo.cuid == info.cuid)
                         continue;
                     settleHisDetail->opps.resize(settleHisDetail->opps.size() + 1);
-                    settleHisDetail->opps.back().cuid = oppInfo.cuid;
+                    settleHisDetail->opps.back().cuid = oppInfo.lastCuid;
                     settleHisDetail->opps.back().name = oppInfo.name;
                     settleHisDetail->opps.back().rank = oppInfo.rank;
                 }
@@ -1007,7 +1008,7 @@ void Game13::abortGame()
                     if (oppInfo.cuid == info.cuid)
                         continue;
                     settleHisDetail->opps.resize(settleHisDetail->opps.size() + 1);
-                    settleHisDetail->opps.back().cuid = oppInfo.cuid;
+                    settleHisDetail->opps.back().cuid = oppInfo.lastCuid;
                     settleHisDetail->opps.back().name = oppInfo.name;
                     settleHisDetail->opps.back().rank = oppInfo.rank;
                 }
