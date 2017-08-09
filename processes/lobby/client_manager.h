@@ -33,18 +33,21 @@ public:
 
     bool sendToClient(ClientConnectionId ccid, TcpMsgCode code, const ProtoMsg& proto);
 
-    void timerExec();
+    void rechargeMoney(uint32_t sn, ClientUniqueId cuid, int32_t money, const std::string& theOperator);
+
+    void timerExecAll(componet::TimePoint now);
 
     void regMsgHandler();
 
     bool saveClient(ClientPtr client);
-    bool saveClient(const Client& client);
+//    bool saveClient(const Client& client);
 private:
     bool insert(ClientPtr client);
     void erase(ClientPtr client);
 
 private:
     std::pair<ClientPtr, bool> loadClient(const std::string& openid);
+    std::pair<ClientPtr, bool> loadClient(ClientUniqueId cuid);
     //分配uniqueId
     ClientUniqueId getClientUniqueId();
     void recoveryFromRedis();
@@ -55,6 +58,7 @@ private:
     void proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, ClientConnectionId ccid);
 private:
     void proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid);
+    void proto_ClientDisconnected(ProtoMsgPtr proto, ProcessId gatewayPid);
 
 private:
     uint32_t m_uniqueIdCounter = 206107; //这个值是需求方要求的

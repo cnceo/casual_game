@@ -235,6 +235,37 @@ int32_t RedisHandler::htraversal(const std::string& table, const std::function<b
     return total;
 }
 
+int32_t RedisHandler::rpush(const std::string& list, const std::string& data)
+{
+    if (!init())
+        return 0;
+
+    const std::string& cmd = componet::format("rpush {} %b", list);
+    void* ret = redisCommand(m_ctx.get(), cmd.c_str(), data.data(), data.size());
+    if (ret == nullptr)
+        return 0;
+
+    auto reply = makeReply(ret);
+    return (reply->type == REDIS_REPLY_INTEGER) ? reply->integer : 0;
+}
+
+std::string RedisHandler::lpop(const std::string& list)
+{
+    if (!init())
+        return ""; 
+
+    const std::string& cmd = componet::format("lpop {}", list);
+    void* ret = redisCommand(m_ctx.get(), cmd.c_str());
+    if (ret == nullptr)
+        return "";
+
+    auto reply = makeReply(ret);
+    if (reply->type != REDIS_REPLY_STRING)
+        return "";
+
+    return std::string(reply->str, reply->len);
+}
+
 }}
 
 #ifdef REDIS_UNIT_TEST
@@ -248,7 +279,7 @@ int32_t RedisHandler::htraversal(const std::string& table, const std::function<b
 using namespace std;
 
 using namespace water;
-using namespace process;
+using namespace dbadaptcher;
 
 void set_get()
 {
@@ -272,7 +303,7 @@ void set_get()
     }
 }
 
-int hset_hget()
+void hash_op()
 {
     RedisHandler& handler = RedisHandler::me();
     for (int i = 0; i < 10000; ++i)
@@ -303,13 +334,43 @@ int hset_hget()
             cout << "travel key error, key=" << key << " value=" << value << endl;
         return key == value;
     };
-    cout << "htraversal: " << handler.traversal("h", exec) << endl;
+    cout << "htraversal: " << handler.htraversal("h", exec) << endl;
 
 }
 
+void list_op()
+{
+    RedisHandler& handler = RedisHandler::me();
+    for (int i = 0; i < 10000; ++i)
+    {
+        if (!handler.rpush("l", std::to_string(i)))
+        {
+            cout << "rpush error " << i << endl;
+            break;
+        }
+    }
+
+    int i = 0;
+    while (true)
+    {
+        std::string ret = handler.lpop("l");
+        if (ret == "")
+            break;
+//        cout << "lpop " << i << " " << ret << endl;
+        if (std::to_string(i) != ret)
+        {
+            cout << "lpop error " << i << "," << ret << endl;
+            break;
+        }
+        ++i;
+    }
+    cout << "lpop size = " << i + 1 << endl;
+} 
+
 int main()
 {
-    hset_hget();
+//    hash_op();
+    list_op();
 }
 
 #endif

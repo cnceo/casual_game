@@ -7,6 +7,7 @@
 
 #include "componet/logger.h"
 #include "componet/scope_guard.h"
+#include "componet/string_kit.h"
 
 #include "protocol/protobuf/public/client.codedef.h"
 #include "protocol/protobuf/private/login.codedef.h"
@@ -68,18 +69,54 @@ void ClientManager::recoveryFromRedis()
         }
         return true;
     };
-    redis.htraversal(CLIENT_TABLE_NAME, exec);
+    redis.htraversal(CLIENT_TABLE_BY_OPENID, exec);
     LOG_TRACE("recovery clients data from redis");
 }
 
-void ClientManager::timerExec()
+void ClientManager::timerExecAll(componet::TimePoint now)
 {
+    std::vector<Client::Ptr> clientsOfflineLongTimeAgo;
+    for (auto iter = m_cuid2Clients.begin(); iter != m_cuid2Clients.end(); ++iter)
+    {
+        auto client = iter->second;
+        if (client->offlineTime() != componet::EPOCH && 
+            client->offlineTime() + std::chrono::seconds(600) > now)
+        {
+            clientsOfflineLongTimeAgo.push_back(client);
+        }
+    }
+
+    for (auto client : clientsOfflineLongTimeAgo)
+    {
+        LOG_TRACE("logout, 客户端离线时间过长删除, openid={}, cuid={}, name={}", client->openid(), client->cuid(), client->name());
+        erase(client);
+    }
 }
 
 bool ClientManager::sendToClient(ClientConnectionId ccid, TcpMsgCode code, const ProtoMsg& proto)
 {
     ProcessId gatewayPid("gateway", 1);
     return Lobby::me().relayToPrivate(ccid, gatewayPid, code, proto);
+}
+
+void ClientManager::rechargeMoney(uint32_t sn, ClientUniqueId cuid, int32_t money, const std::string& theOperator)
+{
+    auto client = getByCuid(cuid);
+    if (client == nullptr)
+    {
+        auto loadRet = loadClient(cuid);
+        if (!loadRet.second)
+            LOG_ERROR("recharge failed, redis load failed, sn={}, cuid={}, money={}, theOperator={}", sn, cuid, money, theOperator);
+        client = loadRet.first;
+    }
+    if (client == nullptr)
+    {
+        LOG_ERROR("recharge failed, cuid not exisit, sn={}, cuid={}, money={}, theOperator={}", sn, cuid, money, theOperator);
+        return;
+    }
+
+    client->addMoney(money);
+    LOG_TRACE("recharge successed, sn={}, cuid={}, money={}, theOperator={}", sn, cuid, money, theOperator);
 }
 
 bool ClientManager::insert(Client::Ptr client)
@@ -138,7 +175,7 @@ std::pair<Client::Ptr, bool> ClientManager::loadClient(const std::string& openid
 {
     using water::dbadaptcher::RedisHandler;
     RedisHandler& redis = RedisHandler::me();
-    const std::string& bin = redis.hget(CLIENT_TABLE_NAME, openid);
+    const std::string& bin = redis.hget(CLIENT_TABLE_BY_OPENID, openid);
     if (bin == "")
         return {nullptr, true};
 
@@ -152,10 +189,42 @@ std::pair<Client::Ptr, bool> ClientManager::loadClient(const std::string& openid
     return {client, true};
 }
 
+std::pair<Client::Ptr, bool> ClientManager::loadClient(ClientUniqueId cuid)
+{
+    using water::dbadaptcher::RedisHandler;
+    RedisHandler& redis = RedisHandler::me();
+    const std::string& openid = redis.hget(CLIENT_CUID_2_OPENID, componet::toString(cuid));
+    if (openid == "")
+    {
+        LOG_ERROR("load client from redis, get openid by cuid failed, cuid={}", cuid);
+        return {nullptr, false};
+    }
+    return loadClient(openid);
+}
+
 bool ClientManager::saveClient(Client::Ptr client)
 {
     if (client == nullptr)
         return false;
+
+    using water::dbadaptcher::RedisHandler;
+    RedisHandler& redis = RedisHandler::me();
+
+    const std::string& openid = redis.hget(CLIENT_CUID_2_OPENID, componet::toString(client->cuid()));
+    if (openid == "")
+    {
+        if (!redis.hset(CLIENT_CUID_2_OPENID, componet::toString(client->cuid()), client->openid()))
+        {
+            LOG_ERROR("save cuid_2_openid failed, cuid={}, openid={}", client->cuid(), client->openid());
+            return false;
+        }
+        if (!client->saveToDB())
+        {
+            redis.hdel(CLIENT_CUID_2_OPENID, componet::toString(client->cuid()));
+            return false;
+        }
+        return true;
+    }
 
     return client->saveToDB();
 }
@@ -289,12 +358,24 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     retMsg.set_cuid(client->cuid());
     retMsg.set_openid(client->openid());
     Lobby::me().sendToPrivate(gatewayPid, retCode, retMsg);
-    LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}", ccid, client->cuid(), client->openid());
+    LOG_TRACE("login, step 2, 读取或注册client数据成功, ccid={}, cuid={}, openid={}, roomid={}", ccid, client->cuid(), client->openid(), client->roomid());
 
     //更新可能的房间游戏信息
     client->syncBasicDataToClient();
     Room::clientOnline(client);
     return;
+}
+
+void ClientManager::proto_ClientDisconnected(ProtoMsgPtr proto, ProcessId gatewayPid)
+{
+    auto rcv = PROTO_PTR_CAST_PRIVATE(ClientDisconnected, proto);
+    Client::Ptr client = ClientManager::me().getByCcid(rcv->ccid());
+    if (client == nullptr)
+        return;
+
+    client->offline();
+
+    LOG_TRACE("logout, 网关通知玩家离线, ccid={}, cuid={}, openid={}, roomid={}", client->ccid(), client->cuid(), client->openid(), client->roomid());
 }
 
 void ClientManager::proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionId ccid)
@@ -408,6 +489,7 @@ void ClientManager::regMsgHandler()
     REG_PROTO_PUBLIC(C_G13_ReqGameHistoryDetial, std::bind(&ClientManager::proto_C_G13_ReqGameHistoryDetial, this, _1, _2));
     /************msg from cluster**********/
     REG_PROTO_PRIVATE(LoginQuest, std::bind(&ClientManager::proto_LoginQuest, this, _1, _2));
+    REG_PROTO_PRIVATE(ClientDisconnected, std::bind(&ClientManager::proto_ClientDisconnected, this, _1, _2));
 }
 
 }

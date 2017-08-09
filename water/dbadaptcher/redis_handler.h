@@ -20,17 +20,24 @@ public:
     NON_COPYABLE(RedisHandler)
     ~RedisHandler() = default;
 
+    void loadConfig(const std::string& cfgDir);
+
+public://set/get
     bool set(const std::string& key, const std::string& data);
     std::string get(const std::string& key);
     bool del(const std::string& key);
 
+public://hash table
     bool hset(const std::string table, const std::string& key, const std::string& data);
     std::string hget(const std::string table, const std::string& key);
     bool hdel(const std::string table, const std::string& key);
     bool hgetall(std::unordered_map<std::string, std::string>* ht, const std::string table);
+    //返回实际遍历的个数
     int32_t htraversal(const std::string& table, const std::function<bool (const std::string& key, const std::string& data)>& exec);
 
-    void loadConfig(const std::string& cfgDir);
+public://list
+    int32_t rpush(const std::string& list, const std::string& data);
+    std::string lpop(const std::string& list);
 
 private:
     RedisHandler();

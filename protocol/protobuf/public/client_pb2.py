@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='client.proto',
   package='PublicProto',
   syntax='proto2',
-  serialized_pb=_b('\n\x0c\x63lient.proto\x12\x0bPublicProto\"8\n\x0fS_ServerVersion\x12\x0f\n\x07version\x18\x01 \x02(\t\x12\x14\n\x0c\x61pple_review\x18\x02 \x02(\x08\"_\n\x07\x43_Login\x12\x12\n\nlogin_type\x18\x01 \x02(\x05\x12\x0e\n\x06openid\x18\x02 \x02(\t\x12\r\n\x05token\x18\x03 \x02(\t\x12\x11\n\tnick_name\x18\x04 \x02(\t\x12\x0e\n\x06imgurl\x18\x05 \x02(\t\"\xdd\x01\n\nS_LoginRet\x12\x10\n\x08ret_code\x18\x01 \x02(\x05\x12\x0c\n\x04\x63uid\x18\x02 \x01(\x03\x12\x12\n\ntemp_token\x18\x03 \x01(\t\x12\r\n\x05ipstr\x18\x04 \x01(\t\x12\x0f\n\x07wechat1\x18\x05 \x01(\t\x12\x0f\n\x07wechat2\x18\x06 \x01(\t\x12\x0f\n\x07wechat3\x18\x07 \x01(\t\x12\x31\n\nprice_list\x18\x08 \x03(\x0b\x32\x1d.PublicProto.S_LoginRet.Price\x1a&\n\x05Price\x12\x0e\n\x06rounds\x18\x01 \x02(\x05\x12\r\n\x05money\x18\x02 \x02(\x05\"2\n\x11S_PlayerBasicData\x12\r\n\x05money\x18\x01 \x01(\x05\x12\x0e\n\x06money1\x18\x02 \x01(\x05\"c\n\x08S_Notice\x12(\n\x04type\x18\x01 \x02(\x0e\x32\x1a.PublicProto.S_Notice.Type\x12\x0c\n\x04text\x18\x02 \x02(\t\"\x1f\n\x04Type\x12\x0b\n\x07MSG_BOX\x10\x01\x12\n\n\x06NOTICE\x10\x02\"V\n\nC_SendChat\x12#\n\x04type\x18\x01 \x02(\x0e\x32\x15.PublicProto.ChatType\x12\x10\n\x08\x64\x61ta_int\x18\x03 \x01(\x03\x12\x11\n\tdata_text\x18\x04 \x01(\t\"@\n\x06S_Chat\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12(\n\x07\x63ontent\x18\x02 \x02(\x0b\x32\x17.PublicProto.C_SendChat\"\x0e\n\x0c\x43S_Heartbeat\"\x96\x01\n\x10\x43_G13_CreateGame\x12\x13\n\x0bplayer_size\x18\x01 \x02(\x05\x12\x11\n\tplay_type\x18\x02 \x02(\x05\x12\x0e\n\x06rounds\x18\x03 \x02(\x05\x12\r\n\x05payor\x18\x04 \x02(\x05\x12\x10\n\x08\x64\x61_qiang\x18\x05 \x02(\x05\x12\x13\n\x0bquan_lei_da\x18\x06 \x02(\x08\x12\x14\n\x0cyi_tiao_long\x18\x07 \x02(\x05\"!\n\x0e\x43_G13_JionGame\x12\x0f\n\x07room_id\x18\x01 \x02(\x05\"c\n\x0eS_G13_RoomAttr\x12\x0f\n\x07room_id\x18\x01 \x02(\x05\x12\x13\n\x0b\x62\x61nker_cuid\x18\x02 \x02(\x03\x12+\n\x04\x61ttr\x18\x03 \x02(\x0b\x32\x1d.PublicProto.C_G13_CreateGame\"\x98\x02\n\x13S_G13_PlayersInRoom\x12>\n\x07players\x18\x01 \x03(\x0b\x32-.PublicProto.S_G13_PlayersInRoom.PlayerStatus\x12\x0e\n\x06rounds\x18\x02 \x02(\x05\x1ag\n\x0cPlayerStatus\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\x0e\n\x06status\x18\x02 \x02(\x05\x12\x0c\n\x04name\x18\x03 \x02(\t\x12\x0c\n\x04rank\x18\x04 \x02(\x05\x12\x0e\n\x06imgurl\x18\x05 \x02(\t\x12\r\n\x05ipstr\x18\x06 \x02(\t\"H\n\x06Status\x12\x08\n\x04NONE\x10\x00\x12\x08\n\x04PREP\x10\x01\x12\t\n\x05READY\x10\x02\x12\x08\n\x04SORT\x10\x03\x12\x0b\n\x07\x43OMPARE\x10\x04\x12\x08\n\x04\x44ONE\x10\x05\"\x0e\n\x0c\x43_G13_GiveUp\"\x9a\x01\n\x14S_G13_AbortGameOrNot\x12\x16\n\x0eremain_seconds\x18\x01 \x02(\x05\x12\x0f\n\x07sponsor\x18\x02 \x02(\x03\x12\x35\n\x05votes\x18\x03 \x03(\x0b\x32&.PublicProto.S_G13_AbortGameOrNot.Vote\x1a\"\n\x04Vote\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\x0c\n\x04vote\x18\x02 \x02(\x05\"C\n\x15\x43_G13_VoteFoAbortGame\x12*\n\x04vote\x18\x01 \x02(\x0e\x32\x1c.PublicProto.G13_VoteOfAbort\"$\n\x10S_G13_VoteFailed\x12\x10\n\x08opponent\x18\x01 \x02(\x03\"\x14\n\x12S_G13_PlayerQuited\" \n\x0f\x43_G13_ReadyFlag\x12\r\n\x05ready\x18\x01 \x02(\x08\"1\n\x10S_G13_HandOfMine\x12\x0e\n\x06rounds\x18\x01 \x02(\x05\x12\r\n\x05\x63\x61rds\x18\x02 \x03(\x05\"0\n\x0e\x43_G13_BringOut\x12\r\n\x05\x63\x61rds\x18\x01 \x03(\x05\x12\x0f\n\x07special\x18\x02 \x02(\x08\"\xfa\x02\n\x0eS_G13_AllHands\x12\x33\n\x07players\x18\x01 \x03(\x0b\x32\".PublicProto.S_G13_AllHands.Player\x1a)\n\tBrandInfo\x12\r\n\x05\x62rand\x18\x01 \x02(\x05\x12\r\n\x05point\x18\x02 \x02(\x05\x1a\x87\x02\n\x06Player\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\r\n\x05\x63\x61rds\x18\x02 \x03(\x05\x12\x0c\n\x04rank\x18\x03 \x02(\x05\x12\x33\n\x04\x64un0\x18\x04 \x02(\x0b\x32%.PublicProto.S_G13_AllHands.BrandInfo\x12\x33\n\x04\x64un1\x18\x05 \x02(\x0b\x32%.PublicProto.S_G13_AllHands.BrandInfo\x12\x33\n\x04\x64un2\x18\x06 \x02(\x0b\x32%.PublicProto.S_G13_AllHands.BrandInfo\x12\x33\n\x04spec\x18\x07 \x02(\x0b\x32%.PublicProto.S_G13_AllHands.BrandInfo\"\x9e\x01\n\x0fS_G13_AllRounds\x12\x34\n\x07players\x18\x01 \x03(\x0b\x32#.PublicProto.S_G13_AllRounds.Player\x1aU\n\x06Player\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\x0b\n\x03win\x18\x02 \x02(\x05\x12\x0f\n\x07\x64\x61qiang\x18\x03 \x02(\x05\x12\x11\n\tquanleida\x18\x04 \x02(\x05\x12\x0c\n\x04rank\x18\x05 \x02(\x05\"\x1b\n\x19\x43_G13_ReqGameHistoryCount\"u\n\x16S_G13_GameHistoryCount\x12\r\n\x05total\x18\x01 \x02(\x05\x12\x11\n\tweek_rank\x18\x02 \x02(\x05\x12\x11\n\tweek_game\x18\x03 \x02(\x05\x12\x12\n\ntoday_rank\x18\x04 \x02(\x05\x12\x12\n\ntoday_game\x18\x05 \x02(\x05\"*\n\x1a\x43_G13_ReqGameHistoryDetial\x12\x0c\n\x04page\x18\x01 \x02(\x05\"\x80\x02\n\x17S_G13_GameHistoryDetial\x12\x38\n\x05items\x18\x01 \x03(\x0b\x32).PublicProto.S_G13_GameHistoryDetial.Game\x1a\xaa\x01\n\x04Game\x12\x0e\n\x06roomid\x18\x01 \x02(\x05\x12\x0c\n\x04rank\x18\x02 \x02(\x05\x12@\n\x04opps\x18\x03 \x03(\x0b\x32\x32.PublicProto.S_G13_GameHistoryDetial.Game.Opponent\x12\x0c\n\x04time\x18\x04 \x02(\x05\x1a\x34\n\x08Opponent\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\x0c\n\x04name\x18\x02 \x02(\t\x12\x0c\n\x04rank\x18\x03 \x02(\x05\"\x97\x01\n\x15\x43_G13_SimulationRound\x12@\n\x07players\x18\x01 \x03(\x0b\x32/.PublicProto.C_G13_SimulationRound.BringOutInfo\x1a<\n\x0c\x42ringOutInfo\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x04\x12\r\n\x05\x63\x61rds\x18\x02 \x03(\x05\x12\x0f\n\x07special\x18\x03 \x02(\x08\"K\n\x1cS_G13_CalcRoundSimulationRet\x12+\n\x06result\x18\x01 \x02(\x0b\x32\x1b.PublicProto.S_G13_AllHands*P\n\x11LoginType_C_Login\x12\x12\n\x0eLOGINT_WETCHAT\x10\x00\x12\x14\n\x10LOGINT_HISTOLKEN\x10\x01\x12\x11\n\rLOGINT_VISTOR\x10\x02*s\n\x12RetCode_S_LoginRet\x12\x11\n\rLOGINR_FAILED\x10\x00\x12\x11\n\rLOGINR_SUCCES\x10\x01\x12\x1a\n\x16LOGINR_HISTOKEN_ILEGAL\x10\x02\x12\x1b\n\x17LOGINR_WCHTTOKEN_ILEGAL\x10\x03*8\n\x08\x43hatType\x12\r\n\tCHAT_TEXT\x10\x00\x12\r\n\tCHAT_FACE\x10\x01\x12\x0e\n\nCHAT_VOICE\x10\x02*6\n\x0fG13_VoteOfAbort\x12\x0b\n\x07VT_NONE\x10\x00\x12\n\n\x06VT_AYE\x10\x01\x12\n\n\x06VT_NAY\x10\x02')
+  serialized_pb=_b('\n\x0c\x63lient.proto\x12\x0bPublicProto\"8\n\x0fS_ServerVersion\x12\x0f\n\x07version\x18\x01 \x02(\t\x12\x14\n\x0c\x61pple_review\x18\x02 \x02(\x08\"_\n\x07\x43_Login\x12\x12\n\nlogin_type\x18\x01 \x02(\x05\x12\x0e\n\x06openid\x18\x02 \x02(\t\x12\r\n\x05token\x18\x03 \x02(\t\x12\x11\n\tnick_name\x18\x04 \x02(\t\x12\x0e\n\x06imgurl\x18\x05 \x02(\t\"\xf1\x01\n\nS_LoginRet\x12\x10\n\x08ret_code\x18\x01 \x02(\x05\x12\x0c\n\x04\x63uid\x18\x02 \x01(\x03\x12\x12\n\ntemp_token\x18\x03 \x01(\t\x12\r\n\x05ipstr\x18\x04 \x01(\t\x12\x0f\n\x07wechat1\x18\x05 \x01(\t\x12\x0f\n\x07wechat2\x18\x06 \x01(\t\x12\x0f\n\x07wechat3\x18\x07 \x01(\t\x12\x12\n\nshare_link\x18\x08 \x01(\t\x12\x31\n\nprice_list\x18\t \x03(\x0b\x32\x1d.PublicProto.S_LoginRet.Price\x1a&\n\x05Price\x12\x0e\n\x06rounds\x18\x01 \x02(\x05\x12\r\n\x05money\x18\x02 \x02(\x05\"2\n\x11S_PlayerBasicData\x12\r\n\x05money\x18\x01 \x01(\x05\x12\x0e\n\x06money1\x18\x02 \x01(\x05\"c\n\x08S_Notice\x12(\n\x04type\x18\x01 \x02(\x0e\x32\x1a.PublicProto.S_Notice.Type\x12\x0c\n\x04text\x18\x02 \x02(\t\"\x1f\n\x04Type\x12\x0b\n\x07MSG_BOX\x10\x01\x12\n\n\x06NOTICE\x10\x02\"V\n\nC_SendChat\x12#\n\x04type\x18\x01 \x02(\x0e\x32\x15.PublicProto.ChatType\x12\x10\n\x08\x64\x61ta_int\x18\x03 \x01(\x03\x12\x11\n\tdata_text\x18\x04 \x01(\t\"@\n\x06S_Chat\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12(\n\x07\x63ontent\x18\x02 \x02(\x0b\x32\x17.PublicProto.C_SendChat\"\x0e\n\x0c\x43S_Heartbeat\"\x96\x01\n\x10\x43_G13_CreateGame\x12\x13\n\x0bplayer_size\x18\x01 \x02(\x05\x12\x11\n\tplay_type\x18\x02 \x02(\x05\x12\x0e\n\x06rounds\x18\x03 \x02(\x05\x12\r\n\x05payor\x18\x04 \x02(\x05\x12\x10\n\x08\x64\x61_qiang\x18\x05 \x02(\x05\x12\x13\n\x0bquan_lei_da\x18\x06 \x02(\x08\x12\x14\n\x0cyi_tiao_long\x18\x07 \x02(\x05\"!\n\x0e\x43_G13_JionGame\x12\x0f\n\x07room_id\x18\x01 \x02(\x05\"c\n\x0eS_G13_RoomAttr\x12\x0f\n\x07room_id\x18\x01 \x02(\x05\x12\x13\n\x0b\x62\x61nker_cuid\x18\x02 \x02(\x03\x12+\n\x04\x61ttr\x18\x03 \x02(\x0b\x32\x1d.PublicProto.C_G13_CreateGame\"\x98\x02\n\x13S_G13_PlayersInRoom\x12>\n\x07players\x18\x01 \x03(\x0b\x32-.PublicProto.S_G13_PlayersInRoom.PlayerStatus\x12\x0e\n\x06rounds\x18\x02 \x02(\x05\x1ag\n\x0cPlayerStatus\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\x0e\n\x06status\x18\x02 \x02(\x05\x12\x0c\n\x04name\x18\x03 \x02(\t\x12\x0c\n\x04rank\x18\x04 \x02(\x05\x12\x0e\n\x06imgurl\x18\x05 \x02(\t\x12\r\n\x05ipstr\x18\x06 \x02(\t\"H\n\x06Status\x12\x08\n\x04NONE\x10\x00\x12\x08\n\x04PREP\x10\x01\x12\t\n\x05READY\x10\x02\x12\x08\n\x04SORT\x10\x03\x12\x0b\n\x07\x43OMPARE\x10\x04\x12\x08\n\x04\x44ONE\x10\x05\"\x0e\n\x0c\x43_G13_GiveUp\"\x9a\x01\n\x14S_G13_AbortGameOrNot\x12\x16\n\x0eremain_seconds\x18\x01 \x02(\x05\x12\x0f\n\x07sponsor\x18\x02 \x02(\x03\x12\x35\n\x05votes\x18\x03 \x03(\x0b\x32&.PublicProto.S_G13_AbortGameOrNot.Vote\x1a\"\n\x04Vote\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\x0c\n\x04vote\x18\x02 \x02(\x05\"C\n\x15\x43_G13_VoteFoAbortGame\x12*\n\x04vote\x18\x01 \x02(\x0e\x32\x1c.PublicProto.G13_VoteOfAbort\"$\n\x10S_G13_VoteFailed\x12\x10\n\x08opponent\x18\x01 \x02(\x03\"\x14\n\x12S_G13_PlayerQuited\" \n\x0f\x43_G13_ReadyFlag\x12\r\n\x05ready\x18\x01 \x02(\x08\"1\n\x10S_G13_HandOfMine\x12\x0e\n\x06rounds\x18\x01 \x02(\x05\x12\r\n\x05\x63\x61rds\x18\x02 \x03(\x05\"0\n\x0e\x43_G13_BringOut\x12\r\n\x05\x63\x61rds\x18\x01 \x03(\x05\x12\x0f\n\x07special\x18\x02 \x02(\x08\"\xfa\x02\n\x0eS_G13_AllHands\x12\x33\n\x07players\x18\x01 \x03(\x0b\x32\".PublicProto.S_G13_AllHands.Player\x1a)\n\tBrandInfo\x12\r\n\x05\x62rand\x18\x01 \x02(\x05\x12\r\n\x05point\x18\x02 \x02(\x05\x1a\x87\x02\n\x06Player\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\r\n\x05\x63\x61rds\x18\x02 \x03(\x05\x12\x0c\n\x04rank\x18\x03 \x02(\x05\x12\x33\n\x04\x64un0\x18\x04 \x02(\x0b\x32%.PublicProto.S_G13_AllHands.BrandInfo\x12\x33\n\x04\x64un1\x18\x05 \x02(\x0b\x32%.PublicProto.S_G13_AllHands.BrandInfo\x12\x33\n\x04\x64un2\x18\x06 \x02(\x0b\x32%.PublicProto.S_G13_AllHands.BrandInfo\x12\x33\n\x04spec\x18\x07 \x02(\x0b\x32%.PublicProto.S_G13_AllHands.BrandInfo\"\x9e\x01\n\x0fS_G13_AllRounds\x12\x34\n\x07players\x18\x01 \x03(\x0b\x32#.PublicProto.S_G13_AllRounds.Player\x1aU\n\x06Player\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\x0b\n\x03win\x18\x02 \x02(\x05\x12\x0f\n\x07\x64\x61qiang\x18\x03 \x02(\x05\x12\x11\n\tquanleida\x18\x04 \x02(\x05\x12\x0c\n\x04rank\x18\x05 \x02(\x05\"\x1b\n\x19\x43_G13_ReqGameHistoryCount\"u\n\x16S_G13_GameHistoryCount\x12\r\n\x05total\x18\x01 \x02(\x05\x12\x11\n\tweek_rank\x18\x02 \x02(\x05\x12\x11\n\tweek_game\x18\x03 \x02(\x05\x12\x12\n\ntoday_rank\x18\x04 \x02(\x05\x12\x12\n\ntoday_game\x18\x05 \x02(\x05\"*\n\x1a\x43_G13_ReqGameHistoryDetial\x12\x0c\n\x04page\x18\x01 \x02(\x05\"\x80\x02\n\x17S_G13_GameHistoryDetial\x12\x38\n\x05items\x18\x01 \x03(\x0b\x32).PublicProto.S_G13_GameHistoryDetial.Game\x1a\xaa\x01\n\x04Game\x12\x0e\n\x06roomid\x18\x01 \x02(\x05\x12\x0c\n\x04rank\x18\x02 \x02(\x05\x12@\n\x04opps\x18\x03 \x03(\x0b\x32\x32.PublicProto.S_G13_GameHistoryDetial.Game.Opponent\x12\x0c\n\x04time\x18\x04 \x02(\x05\x1a\x34\n\x08Opponent\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x03\x12\x0c\n\x04name\x18\x02 \x02(\t\x12\x0c\n\x04rank\x18\x03 \x02(\x05\"\x97\x01\n\x15\x43_G13_SimulationRound\x12@\n\x07players\x18\x01 \x03(\x0b\x32/.PublicProto.C_G13_SimulationRound.BringOutInfo\x1a<\n\x0c\x42ringOutInfo\x12\x0c\n\x04\x63uid\x18\x01 \x02(\x04\x12\r\n\x05\x63\x61rds\x18\x02 \x03(\x05\x12\x0f\n\x07special\x18\x03 \x02(\x08\"K\n\x1cS_G13_CalcRoundSimulationRet\x12+\n\x06result\x18\x01 \x02(\x0b\x32\x1b.PublicProto.S_G13_AllHands*P\n\x11LoginType_C_Login\x12\x12\n\x0eLOGINT_WETCHAT\x10\x00\x12\x14\n\x10LOGINT_HISTOLKEN\x10\x01\x12\x11\n\rLOGINT_VISTOR\x10\x02*s\n\x12RetCode_S_LoginRet\x12\x11\n\rLOGINR_FAILED\x10\x00\x12\x11\n\rLOGINR_SUCCES\x10\x01\x12\x1a\n\x16LOGINR_HISTOKEN_ILEGAL\x10\x02\x12\x1b\n\x17LOGINR_WCHTTOKEN_ILEGAL\x10\x03*8\n\x08\x43hatType\x12\r\n\tCHAT_TEXT\x10\x00\x12\r\n\tCHAT_FACE\x10\x01\x12\x0e\n\nCHAT_VOICE\x10\x02*6\n\x0fG13_VoteOfAbort\x12\x0b\n\x07VT_NONE\x10\x00\x12\n\n\x06VT_AYE\x10\x01\x12\n\n\x06VT_NAY\x10\x02')
 )
 
 _LOGINTYPE_C_LOGIN = _descriptor.EnumDescriptor(
@@ -44,8 +44,8 @@ _LOGINTYPE_C_LOGIN = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2964,
-  serialized_end=3044,
+  serialized_start=2984,
+  serialized_end=3064,
 )
 _sym_db.RegisterEnumDescriptor(_LOGINTYPE_C_LOGIN)
 
@@ -75,8 +75,8 @@ _RETCODE_S_LOGINRET = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3046,
-  serialized_end=3161,
+  serialized_start=3066,
+  serialized_end=3181,
 )
 _sym_db.RegisterEnumDescriptor(_RETCODE_S_LOGINRET)
 
@@ -102,8 +102,8 @@ _CHATTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3163,
-  serialized_end=3219,
+  serialized_start=3183,
+  serialized_end=3239,
 )
 _sym_db.RegisterEnumDescriptor(_CHATTYPE)
 
@@ -129,8 +129,8 @@ _G13_VOTEOFABORT = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3221,
-  serialized_end=3275,
+  serialized_start=3241,
+  serialized_end=3295,
 )
 _sym_db.RegisterEnumDescriptor(_G13_VOTEOFABORT)
 
@@ -167,8 +167,8 @@ _S_NOTICE_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=528,
-  serialized_end=559,
+  serialized_start=548,
+  serialized_end=579,
 )
 _sym_db.RegisterEnumDescriptor(_S_NOTICE_TYPE)
 
@@ -205,8 +205,8 @@ _S_G13_PLAYERSINROOM_STATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1229,
-  serialized_end=1301,
+  serialized_start=1249,
+  serialized_end=1321,
 )
 _sym_db.RegisterEnumDescriptor(_S_G13_PLAYERSINROOM_STATUS)
 
@@ -341,8 +341,8 @@ _S_LOGINRET_PRICE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=368,
-  serialized_end=406,
+  serialized_start=388,
+  serialized_end=426,
 )
 
 _S_LOGINRET = _descriptor.Descriptor(
@@ -402,8 +402,15 @@ _S_LOGINRET = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='price_list', full_name='PublicProto.S_LoginRet.price_list', index=7,
-      number=8, type=11, cpp_type=10, label=3,
+      name='share_link', full_name='PublicProto.S_LoginRet.share_link', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='price_list', full_name='PublicProto.S_LoginRet.price_list', index=8,
+      number=9, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -421,7 +428,7 @@ _S_LOGINRET = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=185,
-  serialized_end=406,
+  serialized_end=426,
 )
 
 
@@ -458,8 +465,8 @@ _S_PLAYERBASICDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=408,
-  serialized_end=458,
+  serialized_start=428,
+  serialized_end=478,
 )
 
 
@@ -497,8 +504,8 @@ _S_NOTICE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=460,
-  serialized_end=559,
+  serialized_start=480,
+  serialized_end=579,
 )
 
 
@@ -542,8 +549,8 @@ _C_SENDCHAT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=561,
-  serialized_end=647,
+  serialized_start=581,
+  serialized_end=667,
 )
 
 
@@ -580,8 +587,8 @@ _S_CHAT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=649,
-  serialized_end=713,
+  serialized_start=669,
+  serialized_end=733,
 )
 
 
@@ -604,8 +611,8 @@ _CS_HEARTBEAT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=715,
-  serialized_end=729,
+  serialized_start=735,
+  serialized_end=749,
 )
 
 
@@ -677,8 +684,8 @@ _C_G13_CREATEGAME = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=732,
-  serialized_end=882,
+  serialized_start=752,
+  serialized_end=902,
 )
 
 
@@ -708,8 +715,8 @@ _C_G13_JIONGAME = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=884,
-  serialized_end=917,
+  serialized_start=904,
+  serialized_end=937,
 )
 
 
@@ -753,8 +760,8 @@ _S_G13_ROOMATTR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=919,
-  serialized_end=1018,
+  serialized_start=939,
+  serialized_end=1038,
 )
 
 
@@ -819,8 +826,8 @@ _S_G13_PLAYERSINROOM_PLAYERSTATUS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1124,
-  serialized_end=1227,
+  serialized_start=1144,
+  serialized_end=1247,
 )
 
 _S_G13_PLAYERSINROOM = _descriptor.Descriptor(
@@ -857,8 +864,8 @@ _S_G13_PLAYERSINROOM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1021,
-  serialized_end=1301,
+  serialized_start=1041,
+  serialized_end=1321,
 )
 
 
@@ -881,8 +888,8 @@ _C_G13_GIVEUP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1303,
-  serialized_end=1317,
+  serialized_start=1323,
+  serialized_end=1337,
 )
 
 
@@ -919,8 +926,8 @@ _S_G13_ABORTGAMEORNOT_VOTE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1440,
-  serialized_end=1474,
+  serialized_start=1460,
+  serialized_end=1494,
 )
 
 _S_G13_ABORTGAMEORNOT = _descriptor.Descriptor(
@@ -963,8 +970,8 @@ _S_G13_ABORTGAMEORNOT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1320,
-  serialized_end=1474,
+  serialized_start=1340,
+  serialized_end=1494,
 )
 
 
@@ -994,8 +1001,8 @@ _C_G13_VOTEFOABORTGAME = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1476,
-  serialized_end=1543,
+  serialized_start=1496,
+  serialized_end=1563,
 )
 
 
@@ -1025,8 +1032,8 @@ _S_G13_VOTEFAILED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1545,
-  serialized_end=1581,
+  serialized_start=1565,
+  serialized_end=1601,
 )
 
 
@@ -1049,8 +1056,8 @@ _S_G13_PLAYERQUITED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1583,
-  serialized_end=1603,
+  serialized_start=1603,
+  serialized_end=1623,
 )
 
 
@@ -1080,8 +1087,8 @@ _C_G13_READYFLAG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1605,
-  serialized_end=1637,
+  serialized_start=1625,
+  serialized_end=1657,
 )
 
 
@@ -1118,8 +1125,8 @@ _S_G13_HANDOFMINE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1639,
-  serialized_end=1688,
+  serialized_start=1659,
+  serialized_end=1708,
 )
 
 
@@ -1156,8 +1163,8 @@ _C_G13_BRINGOUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1690,
-  serialized_end=1738,
+  serialized_start=1710,
+  serialized_end=1758,
 )
 
 
@@ -1194,8 +1201,8 @@ _S_G13_ALLHANDS_BRANDINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1812,
-  serialized_end=1853,
+  serialized_start=1832,
+  serialized_end=1873,
 )
 
 _S_G13_ALLHANDS_PLAYER = _descriptor.Descriptor(
@@ -1266,8 +1273,8 @@ _S_G13_ALLHANDS_PLAYER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1856,
-  serialized_end=2119,
+  serialized_start=1876,
+  serialized_end=2139,
 )
 
 _S_G13_ALLHANDS = _descriptor.Descriptor(
@@ -1296,8 +1303,8 @@ _S_G13_ALLHANDS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1741,
-  serialized_end=2119,
+  serialized_start=1761,
+  serialized_end=2139,
 )
 
 
@@ -1355,8 +1362,8 @@ _S_G13_ALLROUNDS_PLAYER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2195,
-  serialized_end=2280,
+  serialized_start=2215,
+  serialized_end=2300,
 )
 
 _S_G13_ALLROUNDS = _descriptor.Descriptor(
@@ -1385,8 +1392,8 @@ _S_G13_ALLROUNDS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2122,
-  serialized_end=2280,
+  serialized_start=2142,
+  serialized_end=2300,
 )
 
 
@@ -1409,8 +1416,8 @@ _C_G13_REQGAMEHISTORYCOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2282,
-  serialized_end=2309,
+  serialized_start=2302,
+  serialized_end=2329,
 )
 
 
@@ -1468,8 +1475,8 @@ _S_G13_GAMEHISTORYCOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2311,
-  serialized_end=2428,
+  serialized_start=2331,
+  serialized_end=2448,
 )
 
 
@@ -1499,8 +1506,8 @@ _C_G13_REQGAMEHISTORYDETIAL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2430,
-  serialized_end=2472,
+  serialized_start=2450,
+  serialized_end=2492,
 )
 
 
@@ -1544,8 +1551,8 @@ _S_G13_GAMEHISTORYDETIAL_GAME_OPPONENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2679,
-  serialized_end=2731,
+  serialized_start=2699,
+  serialized_end=2751,
 )
 
 _S_G13_GAMEHISTORYDETIAL_GAME = _descriptor.Descriptor(
@@ -1595,8 +1602,8 @@ _S_G13_GAMEHISTORYDETIAL_GAME = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2561,
-  serialized_end=2731,
+  serialized_start=2581,
+  serialized_end=2751,
 )
 
 _S_G13_GAMEHISTORYDETIAL = _descriptor.Descriptor(
@@ -1625,8 +1632,8 @@ _S_G13_GAMEHISTORYDETIAL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2475,
-  serialized_end=2731,
+  serialized_start=2495,
+  serialized_end=2751,
 )
 
 
@@ -1670,8 +1677,8 @@ _C_G13_SIMULATIONROUND_BRINGOUTINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2825,
-  serialized_end=2885,
+  serialized_start=2845,
+  serialized_end=2905,
 )
 
 _C_G13_SIMULATIONROUND = _descriptor.Descriptor(
@@ -1700,8 +1707,8 @@ _C_G13_SIMULATIONROUND = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2734,
-  serialized_end=2885,
+  serialized_start=2754,
+  serialized_end=2905,
 )
 
 
@@ -1731,8 +1738,8 @@ _S_G13_CALCROUNDSIMULATIONRET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2887,
-  serialized_end=2962,
+  serialized_start=2907,
+  serialized_end=2982,
 )
 
 _S_LOGINRET_PRICE.containing_type = _S_LOGINRET

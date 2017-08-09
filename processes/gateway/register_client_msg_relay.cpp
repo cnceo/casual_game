@@ -9,10 +9,11 @@ namespace gateway{
 using namespace std::placeholders;
 
 static ProcessId lobbyPid;
+static ProcessId hallPid;
+
 #define PUBLIC_MSG_TO_LOBBY(clientMsgName) \
 ProtoManager::me().regHandler(PROTO_CODE_PUBLIC(clientMsgName), std::bind(&ClientManager::relayClientMsgToServer, this, lobbyPid, PROTO_CODE_PUBLIC(clientMsgName),  _1, _2));
 
-static ProcessId hallPid("hall", 1);
 #define PUBLIC_MSG_TO_HALL(clientMsgName) \
 ProtoManager::me().regHandler(PROTO_CODE_PUBLIC(clientMsgName), std::bind(&ClientManager::relayClientMsgToServer, this, hallPid, PROTO_CODE_PUBLIC(clientMsgName),  _1, _2));
 
@@ -26,6 +27,8 @@ void ClientManager::regClientMsgRelay()
     hallPid  = ProcessId("hall", 1);
 
     /************转发到lobby************/
+//    PLATFORM_MSG_TO_LOBBY(
+
     PUBLIC_MSG_TO_LOBBY(C_SendChat)
     PUBLIC_MSG_TO_LOBBY(C_G13_CreateGame)
     PUBLIC_MSG_TO_LOBBY(C_G13_JionGame)
@@ -54,6 +57,6 @@ void ClientManager::regClientMsgRelay()
     PUBLIC_MSG_TO_CLIENT(S_G13_GameHistoryCount)
     PUBLIC_MSG_TO_CLIENT(S_G13_GameHistoryDetial)
     PUBLIC_MSG_TO_CLIENT(S_G13_CalcRoundSimulationRet)
-};
+}
 
 }

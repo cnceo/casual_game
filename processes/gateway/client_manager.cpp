@@ -59,6 +59,12 @@ void ClientManager::erase(Client::Ptr client)
         LOG_TRACE("ClientManager erase client, cuid={}, ccid={}", client->cuid, client->ccid);
         m_clients.erase(client->ccid);
     }
+    //通知业务进程
+    PROTO_VAR_PRIVATE(ClientDisconnected, snd);
+    snd.set_ccid(client->ccid);
+    Gateway::me().sendToPrivate(ProcessId("lobby", 1), sndCode, snd);
+
+    //删除事件
     e_afterEraseClient(client->ccid);
 }
 
@@ -234,6 +240,7 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
         snd.set_wechat1(GameConfig::me().data().customService.wechat1);
         snd.set_wechat2(GameConfig::me().data().customService.wechat2);
         snd.set_wechat3(GameConfig::me().data().customService.wechat3);
+        snd.set_share_link("http://www.xmgwo.com/weixin.html");
         const auto& priceCfg = GameConfig::me().data().pricePerPlayer;
         for (const auto& item : priceCfg)
         {

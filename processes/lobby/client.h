@@ -10,7 +10,8 @@ namespace lobby{
 using namespace water;
 using namespace process;
 
-extern const char* CLIENT_TABLE_NAME;
+extern const char* CLIENT_TABLE_BY_OPENID;
+extern const char* CLIENT_CUID_2_OPENID;
 
 struct G13His
 {
@@ -70,6 +71,10 @@ public:
 
     const std::string& ipstr() const;
 
+    const componet::TimePoint& offlineTime() const;
+    void online();
+    void offline();
+
     bool sendToMe(TcpMsgCode code, const ProtoMsg& proto) const;
     bool noticeMessageBox(const std::string& text);
     template<typename ... Params>
@@ -81,6 +86,7 @@ public:
     bool saveToDB() const;
 
     void syncBasicDataToClient() const;
+
 
 private:
     ClientConnectionId m_ccid = INVALID_CCID;
@@ -98,6 +104,8 @@ private:
     std::string m_token;
     std::string m_imgurl;
     std::string m_ipstr;
+
+    componet::TimePoint m_offlineTime;
 };
 
 
@@ -128,6 +136,21 @@ inline void Client::setRoomId(uint32_t roomid)
     saveToDB();
 }
 
+inline const componet::TimePoint& Client::offlineTime() const
+{
+    return m_offlineTime;
+}
+
+inline void Client::online()
+{
+    m_offlineTime = componet::EPOCH;
+}
+
+inline void Client::offline()
+{
+    m_offlineTime = componet::Clock::now();
+}
+
 inline int32_t Client::money() const
 {
     return m_money;
@@ -145,6 +168,7 @@ inline int32_t Client::addMoney(int32_t money)
 
     m_money += money;
     saveToDB();
+        
     syncBasicDataToClient();
     return m_money;
 }

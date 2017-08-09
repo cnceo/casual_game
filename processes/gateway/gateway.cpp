@@ -47,10 +47,10 @@ void Gateway::init()
     m_clientManager = ClientManager::create(getId());
 
     //platfrom
-    m_platformClient = TcpClient::create();
-    m_platformClient->addRemoteEndpoint(net::Endpoint("127.0.0.1:10001"), std::chrono::seconds(5));
-    m_extraThreads["platform client"] = m_platformClient;
-    m_platformClient->e_newConn.reg(std::bind(&Gateway::newPlatformConnection, this, _1));
+    //m_platformClient = TcpClient::create();
+    //m_platformClient->addRemoteEndpoint(net::Endpoint("127.0.0.1:10001"), std::chrono::seconds(5));
+    //m_extraThreads["platform client"] = m_platformClient;
+    //m_platformClient->e_newConn.reg(std::bind(&Gateway::newPlatformConnection, this, _1));
 
     //处理新建立的客户连接
     m_publicNetServer->e_newConn.reg(std::bind(&Gateway::newClientConnection, this, _1));
@@ -191,13 +191,9 @@ void Gateway::loadConfig()
 
 void Gateway::newPlatformConnection(net::BufferedConnection::Ptr conn)
 {
-    ClientConnectionId ccid = PLATFORM_CCID;
-    if (!m_conns.addPublicConnection(conn, ccid))
-    {
-        LOG_ERROR("Gateway::newPlatformConnection, failed, {}", conn->getRemoteEndpoint());
-        return;
-    }
-    LOG_TRACE("Gateway::newPlatformConnection successed, {}", conn->getRemoteEndpoint());
+    LOG_TRACE("Gateway::newPlatformConnection, {}", conn->getRemoteEndpoint());
+    ProcessId pid("platform", 1);
+    m_conns.addPrivateConnection(conn, pid);
 }
 
 void Gateway::newClientConnection(net::BufferedConnection::Ptr conn)

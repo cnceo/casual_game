@@ -9,6 +9,7 @@ objects = \
 		  register_timer_handler.o\
 		  register_tcp_msg_handler.o\
 		  game_config.o\
+		  platform_handler.o\
 
 
 

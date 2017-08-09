@@ -4,7 +4,7 @@
     <!-- TODO, mysql的配置应该放到需要连mysql的进程的自有配置中-->
     <redis host ="127.0.0.1" port="6379"/>
 
-    <allProcesses allType="router gateway lobby hall">
+    <allProcesses allType="platform router gateway lobby hall">
         <!--网关服务器-->
         <processType name="gateway">
             <process num="1">

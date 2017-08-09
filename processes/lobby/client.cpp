@@ -12,7 +12,8 @@
 
 namespace lobby{
 
-const char* CLIENT_TABLE_NAME = "tb_client";
+const char* CLIENT_TABLE_BY_OPENID  = "tb_client";
+const char* CLIENT_CUID_2_OPENID = "tb_client_cuid_2_openid";
 
 const uint32_t MAX_G13HIS_SIZE = 50;
 
@@ -109,7 +110,7 @@ bool Client::saveToDB() const
                   openid(), cuid(), roomid(), money(), money1());
         return false;
     }
-    if (!redis.hset(CLIENT_TABLE_NAME, openid(), bin))
+    if (!redis.hset(CLIENT_TABLE_BY_OPENID, openid(), bin))
     {
         LOG_ERROR("save client, redis hset failed, openid={}, cuid={}, roomid={}, money={}, money1={}", 
                   openid(), cuid(), roomid(), money(), money1());

@@ -27,7 +27,6 @@ const HttpConnectionId INVALID_HCID = 0;
 //客户连接ID
 typedef uint64_t ClientConnectionId; // |-32bits unixtime-|-8bits gatewayNum-|-24bits counter-|
 const ClientConnectionId INVALID_CCID = 0;
-const ClientConnectionId PLATFORM_CCID = -1;
 //客户唯一ID
 typedef uint64_t ClientUniqueId; // |-32bits unixtime-|-32bits counter-|
 const ClientUniqueId INVALID_CUID = 0;
