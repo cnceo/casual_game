@@ -155,6 +155,7 @@ void ClientManager::sendServerVisionToClient(ClientConnectionId ccid)
     PROTO_VAR_PUBLIC(S_ServerVersion, snd);
     snd.set_version(versionCfg.version);
     snd.set_apple_review(versionCfg.appleReview);
+    snd.set_strict_version(versionCfg.strictVersion);
     Gateway::me().sendToClient(ccid, sndCode, snd);
     return;
 }

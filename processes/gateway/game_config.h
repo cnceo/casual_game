@@ -29,6 +29,7 @@ struct GameConfigData
     {
         std::string version;
         bool appleReview = false;
+        bool strictVersion = false;
     } versionInfo;
 
     struct

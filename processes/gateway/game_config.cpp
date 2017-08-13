@@ -47,7 +47,8 @@ void GameConfig::load(const std::string& cfgDir)
             EXCEPTION(LoadGameCfgFailedGW, "version node dose not exist");
 
         m_data.versionInfo.version = versionNode.getAttr<std::string>("version");
-        m_data.versionInfo.appleReview = versionNode.getAttr<bool>("appleReview");
+        m_data.versionInfo.appleReview   = versionNode.getAttr<bool>("appleReview");
+        m_data.versionInfo.strictVersion = versionNode.getAttr<bool>("strictVersion");
     }
 
     {

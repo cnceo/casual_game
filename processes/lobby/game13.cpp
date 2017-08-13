@@ -452,7 +452,7 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
         }
         break;
     case GameStatus::play:
-        { //临时处理， 要改成投票
+        { 
             game->m_startVoteTime = componet::toUnixTime(s_timerTime);
             game->m_voteSponsorCuid = info->cuid;
             game->m_status = GameStatus::vote;

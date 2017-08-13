@@ -5,8 +5,9 @@ package PublicProto;
 
 message S_ServerVersion
 {
-    required string version     = 1;
-    required bool apple_review  = 2; //是否是apple审核版, true 是, false 不是
+    required string version      = 1;
+    required bool apple_review   = 2; //是否是apple审核版, true 是, false 不是
+    required bool strict_version = 3; //是否严格版本比对, true 是, false 不是
 }
 
 //step 1,  client -> gw
