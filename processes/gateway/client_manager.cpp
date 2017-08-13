@@ -156,6 +156,8 @@ void ClientManager::sendServerVisionToClient(ClientConnectionId ccid)
     snd.set_version(versionCfg.version);
     snd.set_apple_review(versionCfg.appleReview);
     snd.set_strict_version(versionCfg.strictVersion);
+    snd.set_ios_app_url(versionCfg.iosAppUrl);
+    snd.set_android_app_url(versionCfg.androidAppUrl);
     Gateway::me().sendToClient(ccid, sndCode, snd);
     return;
 }

@@ -49,6 +49,8 @@ void GameConfig::load(const std::string& cfgDir)
         m_data.versionInfo.version = versionNode.getAttr<std::string>("version");
         m_data.versionInfo.appleReview   = versionNode.getAttr<bool>("appleReview");
         m_data.versionInfo.strictVersion = versionNode.getAttr<bool>("strictVersion");
+        m_data.versionInfo.iosAppUrl     = versionNode.getAttr<std::string>("iosAppUrl");
+        m_data.versionInfo.androidAppUrl = versionNode.getAttr<std::string>("androidAppUrl");
     }
 
     {

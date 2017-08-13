@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
-    <version version="1.0" appleReview="0" strictVersion="1"/>
+    <version version="1.2" appleReview="0" strictVersion="1" iosAppUrl="" androidAppUrl=""/>
 
     <customService wechat1="douzhen001" wechat2="douzhen002" wechat3="斗阵游"/>
 

@@ -7,7 +7,9 @@ message S_ServerVersion
 {
     required string version      = 1;
     required bool apple_review   = 2; //是否是apple审核版, true 是, false 不是
-    required bool strict_version = 3; //是否严格版本比对, true 是, false 不是
+    optional bool strict_version = 3; //是否严格版本比对, true 是, false 不是
+    optional string ios_app_url       = 4; //
+    optional string android_app_url   = 5; //
 }
 
 //step 1,  client -> gw
@@ -46,7 +48,7 @@ message S_LoginRet
     optional string wechat3     = 7; //微信号3
     optional string share_link  = 8; //分享的链接
     repeated Price price_list   = 9; //不同局数的房间, 人头费列表
-    
+
     message Price
     {
         required int32 rounds   = 1;
