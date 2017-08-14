@@ -27,7 +27,7 @@
 
 namespace lobby{
 
-const time_t MAX_VOTE_DURATION = 120;
+const time_t MAX_VOTE_DURATION = 180;
 
 Deck Game13::s_deck;
 
