@@ -1228,7 +1228,7 @@ void Game13::trySettleGame()
                 const auto& pd = round->players[i];
                 auto& count = allFinalCount[i];
                 count.cuid = pd.cuid;
-                count.win += pd.losers.size();
+                count.win += pd.prize > 0 ? 1 : 0;
                 bool daqiang = 0;
                 for(const auto& item : pd.losers)
                     daqiang += item.second[1];
