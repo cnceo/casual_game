@@ -709,6 +709,7 @@ void Game13::proto_C_G13_SimulationRound(ProtoMsgPtr proto, ClientConnectionId c
     if (rcv->players().size() < 2)
     {
         client->noticeMessageBox("出牌人数过少");
+        LOG_TRACE("模拟局, 房间人数不对, 收到{}", rcv->players().size());
         return;
     }
     struct ItemInfo
@@ -725,11 +726,17 @@ void Game13::proto_C_G13_SimulationRound(ProtoMsgPtr proto, ClientConnectionId c
         if(item.cards_size() != 13)
         {
             client->noticeMessageBox("出牌数量不对");
-            return;
+            LOG_TRACE("模拟局, 出牌数量不对, {}", item.cards_size());
         }
         playerList.emplace_back();
         playerList.back().cardsSpecBrand = item.special();
-        std::copy(item.cards().begin(), item.cards().end(), playerList.back().cards.begin());
+        for (auto i = 0u; i < playerList.back().cards.size(); ++i) //这里很蛋疼, 端的数据不保证正确
+        {
+            const uint32_t itemCardsSize = item.cards().size();
+            playerList.back().cards[i] = i < itemCardsSize ? item.cards()[i] : 1;
+            if (playerList.back().cards[i] < 1 || playerList.back().cards[i] > 52)
+                playerList.back().cards[i] = 1;
+        }
         playerList.back().cuid = item.cuid();
         cuid2Cards[item.cuid()] = playerList.back().cards;
     }
