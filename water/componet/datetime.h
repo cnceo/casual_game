@@ -65,6 +65,11 @@ TimePoint beginOfMonth(TimePoint tp);
 //两个tp是否在同一个自然月内
 bool inSameMonth(TimePoint tp1, TimePoint tp2);
 
+
+//从时间点tp1 到 时间点tp2, 相差几个自然日
+int32_t daysApart(TimePoint tp1, TimePoint tp2);
+
+
 }}
 
 #endif

@@ -36,7 +36,7 @@ std::string Client::serialize() const
     protoG13his->set_week_game (m_g13his.weekGame);
     protoG13his->set_today_rank(m_g13his.todayRank);
     protoG13his->set_today_game(m_g13his.todayGame);
-    for (const auto&detail : m_g13his.details)
+    for (const auto& detail : m_g13his.details)
     {
         auto protoDetail = protoG13his->add_details();
         protoDetail->set_roomid(detail->roomid);
@@ -50,6 +50,14 @@ std::string Client::serialize() const
             protoOpp->set_name(opp.name);
             protoOpp->set_rank(opp.rank);
         }
+    }
+
+    for (const auto& dayRank : m_g13his.hisDays)
+    {
+        auto protoDayRank = protoG13his->add_his_days();
+        protoDayRank->set_rank(dayRank.rank);
+        protoDayRank->set_game(dayRank.game);
+        protoDayRank->set_time(dayRank.time);
     }
 
     std::string ret;
@@ -96,6 +104,15 @@ bool Client::deserialize(const std::string& bin)
         m_g13his.details.push_back(detail);
     }
 
+    const auto& protoHisDays = protoG13his.his_days();
+    for (const auto& protoDayRank : protoHisDays)
+    {
+        m_g13his.hisDays.emplace_back();
+        m_g13his.hisDays.back().rank = protoDayRank.rank();
+        m_g13his.hisDays.back().game = protoDayRank.game();
+        m_g13his.hisDays.back().time = protoDayRank.time();
+    }
+
     return true;
 }
 
@@ -133,14 +150,22 @@ void Client::afterLeaveRoom(G13His::Detail::Ptr detail)
             auto thisGameTimePoint = componet::fromUnixTime(detail->time);
             if (!componet::inSameDay(lastGameTimePoint, thisGameTimePoint))
             {
+                while (!m_g13his.hisDays.empty())
+                {
+                    auto longestDayTimePoint = componet::fromUnixTime(m_g13his.hisDays.front().time);
+                    int32_t daysAgo = componet::daysApart(longestDayTimePoint, thisGameTimePoint);
+                    if (daysAgo == 0)
+                        break;
+                    m_g13his.weekRank -= m_g13his.hisDays.front().rank;
+                    m_g13his.weekGame -= m_g13his.hisDays.front().game;
+                    m_g13his.hisDays.pop_front();
+                }
+                m_g13his.hisDays.emplace_back();
+                m_g13his.hisDays.back().rank = m_g13his.todayRank;
+                m_g13his.hisDays.back().game = m_g13his.todayGame;
+                m_g13his.hisDays.back().time = detail->time;
                 m_g13his.todayRank = 0;
                 m_g13his.todayGame = 0;
-            }
-            if (!componet::inSameWeek(lastGameTimePoint, thisGameTimePoint, 1))
-            {
-                m_g13his.weekRank = 0;
-                m_g13his.weekGame = 0;
-
             }
         }
 

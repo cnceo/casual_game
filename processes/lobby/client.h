@@ -36,6 +36,14 @@ struct G13His
     int32_t weekGame   = 0;
     int32_t todayRank  = 0;
     int32_t todayGame  = 0;
+
+    struct DayRank
+    {
+        int32_t rank = 0;
+        int32_t game = 0;
+        int32_t time = 0;
+    };
+    std::list<DayRank> hisDays;
 };
 
 class Client

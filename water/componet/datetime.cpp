@@ -140,6 +140,13 @@ bool inSameMonth(TimePoint tp1, TimePoint tp2)
     return beginOfMonth(tp1) == beginOfMonth(tp2);
 }
 
+int32_t daysApart(TimePoint tp1, TimePoint tp2)
+{
+    const time_t day1 = Clock::to_time_t(beginOfDay(tp1));
+    const time_t day2 = Clock::to_time_t(beginOfDay(tp2));
+    return (day2 - day1) / (24 * 3600);
+}
+
 }}
 
 /*

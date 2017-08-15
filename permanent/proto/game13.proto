@@ -43,6 +43,14 @@ message ClientData
         int32 week_game         = 3;
         int32 today_rank        = 4;
         int32 today_game        = 5;
+
+        message DayRank
+        {
+            int32 rank = 1;
+            int32 game = 2;
+            int32 time = 3;
+        }
+        repeated DayRank his_days = 6;
     }
 
     reserved 9;
