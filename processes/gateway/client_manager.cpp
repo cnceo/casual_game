@@ -159,6 +159,12 @@ void ClientManager::sendServerVisionToClient(ClientConnectionId ccid)
     snd.set_ios_app_url(versionCfg.iosAppUrl);
     snd.set_android_app_url(versionCfg.androidAppUrl);
     Gateway::me().sendToClient(ccid, sndCode, snd);
+
+    PROTO_VAR_PUBLIC(S_Notice, snd1);
+    snd1.set_type(PublicProto::S_Notice::NOTICE);
+    snd1.set_text("亲爱的玩家：$$$       欢迎来到斗阵棋牌世界，让我们约起三五好友一起斗阵游吧！在这里开启快乐休闲时光。$$$斗阵十三水官方运营团队$$$2017年8月16日");
+    Gateway::me().sendToClient(ccid, snd1Code, snd1);
+
     return;
 }
 

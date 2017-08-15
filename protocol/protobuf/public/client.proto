@@ -71,6 +71,7 @@ message S_Notice
     {
         MSG_BOX = 1; //弹窗消息
         NOTICE  = 2; //公告
+        ROLLING_BOARD  = 3; //滚动提示
     }
     required Type   type = 1;
     required string text = 2;
