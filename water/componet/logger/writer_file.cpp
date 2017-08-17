@@ -74,7 +74,7 @@ std::string WriterFile::getFileNameBynow()
 {
     struct tm vtm = timeNow();
     char t_time[32];
-    snprintf(t_time, sizeof(t_time), ".%4d%02d%02d-%02d", vtm.tm_year+1990, vtm.tm_mon+1, vtm.tm_mday, vtm.tm_hour);
+    snprintf(t_time, sizeof(t_time), ".%4d%02d%02d-%02d", vtm.tm_year+1900, vtm.tm_mon+1, vtm.tm_mday, vtm.tm_hour);
     return m_filename + t_time;
 }
 
