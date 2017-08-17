@@ -300,7 +300,7 @@ void AnySdkLoginManager::AllClients::AnySdkClient::corotExec()
                         tokenInfo->openid    = j["data"]["openid"];
                         tokenInfo->token     = j["data"]["access_token"];
                         time_t rcvExpiresIn  = j["data"]["expires_in"];
-                        time_t expiresIn = rcvExpiresIn < 300 ? rcvExpiresIn : 300;
+                        time_t expiresIn = rcvExpiresIn;
 
                         tokenInfo->expiry = expiresIn + componet::toUnixTime(*now);
                         LOG_TRACE("ASS, ass response parse successed, hcid={}, openid={}, token={}, rcvExpiresIn={}", 

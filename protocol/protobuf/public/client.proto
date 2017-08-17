@@ -15,9 +15,9 @@ message S_ServerVersion
 //step 1,  client -> gw
 enum LoginType_C_Login
 {
-    LOGINT_WETCHAT      = 0; //微信登陆
-    LOGINT_HISTOLKEN    = 1; //历史token登陆
-    LOGINT_VISTOR       = 2; //游客登录
+    LOGINT_VISTOR       = 0; //游客登录
+    LOGINT_WETCHAT      = 1; //微信登陆
+    LOGINT_HISTOLKEN    = 2; //历史token登陆, 暂时端没有用到
 }
 message C_Login
 {
