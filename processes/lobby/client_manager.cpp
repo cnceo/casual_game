@@ -262,7 +262,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         client = loadRet.first;
         if(client == nullptr) //新用户
         {
-            if (!rcv->is_wechat())
+            if (!rcv->verified())
             {
                 retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);
                 LOG_ERROR("login, step 2, failed,  new client but not from wechat, openid={}", openid);
@@ -285,7 +285,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
         }
         else //登陆过但不在线
         {
-            if ( !rcv->is_wechat() && rcv->token() != client->m_token )
+            if ( !rcv->verified() && rcv->token() != client->m_token )
             {
                 retMsg.set_ret_code(PrivateProto::RLQ_TOKEN_EXPIRIED);
                 LOG_TRACE("login, step 2, old client online failed, ilegal token, openid={}, oldtoken={}, rcvtoken={}", 
@@ -305,7 +305,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     }
     else  //本来就在线
     {
-        if ( !rcv->is_wechat() && rcv->token() != client->m_token )
+        if ( !rcv->verified() && rcv->token() != client->m_token )
         {
             retMsg.set_ret_code(PrivateProto::RLQ_TOKEN_EXPIRIED);
             LOG_TRACE("login, step 2, old client replaced failed, ilegal token, openid={}, oldtoken={}, rcvtoken={}", 
@@ -345,7 +345,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
     client->m_name  = rcv->name();
     client->m_imgurl= rcv->imgurl();
     client->m_ipstr = rcv->ipstr();
-    if (rcv->is_wechat() && !saveClient(client))
+    if (rcv->verified() && !saveClient(client))
     {
         erase(client);
         retMsg.set_ret_code(PrivateProto::RLQ_REG_FAILED);

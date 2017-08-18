@@ -200,29 +200,45 @@ void ClientManager::proto_C_Login(ProtoMsgPtr proto, ClientConnectionId ccid)
     toserver.set_imgurl(rcv->imgurl());
     toserver.set_ipstr(client->ep.ip.toString());
 
+    auto loginFailed = [this, &client, &rcv, ccid](int errCode)
+    {
+        PROTO_VAR_PUBLIC(S_LoginRet, tocli)
+        tocli.set_ret_code(errCode);
+        Gateway::me().sendToClient(client->ccid, tocliCode, tocli);
+        LOG_DEBUG("login, step 1, 验证失败, type={}, ccid={}, openid={}, token={}", rcv->login_type(), ccid, rcv->openid(), rcv->token());
+        eraseLater(client);
+    };
+
     //TODO login step1, 依据登陆类型和登陆信息验证登陆有效性, 微信的
     if (rcv->login_type() == PublicProto::LOGINT_WETCHAT)
     {
-        if (!GameConfig::me().data().versionInfo.appleReview && 
-            !AnySdkLoginManager::me().checkAccessToken(rcv->openid(), rcv->token()))
+        if (!AnySdkLoginManager::me().checkAccessToken(rcv->openid(), rcv->token()))
         {
-            PROTO_VAR_PUBLIC(S_LoginRet, tocli)
-            tocli.set_ret_code(PublicProto::LOGINR_WCHTTOKEN_ILEGAL);
-            Gateway::me().sendToClient(client->ccid, tocliCode, tocli);
-            LOG_DEBUG("login, step 1, wechat token, 验证失败, ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
-            eraseLater(client);
+            loginFailed(PublicProto::LOGINR_WCHTTOKEN_ILEGAL);
             return;
         }
-        toserver.set_is_wechat(true);
-        LOG_TRACE("login, step 1, wechat token 验证通过, ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
+        toserver.set_verified(true);
     }
-    else
+    else if(rcv->login_type() == PublicProto::LOGINT_VISTOR)
     {
-        toserver.set_is_wechat(false);
-        LOG_TRACE("login, step 1, history token, 网关不做验证,  ccid={}, openid={}, token={}", ccid, rcv->openid(), rcv->token());
+        if (!GameConfig::me().data().versionInfo.appleReview)
+        {
+            loginFailed(PublicProto::LOGINR_FAILED);
+            return;
+        }
+        toserver.set_verified(true);
+    }
+    else if(rcv->login_type() == PublicProto::LOGINT_HISTOLKEN)
+    {
+        {//屏蔽掉历史纪录登录, 这里直接登陆失败
+            loginFailed(PublicProto::LOGINR_FAILED);
+            return; 
+        }
+        toserver.set_verified(false);
     }
     
     Gateway::me().sendToPrivate(ProcessId("lobby", 1), toserverCode, toserver);
+    LOG_TRACE("login, step 1, 验证通过, type={}, ccid={}, openid={}, token={}", rcv->login_type(), ccid, rcv->openid(), rcv->token());
 }
 
 void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)

@@ -30,3 +30,4 @@ water/libs/cpp_redis/installed/
 water/libs/hiredis/hiredis/
 water/libs/hiredis/installed/
 protocol/protobuf/public/client_pb2.py
+protocol/protobuf/private/login_pb2.py

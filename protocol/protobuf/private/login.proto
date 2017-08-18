@@ -5,7 +5,7 @@ package PrivateProto;
 // step 2, gw -> lo
 message LoginQuest
 {
-    required bool   is_wechat   = 1;
+    required bool   verified    = 1;
     required string openid      = 2;
     required string token       = 3;
     required uint64 ccid        = 4;
