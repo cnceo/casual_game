@@ -20,6 +20,7 @@ test_*
 *.log.*
 *.log
 log/*
+config/game.xml
 tags
 water/libs/mysql++/mysql++-*/
 water/libs/mysql++/installed/
@@ -31,3 +32,4 @@ water/libs/hiredis/hiredis/
 water/libs/hiredis/installed/
 protocol/protobuf/public/client_pb2.py
 protocol/protobuf/private/login_pb2.py
+
