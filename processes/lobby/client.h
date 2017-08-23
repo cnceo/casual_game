@@ -149,11 +149,6 @@ inline const componet::TimePoint& Client::offlineTime() const
     return m_offlineTime;
 }
 
-inline void Client::online()
-{
-    m_offlineTime = componet::EPOCH;
-}
-
 inline void Client::offline()
 {
     m_offlineTime = componet::Clock::now();
