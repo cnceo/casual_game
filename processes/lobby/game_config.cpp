@@ -67,15 +67,15 @@ void GameConfig::load(const std::string& cfgDir)
         }
     }
 
-    {
+    do{
         m_data.testDeck.index = -1u;
         m_data.testDeck.decks.clear();
         XmlParseNode testDeckNode = root.getChild("testDeck");
         if (!testDeckNode) //测试配置, 可有可无, 不报错
-            return;
+            break;
         m_data.testDeck.index = testDeckNode.getAttr<uint32_t>("index");
         if (m_data.testDeck.index == -1u)
-            return;
+            break;
         for (XmlParseNode deckNode = testDeckNode.getChild("deck"); deckNode; ++deckNode)
         {
             std::vector<uint16_t> deck;
@@ -87,16 +87,23 @@ void GameConfig::load(const std::string& cfgDir)
         }
         if (m_data.testDeck.index >= m_data.testDeck.decks.size())
             EXCEPTION(LoadGameCfgFailedGW, "testDeck, index={}, decks.size={}", m_data.testDeck.index,  m_data.testDeck.decks.size());
-    }
+    } while(false);
 
-    {
+    do{
         XmlParseNode shareByWeChatNode = root.getChild("shareByWeChat");
         if (!shareByWeChatNode)
-            return;
+        {
+            LOG_TRACE("GAME_CONFIG, shareByWeChat 不存在");
+            break;
+        }
         m_data.shareByWeChat.begin  = shareByWeChatNode.getAttr<water::componet::TimePoint>("begin");
         m_data.shareByWeChat.end    = shareByWeChatNode.getAttr<water::componet::TimePoint>("end");
         m_data.shareByWeChat.awardMoney = shareByWeChatNode.getAttr<int32_t>("awardMoney");
-    }
+        LOG_TRACE("GAME_CONFIG, {}, {}, {}", 
+                  shareByWeChatNode.getAttr<std::string>("begin"), 
+                  shareByWeChatNode.getAttr<std::string>("end"), 
+                  m_data.shareByWeChat.awardMoney);
+    } while(false);
 
     LOG_TRACE("load {} successed", configFile);
 }

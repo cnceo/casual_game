@@ -44,8 +44,8 @@ struct GameConfigData
 
     struct
     {
-        water::componet::TimePoint begin;
-        water::componet::TimePoint end;
+        water::componet::TimePoint begin = water::componet::EPOCH;
+        water::componet::TimePoint end   = water::componet::EPOCH;
         int32_t   awardMoney = 0;
     } shareByWeChat;
 };

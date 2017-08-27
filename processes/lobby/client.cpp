@@ -214,7 +214,9 @@ void Client::afterShareByWeChat()
 
     const auto& cfg = GameConfig::me().data().shareByWeChat;
     addMoney(cfg.awardMoney);
-    LOG_TRACE("微信分享得钻石, 钻石+{}", cfg.awardMoney);
+    std::string notice = componet::format("微信分享成功, 获得奖励钻石{}", cfg.awardMoney);
+    noticeMessageBox(notice);
+    LOG_TRACE(notice);
 }
 
 void Client::online()
