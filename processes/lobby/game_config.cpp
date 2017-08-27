@@ -100,8 +100,8 @@ void GameConfig::load(const std::string& cfgDir)
         m_data.shareByWeChat.end    = shareByWeChatNode.getAttr<water::componet::TimePoint>("end");
         m_data.shareByWeChat.awardMoney = shareByWeChatNode.getAttr<int32_t>("awardMoney");
         LOG_TRACE("GAME_CONFIG, {}, {}, {}", 
-                  shareByWeChatNode.getAttr<std::string>("begin"), 
-                  shareByWeChatNode.getAttr<std::string>("end"), 
+                  componet::timePointToString(m_data.shareByWeChat.begin),
+                  componet::timePointToString(m_data.shareByWeChat.end),
                   m_data.shareByWeChat.awardMoney);
     } while(false);
 

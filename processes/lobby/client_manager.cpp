@@ -89,7 +89,7 @@ void ClientManager::timerExecAll(componet::TimePoint now)
 {
     const auto& shareByWeChatCfg = GameConfig::me().data().shareByWeChat;
     bool shareByWeChatStatusChanged = false;
-    if (Client::ShareByWeChat::isActive == (shareByWeChatCfg.begin <= now && now < shareByWeChatCfg.end))
+    if (Client::ShareByWeChat::isActive != (shareByWeChatCfg.begin <= now && now < shareByWeChatCfg.end))
     {
         shareByWeChatStatusChanged = true;
         Client::ShareByWeChat::isActive = !Client::ShareByWeChat::isActive;
