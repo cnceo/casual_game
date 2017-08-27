@@ -3,12 +3,15 @@
 
 
 #include "client_manager.h"
+#include "componet/datetime.h"
 
 #include <list>
 
 namespace lobby{
 using namespace water;
 using namespace process;
+
+using componet::TimePoint;
 
 extern const char* CLIENT_TABLE_BY_OPENID;
 extern const char* CLIENT_CUID_2_OPENID;
@@ -50,6 +53,13 @@ class Client
 {
 friend class ClientManager;
 friend class MysqlHandler;
+
+public:
+    struct ShareByWeChat
+    {
+        static bool isActive;
+        TimePoint lastShareTime;
+    };
 private:
     CREATE_FUN_NEW(Client)
     Client() = default;
@@ -79,7 +89,7 @@ public:
 
     const std::string& ipstr() const;
 
-    const componet::TimePoint& offlineTime() const;
+    const TimePoint& offlineTime() const;
     void online();
     void offline();
 
@@ -95,6 +105,8 @@ public:
 
     void syncBasicDataToClient() const;
 
+    void syncShareByWeChatStatus() const;
+    void afterShareByWeChat();
 
 private:
     ClientConnectionId m_ccid = INVALID_CCID;
@@ -114,6 +126,7 @@ private:
     std::string m_ipstr;
 
     componet::TimePoint m_offlineTime;
+    ShareByWeChat shareByWeChat;
 };
 
 

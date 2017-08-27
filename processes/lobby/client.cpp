@@ -1,6 +1,7 @@
 #include "client.h"
 #include "lobby.h"
 #include "room.h"
+#include "game_config.h"
 
 #include "dbadaptcher/redis_handler.h"
 
@@ -17,6 +18,8 @@ const char* CLIENT_TABLE_BY_OPENID  = "tb_client";
 const char* CLIENT_CUID_2_OPENID = "tb_client_cuid_2_openid";
 
 const uint32_t MAX_G13HIS_SIZE = 50;
+
+bool Client::ShareByWeChat::isActive = false;
 
 std::string Client::serialize() const
 {
@@ -60,6 +63,9 @@ std::string Client::serialize() const
         protoDayRank->set_game(dayRank.game);
         protoDayRank->set_time(dayRank.time);
     }
+
+    auto protoShareByWeChat = proto.mutable_share_by_wechat();
+    protoShareByWeChat->set_time(componet::toUnixTime(shareByWeChat.lastShareTime));
 
     std::string ret;
     return proto.SerializeToString(&ret) ? ret : "";
@@ -113,6 +119,10 @@ bool Client::deserialize(const std::string& bin)
         m_g13his.hisDays.back().game = protoDayRank.game();
         m_g13his.hisDays.back().time = protoDayRank.time();
     }
+
+    const auto& protoShareByWeChat = proto.share_by_wechat();
+    auto lastShareTimeUT = protoShareByWeChat.time();
+    shareByWeChat.lastShareTime = (lastShareTimeUT != 0) ? componet::fromUnixTime(lastShareTimeUT) : componet::EPOCH;
 
     return true;
 }
@@ -185,10 +195,33 @@ void Client::afterLeaveRoom(G13His::Detail::Ptr detail)
     sendToMe(sndCode, snd);
 }
 
+void Client::syncShareByWeChatStatus() const
+{
+    const auto& cfg = GameConfig::me().data().shareByWeChat;
+    PROTO_VAR_PUBLIC(S_G13_WechatSharingInfo, snd);
+    snd.set_is_active(ShareByWeChat::isActive);
+    snd.set_award_money(cfg.awardMoney);
+    sendToMe(sndCode, snd);
+}
+
+void Client::afterShareByWeChat()
+{
+    if (!ShareByWeChat::isActive)
+        return;
+
+    if (componet::inSameDay(componet::Clock::now(), shareByWeChat.lastShareTime))
+        return;
+
+    const auto& cfg = GameConfig::me().data().shareByWeChat;
+    addMoney(cfg.awardMoney);
+    LOG_TRACE("微信分享得钻石, 钻石+{}", cfg.awardMoney);
+}
+
 void Client::online()
 {
     m_offlineTime = componet::EPOCH;
     syncBasicDataToClient();
+    syncShareByWeChatStatus();
 }
 
 bool Client::sendToMe(TcpMsgCode code, const ProtoMsg& proto) const

@@ -53,6 +53,11 @@ message ClientData
         repeated DayRank his_days = 6;
     }
 
+    message ShareByWeChat
+    {
+        int32 time    = 1;
+    }
+
     reserved 9;
 
     string  openid  = 1;
@@ -63,6 +68,7 @@ message ClientData
     int32   money1  = 7;
     string  token   = 8;
     G13history g13his = 10;
+    ShareByWeChat share_by_wechat    = 11;
 }
 
 message GameRoom

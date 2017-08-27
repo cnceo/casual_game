@@ -318,6 +318,20 @@ message S_G13_CalcRoundSimulationRet
     required S_G13_AllHands result = 1;
 }
 
+//微信分享活动的信息
+message S_G13_WechatSharingInfo
+{
+    required bool   is_active   = 1; //是否开启
+    required int32  award_money = 2; //奖励金钱
+}
+
+//微信分享成功
+message C_G13_OnShareAdvByWeChat
+{
+}
+
+
+
 
 
 

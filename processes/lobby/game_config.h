@@ -12,6 +12,7 @@
 
 
 #include "componet/exception.h" 
+#include "componet/datetime.h"
 
 #include <map>
 #include <vector>
@@ -40,6 +41,13 @@ struct GameConfigData
         uint32_t index = -1;
         std::vector<std::vector<uint16_t>> decks;
     } testDeck;
+
+    struct
+    {
+        water::componet::TimePoint begin;
+        water::componet::TimePoint end;
+        int32_t   awardMoney = 0;
+    } shareByWeChat;
 };
 
 class GameConfig

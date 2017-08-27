@@ -10,6 +10,8 @@
 #include "tinyxml.h"
 #include "xml_parse_doc.h"
 
+#include "../datetime.h"
+
 #include <string>
 
 namespace water{
@@ -119,6 +121,15 @@ private:
 		*t = static_cast<bool>(temp);
 		return true;
 	}
+
+    bool getAttr(const std::string& nodeName, TimePoint* tp) const
+    {
+		std::string attrStr;
+		if(!getAttr(nodeName, &attrStr))
+			return false;
+        *tp = stringToTimePoint(attrStr);
+        return true;
+    }
 
     template<typename T>
     bool getText(T* t) const

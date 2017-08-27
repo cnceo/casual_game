@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
-    <version version="1.2" appleReview="0" strictVersion="1" iosAppUrl="http://www.xmgwo.com/weixin.html" androidAppUrl="http://www.xmgwo.com/weixin.html"/>
+    <version version="1.2" appleReview="false" strictVersion="1" iosAppUrl="http://www.xmgwo.com/weixin.html" androidAppUrl="http://www.xmgwo.com/weixin.html"/>
 
     <customService wechat1="douzhen001" wechat2="douzhen002" wechat3="斗阵游"/>
 
@@ -15,6 +15,8 @@
         <item rounds="15" money="12"/>
         <item rounds="20" money="16"/>
     </pricePerPlayer>
+
+    <shareByWeChat begin="20170823-00:00:00" end="20170828-00:00:00" awardMoney="10"/>
 
     <!--牌规则说明:
          花色: {黑,红,梅,方} ->  {3,2,1,0}

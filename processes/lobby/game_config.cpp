@@ -89,6 +89,15 @@ void GameConfig::load(const std::string& cfgDir)
             EXCEPTION(LoadGameCfgFailedGW, "testDeck, index={}, decks.size={}", m_data.testDeck.index,  m_data.testDeck.decks.size());
     }
 
+    {
+        XmlParseNode shareByWeChatNode = root.getChild("shareByWeChat");
+        if (!shareByWeChatNode)
+            return;
+        m_data.shareByWeChat.begin  = shareByWeChatNode.getAttr<water::componet::TimePoint>("begin");
+        m_data.shareByWeChat.end    = shareByWeChatNode.getAttr<water::componet::TimePoint>("end");
+        m_data.shareByWeChat.awardMoney = shareByWeChatNode.getAttr<int32_t>("awardMoney");
+    }
+
     LOG_TRACE("load {} successed", configFile);
 }
 

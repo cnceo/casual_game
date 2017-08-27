@@ -2,6 +2,7 @@
 #include "client.h"
 #include "lobby.h"
 #include "game13.h"
+#include "game_config.h"
 
 #include "dbadaptcher/redis_handler.h"
 
@@ -34,6 +35,17 @@ ClientManager& ClientManager::me()
 void ClientManager::init()
 {
     recoveryFromRedis();
+}
+
+ClientUniqueId ClientManager::getClientUniqueId()
+{
+    const ClientUniqueId nextCuid = m_uniqueIdCounter + 1;
+
+    using water::dbadaptcher::RedisHandler;
+    RedisHandler& redis = RedisHandler::me();
+    if (!redis.set(MAX_CLIENT_UNIQUE_ID_NAME, componet::format("{}", nextCuid)))
+        return INVALID_CUID;
+    return ++m_uniqueIdCounter;
 }
 
 void ClientManager::recoveryFromRedis()
@@ -75,15 +87,31 @@ void ClientManager::recoveryFromRedis()
 
 void ClientManager::timerExecAll(componet::TimePoint now)
 {
+    const auto& shareByWeChatCfg = GameConfig::me().data().shareByWeChat;
+    bool shareByWeChatStatusChanged = false;
+    if (Client::ShareByWeChat::isActive == (shareByWeChatCfg.begin <= now && now < shareByWeChatCfg.end))
+    {
+        shareByWeChatStatusChanged = true;
+        Client::ShareByWeChat::isActive = !Client::ShareByWeChat::isActive;
+    }
+
     std::vector<Client::Ptr> clientsOfflineLongTimeAgo;
     for (auto iter = m_cuid2Clients.begin(); iter != m_cuid2Clients.end(); ++iter)
     {
         auto client = iter->second;
         if (client->roomid() == 0 &&
-            client->offlineTime() != componet::EPOCH && 
-            client->offlineTime() + std::chrono::seconds(600) > now)
+            client->offlineTime() != componet::EPOCH && client->offlineTime() + std::chrono::seconds(600) > now)
         {
             clientsOfflineLongTimeAgo.push_back(client);
+        }
+
+        //在线
+        if (client->offlineTime() != componet::EPOCH)
+        {
+            if (shareByWeChatStatusChanged)
+            {
+                client->syncShareByWeChatStatus();
+            }
         }
     }
 
@@ -372,7 +400,7 @@ void ClientManager::proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid)
 void ClientManager::proto_ClientDisconnected(ProtoMsgPtr proto, ProcessId gatewayPid)
 {
     auto rcv = PROTO_PTR_CAST_PRIVATE(ClientDisconnected, proto);
-    Client::Ptr client = ClientManager::me().getByCcid(rcv->ccid());
+    Client::Ptr client = getByCcid(rcv->ccid());
     if (client == nullptr)
         return;
 
@@ -384,7 +412,7 @@ void ClientManager::proto_ClientDisconnected(ProtoMsgPtr proto, ProcessId gatewa
 void ClientManager::proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionId ccid)
 {
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_SendChat, proto);
-    Client::Ptr client = ClientManager::me().getByCcid(ccid);
+    Client::Ptr client = getByCcid(ccid);
     if (client == nullptr)
         return;
 
@@ -416,7 +444,7 @@ void ClientManager::proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionI
 
 void ClientManager::proto_C_G13_ReqGameHistoryCount(ClientConnectionId ccid)
 {
-    Client::Ptr client = ClientManager::me().getByCcid(ccid);
+    Client::Ptr client = getByCcid(ccid);
     if (client == nullptr)
         return;
 
@@ -432,7 +460,7 @@ void ClientManager::proto_C_G13_ReqGameHistoryCount(ClientConnectionId ccid)
 void ClientManager::proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, ClientConnectionId ccid)
 {
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_ReqGameHistoryDetial, proto);
-    Client::Ptr client = ClientManager::me().getByCcid(ccid);
+    Client::Ptr client = getByCcid(ccid);
     if (client == nullptr)
         return;
 
@@ -472,15 +500,12 @@ void ClientManager::proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, C
     sendToClient(ccid, sndCode, snd);
 }
 
-ClientUniqueId ClientManager::getClientUniqueId()
+void ClientManager::proto_C_G13_OnShareAdvByWeChat(ClientConnectionId ccid)
 {
-    const ClientUniqueId nextCuid = m_uniqueIdCounter + 1;
-
-    using water::dbadaptcher::RedisHandler;
-    RedisHandler& redis = RedisHandler::me();
-    if (!redis.set(MAX_CLIENT_UNIQUE_ID_NAME, componet::format("{}", nextCuid)))
-        return INVALID_CUID;
-    return ++m_uniqueIdCounter;
+    Client::Ptr client = getByCcid(ccid);
+    if (client == nullptr)
+        return;
+    client->afterShareByWeChat();
 }
 
 void ClientManager::regMsgHandler()
@@ -490,6 +515,7 @@ void ClientManager::regMsgHandler()
     REG_PROTO_PUBLIC(C_SendChat, std::bind(&ClientManager::proto_C_SendChat, this, _1, _2));
     REG_PROTO_PUBLIC(C_G13_ReqGameHistoryCount, std::bind(&ClientManager::proto_C_G13_ReqGameHistoryCount, this, _2));
     REG_PROTO_PUBLIC(C_G13_ReqGameHistoryDetial, std::bind(&ClientManager::proto_C_G13_ReqGameHistoryDetial, this, _1, _2));
+    REG_PROTO_PUBLIC(C_G13_OnShareAdvByWeChat, std::bind(&ClientManager::proto_C_G13_OnShareAdvByWeChat, this, _2));
     /************msg from cluster**********/
     REG_PROTO_PRIVATE(LoginQuest, std::bind(&ClientManager::proto_LoginQuest, this, _1, _2));
     REG_PROTO_PRIVATE(ClientDisconnected, std::bind(&ClientManager::proto_ClientDisconnected, this, _1, _2));

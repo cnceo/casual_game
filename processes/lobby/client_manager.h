@@ -56,6 +56,7 @@ private:
     void proto_C_SendChat(const ProtoMsgPtr& proto, ClientConnectionId ccid);
     void proto_C_G13_ReqGameHistoryCount(ClientConnectionId ccid);
     void proto_C_G13_ReqGameHistoryDetial(const ProtoMsgPtr& proto, ClientConnectionId ccid);
+    void proto_C_G13_OnShareAdvByWeChat(ClientConnectionId ccid);
 private:
     void proto_LoginQuest(ProtoMsgPtr proto, ProcessId gatewayPid);
     void proto_ClientDisconnected(ProtoMsgPtr proto, ProcessId gatewayPid);
