@@ -209,12 +209,14 @@ void Client::afterShareByWeChat()
     if (!ShareByWeChat::isActive)
         return;
 
-    if (componet::inSameDay(componet::Clock::now(), shareByWeChat.lastShareTime))
+    auto now = componet::Clock::now();
+    if (componet::inSameDay(now, shareByWeChat.lastShareTime))
         return;
 
     const auto& cfg = GameConfig::me().data().shareByWeChat;
+    shareByWeChat.lastShareTime = now;
     addMoney(cfg.awardMoney);
-    std::string notice = componet::format("微信分享成功, 获得奖励钻石{}", cfg.awardMoney);
+    std::string notice = componet::format("微信分享成功, 获得{}个钻石奖励", cfg.awardMoney);
     noticeMessageBox(notice);
     LOG_TRACE(notice);
 }
