@@ -1,5 +1,6 @@
 #include "client.h"
 #include "lobby.h"
+#include "room.h"
 
 #include "dbadaptcher/redis_handler.h"
 
@@ -182,6 +183,12 @@ void Client::afterLeaveRoom(G13His::Detail::Ptr detail)
     saveToDB();
     PROTO_VAR_PUBLIC(S_G13_PlayerQuited, snd);
     sendToMe(sndCode, snd);
+}
+
+void Client::online()
+{
+    m_offlineTime = componet::EPOCH;
+    syncBasicDataToClient();
 }
 
 bool Client::sendToMe(TcpMsgCode code, const ProtoMsg& proto) const
