@@ -388,11 +388,14 @@ void Game13::proto_C_G13_JionGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     if (game == nullptr)
     {
         client->noticeMessageBox("房间号不存在");
-        LOG_DEBUG("申请加入房间失败, 房间号不存在, ccid={}, openid={}, roomid={}", client->ccid(), client->openid(), rcv->room_id());
+        LOG_DEBUG("申请加入房间失败, 房间号不存在, name={}, cuid={}, openid={}, roomid={}", client->name(), client->cuid(), client->openid(), rcv->room_id());
         return;
     }
     if(!game->enterRoom(client))
+    {
+        LOG_DEBUG("申请加入房间失败, enterRoom 失败, name={}, cuid={}, openid={}, roomid={}", client->name(), client->cuid(), client->openid(), rcv->room_id());
         return;
+    }
     saveToDB(game, "join room", client);
 }
 
@@ -795,14 +798,6 @@ bool Game13::enterRoom(Client::Ptr client)
         client->noticeMessageBox("房间已满, 无法加入");
         return false;
     }
-
-    //加入成员列表
-    m_players[index].cuid = client->cuid();
-    m_players[index].lastCuid = client->cuid();
-    m_players[index].name = client->name();
-    m_players[index].imgurl = client->imgurl();
-    m_players[index].ipstr = client->ipstr();
-    m_players[index].status = PublicProto::S_G13_PlayersInRoom::PREP;
     
     {//钱数检查
         bool enoughMoney = false;
@@ -828,13 +823,21 @@ bool Game13::enterRoom(Client::Ptr client)
         }
     }
 
-    client->setRoomId(getId());
+    //加入成员列表
+    m_players[index].cuid = client->cuid();
+    m_players[index].lastCuid = client->cuid();
+    m_players[index].name = client->name();
+    m_players[index].imgurl = client->imgurl();
+    m_players[index].ipstr = client->ipstr();
+    m_players[index].status = PublicProto::S_G13_PlayersInRoom::PREP;
 
+    //反向索引, 记录房间号
+    client->setRoomId(getId());
 
     afterEnterRoom(client);
 
-    LOG_TRACE("G13, {}房间成功, roomid={}, ccid={}, cuid={}, openid={}", (ownerCuid() != client->cuid()) ? "进入" : "创建",
-              client->roomid(), client->ccid(), client->cuid(), client->openid());
+    LOG_TRACE("G13, {}房间成功, roomid={}, name={}, ccid={}, cuid={}, openid={}", (ownerCuid() != client->cuid()) ? "进入" : "创建",
+              client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
     return true;
 }
 
