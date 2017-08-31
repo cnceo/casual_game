@@ -19,7 +19,7 @@ RedisHandler& RedisHandler::me()
 }
 
 RedisHandler::RedisHandler()
-:m_host("127.0.0.1"), m_port(6379)
+:m_host("127.0.0.1"), m_port(6379), m_passwd("")
 {
 
 }
@@ -49,8 +49,9 @@ void RedisHandler::loadConfig(const std::string& cfgDir)
         return;
     }
 
-    m_host = redisNode.getAttr<std::string>("host");
-    m_port = redisNode.getAttr<size_t>("port");
+    m_host   = redisNode.getAttr<std::string>("host");
+    m_port   = redisNode.getAttr<size_t>("port");
+    m_passwd = redisNode.getAttr<std::string>("passwd");
     LOG_TRACE("load redis cfg successful, host={}, port={}", m_host, m_port);
 }
 
@@ -60,10 +61,21 @@ bool RedisHandler::init()
         m_ctx.reset(redisConnect(m_host.c_str(), m_port));
 
     if (m_ctx == nullptr || m_ctx->err)
-    {   
+    {
         LOG_ERROR("connection to redis-server failed");
         return false;
-    }   
+    }
+
+    if (m_passwd != "")
+    {
+        void* ret = redisCommand(m_ctx.get(), "auth %s", m_passwd.c_str());
+        auto reply = makeReply(ret);
+        if (reply == nullptr || reply->type == REDIS_REPLY_ERROR)
+        {
+            LOG_ERROR("redis authrized failed");
+            return false;
+        }
+    }
     return true;
 }
 

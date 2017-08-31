@@ -46,6 +46,7 @@ private:
 private:
     std::string m_host;
     std::size_t m_port;
+    std::string m_passwd;
     std::unique_ptr<redisContext> m_ctx;
 
 public:

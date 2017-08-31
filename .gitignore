@@ -20,7 +20,7 @@ test_*
 *.log.*
 *.log
 log/*
-config/game.xml
+*.xml
 tags
 water/libs/mysql++/mysql++-*/
 water/libs/mysql++/installed/
