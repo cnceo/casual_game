@@ -42,13 +42,13 @@ bool Game13::recoveryFromDB()
         auto game = Game13::deserialize(bin);
         if (game == nullptr)
         {
-            LOG_ERROR("Game13, loadFromDB, deserialize failed, roomid={}", roomid);
+            LOG_ERROR("Game13, recoveryFromDB, deserialize failed, roomid={}", roomid);
             successed = false;
             return false;
         }
         if (Room::add(game) == false)
         {
-            LOG_ERROR("Game13, loadFromDB, room::add failed, roomid={}", roomid);
+            LOG_ERROR("Game13, recoveryFromDB, room::add failed, roomid={}", roomid);
             successed = false;
             return false;
         }
@@ -56,6 +56,7 @@ bool Game13::recoveryFromDB()
         return true;
     };
     redis.htraversal(ROOM_TABLE_NAME, exec);
+    LOG_TRACE("Game13, recoveryFromDB, ok");
     return true;
 }
 
