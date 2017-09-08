@@ -247,7 +247,7 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
     auto client = getByCcid(rcv->ccid());
     if (client == nullptr)
     {
-        LOG_TRACE("login, step 3, lobby 确认通过, client 已离线, ccid={}, openid={}, cuid={}", rcv->ccid(), rcv->openid(), rcv->cuid());
+        LOG_TRACE("login, step 3, lobby 返回结果, client 已离线, ccid={}, openid={}, cuid={}", rcv->ccid(), rcv->openid(), rcv->cuid());
         return;
     }
 

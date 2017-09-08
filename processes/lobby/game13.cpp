@@ -419,8 +419,8 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
     auto game = getByRoomId(client->roomid());
     if (game == nullptr)
     {
-        LOG_ERROR("C_G13_GiveUp, client上记录的房间号不存在, roomid={}, ccid={}, cuid={}, openid={}", 
-                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("C_G13_GiveUp, client上记录的房间号不存在, roomid={}, name={}, ccid={}, cuid={}, openid={}", 
+                  client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
         client->afterLeaveRoom();
         return;
     }
@@ -440,16 +440,16 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
         {
             if (client->cuid() == game->ownerCuid()) //房主
             {
-                LOG_TRACE("准备期间房主离开房间, roomid={}, ccid={}, cuid={}, openid={}",
-                          client->roomid(), client->ccid(), client->cuid(), client->openid()); 
+                LOG_TRACE("准备期间房主离开房间, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+                          client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid()); 
                 LOG_TRACE("准备期间终止游戏, 销毁房间, roomid={}", game->getId());
                 game->abortGame();
                 return;
             }
             else
             {
-                LOG_TRACE("准备期间普通成员离开房间, roomid={}, ccid={}, cuid={}, openid={}",
-                          game->getId(), client->ccid(), client->cuid(), client->openid()); 
+                LOG_TRACE("准备期间普通成员离开房间, roomid={}, name={},  ccid={}, cuid={}, openid={}",
+                          game->getId(), client->name(), client->ccid(), client->cuid(), client->openid()); 
                game->removePlayer(client);
                return;
             }
@@ -474,8 +474,8 @@ void Game13::proto_C_G13_GiveUp(ProtoMsgPtr proto, ClientConnectionId ccid)
     case GameStatus::settleAll:
     case GameStatus::closed:
         {
-            LOG_TRACE("结算完毕后主动离开房间, roomid={}, ccid={}, cuid={}, openid={}",
-                      game->getId(), client->ccid(), client->cuid(), client->openid()); 
+            LOG_TRACE("结算完毕后主动离开房间, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+                      game->getId(), client->name(), client->ccid(), client->cuid(), client->openid()); 
             game->removePlayer(client);
             return;
         }
@@ -491,8 +491,8 @@ void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId c
     auto game = getByRoomId(client->roomid());
     if (game == nullptr)
     {
-        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomid={}, ccid={}, cuid={}, openid={}", 
-                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomid={}, name={}, ccid={}, cuid={}, openid={}", 
+                  client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
@@ -500,8 +500,8 @@ void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId c
     PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
     if (info == nullptr)
     {
-        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomid={}, ccid={}, cuid={}, openid={}",
-                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+                  client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
 
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
@@ -513,8 +513,8 @@ void Game13::proto_C_G13_VoteFoAbortGame(ProtoMsgPtr proto, ClientConnectionId c
     auto rcv = PROTO_PTR_CAST_PUBLIC(C_G13_VoteFoAbortGame, proto);
     info->vote = rcv->vote();
 
-    LOG_TRACE("voteForAbortGame, 收到投票, vote={}, roomid={}, ccid={}, cuid={}, openid={}",
-              info->vote, client->roomid(), client->ccid(), client->cuid(), client->openid());
+    LOG_TRACE("voteForAbortGame, 收到投票, vote={}, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+              info->vote, client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
 
     if (rcv->vote() == PublicProto::VT_NONE) //弃权的不处理
         return;
@@ -540,8 +540,8 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     auto game = getByRoomId(client->roomid());
     if (game == nullptr)
     {
-        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomid={}, ccid={}, cuid={}, openid={}", 
-                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("ReadyFlag, client上记录的房间号不存在, roomid={}, name={}, ccid={}, cuid={}, openid={}", 
+                  client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
@@ -549,8 +549,8 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
     if (info == nullptr)
     {
-        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomid={}, ccid={}, cuid={}, openid={}",
-                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("ReadyFlag, 房间中没有这个玩家的信息, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+                  client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
 
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
@@ -572,8 +572,8 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     //改变状态
     info->status = newStatus;
-    LOG_TRACE("ReadyFlag, 玩家设置准备状态, readyFlag={}, roomid={}, ccid={}, cuid={}, openid={}",
-              rcv->ready(), client->roomid(), client->ccid(), client->cuid(), client->openid());
+    LOG_TRACE("ReadyFlag, 玩家设置准备状态, readyFlag={}, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+              rcv->ready(), client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
 
     game->syncAllPlayersInfoToAllClients();
     /*
@@ -588,7 +588,7 @@ void Game13::proto_C_G13_ReadyFlag(ProtoMsgPtr proto, ClientConnectionId ccid)
     //新的ready确认, 检查是否所有玩家都已确认, 可以启动游戏
     if (newStatus == PublicProto::S_G13_PlayersInRoom::READY)
         game->tryStartRound();
-    saveToDB(game, "set ready flag", client);
+    saveToDB(game, "set ready flag, start game", client);
 }
 
 void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
@@ -606,8 +606,8 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     auto game = getByRoomId(client->roomid());
     if (game == nullptr)
     {
-        LOG_ERROR("bring out, client上记录的房间号不存在, roomid={}, ccid={}, cuid={}, openid={}", 
-                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("bring out, client上记录的房间号不存在, roomid={}, name={}, ccid={}, cuid={}, openid={}", 
+                  client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
     }
@@ -615,8 +615,8 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     PlayerInfo* info = game->getPlayerInfoByCuid(client->cuid());
     if (info == nullptr)
     {
-        LOG_ERROR("bring out, 房间中没有这个玩家的信息, roomid={}, ccid={}, cuid={}, openid={}",
-                  client->roomid(), client->ccid(), client->cuid(), client->openid());
+        LOG_ERROR("bring out, 房间中没有这个玩家的信息, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+                  client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
 
         client->afterLeaveRoom(); //ERR_HANDLER
         return;
@@ -690,8 +690,9 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
         cardsStr.append(std::to_string(info->cards[index]));
         cardsStr.append(",");
     }
-    LOG_TRACE("bring out, roomid={}, round={}/{}, cuid={}, openid={}, cards=[{}]",
-             client->roomid(), game->m_rounds, game->m_attr.rounds, client->cuid(), client->openid(), cardsStr);
+    LOG_TRACE("bring out, roomid={}, round={}/{}, name={}, cuid={}, openid={}, cards=[{}]",
+             client->roomid(), game->m_rounds, game->m_attr.rounds, client->name(), client->cuid(), client->openid(), cardsStr);
+    saveToDB(game, "bring out", client);
 
     game->syncAllPlayersInfoToAllClients();
 
@@ -700,7 +701,6 @@ void Game13::proto_C_G13_BringOut(ProtoMsgPtr proto, ClientConnectionId ccid)
     //顺利结算完毕, 开下一局
     if (game->m_status == GameStatus::settle)
         game->tryStartRound();
-    saveToDB(game, "bring out", client);
 }
 
 void Game13::proto_C_G13_SimulationRound(ProtoMsgPtr proto, ClientConnectionId ccid)
@@ -851,12 +851,12 @@ void Game13::clientOnlineExec(Client::Ptr client)
     auto info = getPlayerInfoByCuid(client->cuid());
     if (info == nullptr)
     {
-        LOG_TRACE("玩家上线, 房间号已被复用, roomid={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
+        LOG_TRACE("玩家上线, 房间号已被复用, roomid={}, name={}, ccid={}, cuid={}, openid={}", getId(), client->name(), client->ccid(), client->cuid(), client->openid());
         client->setRoomId(0);
         return;
     }
 
-    LOG_TRACE("client, sync gameinfo, roomid={}, ccid={}, cuid={}, openid={}", getId(), client->ccid(), client->cuid(), client->openid());
+    LOG_TRACE("client, sync gameinfo, roomid={}, name={}, ccid={}, cuid={}, openid={}", getId(), client->name(), client->ccid(), client->cuid(), client->openid());
     info->name   = client->name();
     info->imgurl = client->imgurl();
     info->ipstr  = client->ipstr();
@@ -989,8 +989,8 @@ void Game13::removePlayer(ClientPtr client)
             }
             client->afterLeaveRoom(settleHisDetail);
             iter->clear();
-            LOG_TRACE("Game13, reomvePlayer, roomid={}, ccid={}, cuid={}, openid={}",
-                        getId(), client->ccid(), client->cuid(), client->openid());
+            LOG_TRACE("Game13, reomvePlayer, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+                        getId(), client->name(), client->ccid(), client->cuid(), client->openid());
             break;
         }
     }
@@ -1117,7 +1117,7 @@ void Game13::tryStartRound()
             cardsStr.append(",");
             snd2.add_cards(card);
         }
-        LOG_TRACE("deal deck, roomid={}, round={}/{}, cuid={}, name={}, cards=[{}]", getId(), m_rounds, m_attr.rounds, info.cuid, info.name, cardsStr);
+
         auto client = ClientManager::me().getByCuid(info.cuid);
         if (client != nullptr)
         {
@@ -1127,15 +1127,15 @@ void Game13::tryStartRound()
                 {
                     const int32_t price = m_attr.playerPrice * m_attr.playerSize;
                     client->addMoney(-price);
-                    LOG_TRACE("游戏开始扣钱, 房主付费, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
-                              -price, getId(), client->ccid(), info.cuid, client->openid());
+                    LOG_TRACE("游戏开始扣钱, 房主付费, moneyChange={}, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+                              -price, getId(), client->name(), client->ccid(), info.cuid, client->openid());
                 }
                 else if(m_attr.payor == PAY_SHARE_EQU)
                 {
                     const int32_t price = m_attr.playerPrice;
                     client->addMoney(-price);
-                    LOG_TRACE("游戏开始扣钱, 均摊, moneyChange={}, roomid={}, ccid={}, cuid={}, openid={}",
-                              -price, getId(), client->ccid(), info.cuid, client->openid());
+                    LOG_TRACE("游戏开始扣钱, 均摊, moneyChange={}, roomid={}, name={}, ccid={}, cuid={}, openid={}",
+                              -price, getId(), client->name(), client->ccid(), info.cuid, client->openid());
                 }
             }
 
@@ -1156,6 +1156,7 @@ void Game13::tryStartRound()
         player->set_imgurl(info.imgurl);
         player->set_ipstr(info.ipstr);
         player->set_rank(info.rank);
+        LOG_TRACE("deal deck, roomid={}, round={}/{}, cuid={}, name={}, cards=[{}]", getId(), m_rounds, m_attr.rounds, info.cuid, info.name, cardsStr);
     }
     sendToAll(snd1Code, snd1);
 
