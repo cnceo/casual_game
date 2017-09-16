@@ -147,7 +147,7 @@ void ClientManager::kickOutClient(ClientConnectionId ccid, bool delay/* = true*/
     return;
 }
 
-void ClientManager::sendServerVisionToClient(ClientConnectionId ccid)
+void ClientManager::sendServerVisionToClient(ClientConnectionId ccid) const
 {
     const auto& versionCfg = GameConfig::me().data().versionInfo;
     LOG_DEBUG("send server version to client, version={}, appleReview={}", versionCfg.version, versionCfg.appleReview);
@@ -160,12 +160,40 @@ void ClientManager::sendServerVisionToClient(ClientConnectionId ccid)
     snd.set_android_app_url(versionCfg.androidAppUrl);
     Gateway::me().sendToClient(ccid, sndCode, snd);
 
+    sendServerVisionToClient(ccid);
+}
+
+void ClientManager::sendSystemNoticeToClient(ClientConnectionId ccid) const
+{
     PROTO_VAR_PUBLIC(S_Notice, snd1);
     snd1.set_type(PublicProto::S_Notice::NOTICE);
-    snd1.set_text("亲爱的玩家：$$$       欢迎来到斗阵棋牌世界，让我们约起三五好友一起斗阵游吧！在这里开启快乐休闲时光。$$$斗阵十三水官方运营团队$$$2017年8月16日");
+    snd1.set_text(GameConfig::me().data().systemNotice.announcementBoard);
     Gateway::me().sendToClient(ccid, snd1Code, snd1);
 
+    PROTO_VAR_PUBLIC(S_Notice, snd2);
+    snd2.set_type(PublicProto::S_Notice::MARQUEE);
+    snd2.set_text(GameConfig::me().data().systemNotice.marquee);
+    Gateway::me().sendToClient(ccid, snd2Code, snd2);
+
     return;
+}
+
+void ClientManager::sendSystemNoticeToAllClients() const
+{
+    PROTO_VAR_PUBLIC(S_Notice, snd1);
+    snd1.set_type(PublicProto::S_Notice::NOTICE);
+    snd1.set_text(GameConfig::me().data().systemNotice.announcementBoard);
+
+    PROTO_VAR_PUBLIC(S_Notice, snd2);
+    snd2.set_type(PublicProto::S_Notice::MARQUEE);
+    snd2.set_text(GameConfig::me().data().systemNotice.marquee);
+
+    for (auto it = m_clients.begin(); it != m_clients.end(); ++it)
+    {
+        const auto ccid = it->first;
+        Gateway::me().sendToClient(ccid, snd1Code, snd1);
+        Gateway::me().sendToClient(ccid, snd2Code, snd2);
+    }
 }
 
 void ClientManager::relayClientMsgToServer(const ProcessId& pid, TcpMsgCode code, const ProtoMsgPtr& protoPtr, ClientConnectionId ccid)
@@ -258,14 +286,18 @@ void ClientManager::proto_RetLoginQuest(ProtoMsgPtr proto)
     int32_t rc = rcv->ret_code();
     if (rc == PrivateProto::RLQ_SUCCES)
     {
+
         snd.set_ret_code(PublicProto::LOGINR_SUCCES);
         snd.set_cuid(client->cuid);
         snd.set_temp_token("xxxx"); //此版本一律返回xxxx， 此字段暂不启用
         snd.set_ipstr(client->ep.ip.toString());
-        snd.set_wechat1(GameConfig::me().data().customService.wechat1);
-        snd.set_wechat2(GameConfig::me().data().customService.wechat2);
-        snd.set_wechat3(GameConfig::me().data().customService.wechat3);
-        snd.set_share_link("http://www.xmgwo.com/weixin.html");
+
+        const auto& customServiceCfg = GameConfig::me().data().customService;
+        snd.set_wechat1(customServiceCfg.wechat1);
+        snd.set_wechat2(customServiceCfg.wechat2);
+        snd.set_wechat3(customServiceCfg.wechat3);
+        snd.set_share_link(customServiceCfg.shareLink);
+
         const auto& priceCfg = GameConfig::me().data().pricePerPlayer;
         for (const auto& item : priceCfg)
         {

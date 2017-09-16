@@ -10,9 +10,9 @@
 
 #include "client_manager.h"
 #include "game13.h"
+#include "platform_handler.h"
 
 #include "water/componet/logger.h"
-//#include "protocol/protobuf/proto_manager.h"
 #include "protocol/protobuf/private/gm.codedef.h"
 
 namespace lobby{
@@ -30,6 +30,8 @@ void Lobby::registerTcpMsgHandler()
 
    ClientManager::me().regMsgHandler();
    Game13::regMsgHandler();
+   PlatformHandler::regMsgHandler();
+
 
    /********************msg from client************************/
    //

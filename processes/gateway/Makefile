@@ -8,6 +8,8 @@ objects = \
 		  client_manager.o\
 		  gm.o\
 		  game_config.o\
+		  platform_handler.o\
+
 
 
 
@@ -18,12 +20,14 @@ cc_flags = $(CPP_STD_VER) -ggdb -Wall -Werror \
 		   $(optimization_flag)\
 		   $(google_protobuf_cc_flag)\
 		   $(base_cc_flag)\
+		   $(hiredis_cc_flag)\
 
 ln_flags = -Wl,-dn\
 		   -L$(PROTOCOL_DIR)/protobuf -lprotobuf_message\
 		   -L$(PROTOCOL_DIR)/rawmsg -lrawmsg\
 		   $(base_ln_flag)\
 		   $(google_protobuf_ln_flag)\
+		   $(hiredis_ln_flag)\
 		   -Wl,-dy\
 		   -lpthread\
 

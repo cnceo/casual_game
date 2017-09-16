@@ -54,7 +54,7 @@ class GameConfig
 {
 public:
     void load(const std::string& cfgDir);
-    void reload(const std::string& cfgDir);
+    void reload(const std::string& cfgDir = "");
 
     const GameConfigData& data() const;
 
@@ -62,6 +62,8 @@ private:
     GameConfig() = default;
 
     GameConfigData m_data;
+    std::string m_cfgDir;
+    uint32_t m_version = 0;
 
     static GameConfig s_me;
 public:

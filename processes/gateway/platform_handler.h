@@ -1,23 +1,20 @@
-/*
- * Author: LiZhaojia - waterlzj@gmail.com
- *
- * Last modified: 2017-08-06 20:54 +0800
- *
- * Description: 
- */
+#ifndef GATEWAY_PLATFORM_HANDLER_H
+#define GATEWAY_PLATFORM_HANDLER_H
 
-#ifndef PROCESS_GATEWAY_PLATFORM_HANDLER
-#define PROCESS_GATEWAY_PLATFORM_HANDLER
 
-namespace water{
-}
-
+#include "componet/datetime.h"
 
 namespace gateway{
 
+using namespace water;
 
-
+class PlatformHandler
+{
+public:
+    static void timerExec(const componet::TimePoint& now);
+};
 
 }
+
 
 #endif

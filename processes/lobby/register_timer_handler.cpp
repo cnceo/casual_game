@@ -21,7 +21,7 @@ void Lobby::registerTimerHandler()
     using namespace std::placeholders;
     m_timer.regEventHandler(std::chrono::seconds(1), &Room::timerExecAll);
     m_timer.regEventHandler(std::chrono::seconds(5), std::bind(&ClientManager::timerExecAll, &ClientManager::me(), _1));
-    m_timer.regEventHandler(std::chrono::seconds(10), PlatformHandler::timerExec);
+    m_timer.regEventHandler(std::chrono::seconds(5), PlatformHandler::timerExec);
 }
 
 

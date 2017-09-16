@@ -144,9 +144,9 @@ void ClientManager::rechargeMoney(uint32_t sn, ClientUniqueId cuid, int32_t mone
         return;
     }
 
-    client->addMoney(money);
+    auto newMoney = client->addMoney(money);
     client->syncBasicDataToClient();
-    LOG_TRACE("recharge successed, sn={}, cuid={}, money={}, theOperator={}", sn, cuid, money, theOperator);
+    LOG_TRACE("recharge successed, sn={}, cuid={}, money={}, newMoney={}, theOperator={}", sn, cuid, money, newMoney, theOperator);
 }
 
 bool ClientManager::insert(Client::Ptr client)

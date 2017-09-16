@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<root>
+<root version="100001">
     <version version="1.2" appleReview="false" strictVersion="1" iosAppUrl="http://www.xmgwo.com/weixin.html" androidAppUrl="http://www.xmgwo.com/weixin.html"/>
 
-    <customService wechat1="douzhen001" wechat2="douzhen002" wechat3="斗阵游"/>
+    <customService wechat1="douzhen001" wechat2="douzhen002" wechat3="斗阵游" shareLink="http://www.xmgwo.com/weixin.html"/>
 
-    <systemNotice internalSec="120">
-        <item text="hello, 快来赌钱啦 (*゜ロ゜)ノ"/>
-        <item text="hello, 你想赢么 ( ͡° ͜ʖ ͡°)✧"/>
-        <item text="hello, 还没输光啊 （°ο°）!"/>
+    <systemNotice>
+        <announcementBoard salution="亲爱的玩家：" body="欢迎来到斗阵棋牌世界，让我们约起三五好友一起斗阵游吧！在这里开启快乐休闲时光。" signature="斗阵十三水官方运营团队" date="2017年8月16日"/>
+        <marquee text="健康游戏, 拒绝赌博"/>
     </systemNotice>
 
     <pricePerPlayer>

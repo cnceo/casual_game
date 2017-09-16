@@ -9,6 +9,9 @@
 #include "base/tcp_message.h"
 #include "protocol/rawmsg/rawmsg_manager.h"
 
+#include "dbadaptcher/redis_handler.h"
+
+
 namespace gateway{
 
 using protocol::rawmsg::RawmsgManager;
@@ -187,6 +190,7 @@ void Gateway::loadConfig()
 {
     ProtoManager::me().loadConfig(m_cfgDir);
     GameConfig::me().load(m_cfgDir);
+    dbadaptcher::RedisHandler::me().setCfgDir(m_cfgDir);
 }
 
 void Gateway::newPlatformConnection(net::BufferedConnection::Ptr conn)

@@ -15,16 +15,17 @@ GameConfig& GameConfig::me()
     return s_me;
 }
 
-void GameConfig::reload(const std::string& cfgDir)
+void GameConfig::reload(const std::string& cfgDir /* = "" */)
 {
+    const std::string dir = (cfgDir != "") ? cfgDir : m_cfgDir;
     try
     {
-        load(cfgDir);
+        load(dir);
     }
     catch (const LoadGameCfgFailedGW& ex)
     {
-        const std::string configFile = cfgDir + "/game.xml";
-        LOG_ERROR("reload {} failed! {}", configFile, ex);
+        const std::string configFile = dir + "/game.xml";
+        LOG_ERROR("reload {}, failed! {}", configFile, ex);
     }
 }
 
@@ -41,25 +42,34 @@ void GameConfig::load(const std::string& cfgDir)
     if (!root)
         EXCEPTION(LoadGameCfgFailedGW, configFile + "prase root node failed");
 
+    uint32_t version = root.getAttr<uint32_t>("version");
+    if (version <= m_version)
+    {
+        LOG_TRACE("load {}, ignored, version:{}->{}", configFile, m_version, version);
+        return;
+    }
+
+    GameConfigData data;
     {
         XmlParseNode versionNode = root.getChild("version");
         if (!versionNode)
             EXCEPTION(LoadGameCfgFailedGW, "version node dose not exist");
 
-        m_data.versionInfo.version = versionNode.getAttr<std::string>("version");
-        m_data.versionInfo.appleReview   = versionNode.getAttr<bool>("appleReview");
-        m_data.versionInfo.strictVersion = versionNode.getAttr<bool>("strictVersion");
-        m_data.versionInfo.iosAppUrl     = versionNode.getAttr<std::string>("iosAppUrl");
-        m_data.versionInfo.androidAppUrl = versionNode.getAttr<std::string>("androidAppUrl");
+        data.versionInfo.version = versionNode.getAttr<std::string>("version");
+        data.versionInfo.appleReview   = versionNode.getAttr<bool>("appleReview");
+        data.versionInfo.strictVersion = versionNode.getAttr<bool>("strictVersion");
+        data.versionInfo.iosAppUrl     = versionNode.getAttr<std::string>("iosAppUrl");
+        data.versionInfo.androidAppUrl = versionNode.getAttr<std::string>("androidAppUrl");
     }
 
     {
         XmlParseNode customServiceNode = root.getChild("customService");
         if (!customServiceNode)
             EXCEPTION(LoadGameCfgFailedGW, "customService node dose not exist");
-        m_data.customService.wechat1 = customServiceNode.getAttr<std::string>("wechat1");
-        m_data.customService.wechat2 = customServiceNode.getAttr<std::string>("wechat2");
-        m_data.customService.wechat3 = customServiceNode.getAttr<std::string>("wechat3");
+        data.customService.wechat1   = customServiceNode.getAttr<std::string>("wechat1");
+        data.customService.wechat2   = customServiceNode.getAttr<std::string>("wechat2");
+        data.customService.wechat3   = customServiceNode.getAttr<std::string>("wechat3");
+        data.customService.shareLink = customServiceNode.getAttr<std::string>("shareLink");
     }
 
     {
@@ -67,11 +77,21 @@ void GameConfig::load(const std::string& cfgDir)
         if (!systemNoticeNode)
             EXCEPTION(LoadGameCfgFailedGW, "systemNotice node dose not exist");
 
-        m_data.systemNotice.internalSec = systemNoticeNode.getAttr<time_t>("internalSec");
+        XmlParseNode announcementBoardNode = systemNoticeNode.getChild("announcementBoard");
+        if (!announcementBoardNode)
+            EXCEPTION(LoadGameCfgFailedGW, "systemNotice.announcementBoard node dose not exist");
+        data.systemNotice.announcementBoard = componet::format("{}$$${}$$${}$$${}", 
+                                                     announcementBoardNode.getAttr<std::string>("salution"),
+                                                     announcementBoardNode.getAttr<std::string>("body"),
+                                                     announcementBoardNode.getAttr<std::string>("signature"),
+                                                     announcementBoardNode.getAttr<std::string>("date"));
 
-        for (XmlParseNode itemNode = systemNoticeNode.getChild("item"); itemNode; ++itemNode)
-            m_data.systemNotice.texts.emplace_back(itemNode.getAttr<std::string>("text"));
-        m_data.systemNotice.texts.shrink_to_fit();
+
+        XmlParseNode marqueeNode = systemNoticeNode.getChild("marquee");
+        if (!marqueeNode)
+            EXCEPTION(LoadGameCfgFailedGW, "systemNotice.marquee node dose not exist");
+        data.systemNotice.marquee = marqueeNode.getAttr<std::string>("text");
+
     }
 
     {
@@ -79,16 +99,21 @@ void GameConfig::load(const std::string& cfgDir)
         if (!pricePerPlayerNode)
             EXCEPTION(LoadGameCfgFailedGW, "pricePerPlayer node dose not exist");
 
-        m_data.pricePerPlayer.clear();
+        data.pricePerPlayer.clear();
         for (XmlParseNode itemNode = pricePerPlayerNode.getChild("item"); itemNode; ++itemNode)
         {
             uint32_t rounds = itemNode.getAttr<uint32_t>("rounds");
             int32_t  money  = itemNode.getAttr<int32_t>("money");
-            m_data.pricePerPlayer[rounds] = money;
+            data.pricePerPlayer[rounds] = money;
         }
 
     }
-    LOG_TRACE("load {} successed", configFile);
+
+    m_data    = data;
+    m_cfgDir  = cfgDir;
+
+    LOG_TRACE("load {}, successed, version:{}->{}", configFile, m_version, version);
+    m_version = version;
 }
 
 }

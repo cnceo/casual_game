@@ -12,7 +12,9 @@ class PlatformHandler
 {
 public:
     static void timerExec(const componet::TimePoint& now);
-    
+
+public:
+    static void regMsgHandler();   
 };
 
 }

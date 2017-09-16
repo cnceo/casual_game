@@ -39,23 +39,23 @@ struct GameConfigData
         std::string wechat1;
         std::string wechat2;
         std::string wechat3;
+        std::string shareLink;
     } customService;
 
     struct
     {
-        std::vector<std::string> texts;
-        time_t internalSec = 120;
+        std::string announcementBoard;
+        std::string marquee;
     } systemNotice;
 
     std::map<uint32_t, int32_t> pricePerPlayer; //<房间局数, 人头费>
-
 };
 
 class GameConfig
 {
 public:
     void load(const std::string& cfgDir);
-    void reload(const std::string& cfgDir);
+    void reload(const std::string& cfgDir = "");
 
     const GameConfigData& data() const;
 
@@ -63,6 +63,8 @@ private:
     GameConfig() = default;
 
     GameConfigData m_data;
+    std::string m_cfgDir;
+    uint32_t m_version = 0;
 
     static GameConfig s_me;
 public:

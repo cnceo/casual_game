@@ -47,7 +47,7 @@ void Lobby::init()
     //加载配置
     ProtoManager::me().loadConfig(m_cfgDir);
     GameConfig::me().load(m_cfgDir);
-    dbadaptcher::RedisHandler::me().loadConfig(m_cfgDir);
+    dbadaptcher::RedisHandler::me().setCfgDir(m_cfgDir);
     //初始化初始化ClientManager
     ClientManager::me().init();
     //加载G13游戏房间数据

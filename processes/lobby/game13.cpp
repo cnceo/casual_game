@@ -374,8 +374,9 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
     //最后进房间, 因为进房间要预扣款, 进入后再有什么原因失败需要回退
     if (!game->enterRoom(client))
     {
-        LOG_TRACE("建立房间失败, enterRoom 失败, name={}, cuid={}, openid={}, roomid={}", client->name(), client->cuid(), client->openid(), rcv->room_id()); 
+        LOG_TRACE("建立房间失败, enterRoom 失败, name={}, cuid={}, openid={}", client->name(), client->cuid(), client->openid()); 
         return;
+    }
 
     saveToDB(game, "create room", client);
 }

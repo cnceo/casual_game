@@ -20,7 +20,7 @@ public:
     NON_COPYABLE(RedisHandler)
     ~RedisHandler() = default;
 
-    void loadConfig(const std::string& cfgDir);
+    void loadConfig();
 
 public://set/get
     bool set(const std::string& key, const std::string& data);
@@ -41,7 +41,7 @@ public://list
 
 private:
     RedisHandler();
-    bool init();
+    bool init(bool force = false);
 
 private:
     std::string m_host;
@@ -49,7 +49,10 @@ private:
     std::string m_passwd;
     std::unique_ptr<redisContext> m_ctx;
 
+    static std::string s_cfgDir;
+
 public:
+    static void setCfgDir(const std::string& cfgDir);
     static RedisHandler& me();
 };
 

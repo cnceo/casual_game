@@ -18,18 +18,24 @@ RedisHandler& RedisHandler::me()
     return *p;
 }
 
+std::string RedisHandler::s_cfgDir = "";
+void RedisHandler::setCfgDir(const std::string& cfgDir)
+{
+    s_cfgDir = cfgDir;
+}
+
 RedisHandler::RedisHandler()
 :m_host("127.0.0.1"), m_port(6379), m_passwd("")
 {
 
 }
 
-void RedisHandler::loadConfig(const std::string& cfgDir)
+void RedisHandler::loadConfig()
 {
     using componet::XmlParseDoc;
     using componet::XmlParseNode;
 
-    const std::string configFile = cfgDir + "/process.xml";
+    const std::string configFile = RedisHandler::s_cfgDir + "/process.xml";
 
     LOG_TRACE("读取redis配置 {}", configFile);
 
@@ -37,7 +43,7 @@ void RedisHandler::loadConfig(const std::string& cfgDir)
     XmlParseNode root = doc.getRoot();
     if(!root)
     {
-        LOG_TRACE("load redis cfg file failed(1), use default values");
+        LOG_ERROR("connect to redis-server failed, host={}, port={}", m_host, m_port);
         return;
     }
         
@@ -45,35 +51,44 @@ void RedisHandler::loadConfig(const std::string& cfgDir)
     XmlParseNode redisNode = root.getChild("redis");
     if (!redisNode)
     {
-        LOG_TRACE("load redis cfg file failed(2), use default values");
+        LOG_ERROR("redis authrized failed, host={}, port={}, pwd={}", m_host, m_port, m_passwd);
         return;
     }
 
     m_host   = redisNode.getAttr<std::string>("host");
     m_port   = redisNode.getAttr<size_t>("port");
     m_passwd = redisNode.getAttr<std::string>("passwd");
+
     LOG_TRACE("load redis cfg successful, host={}, port={}", m_host, m_port);
 }
 
-bool RedisHandler::init()
+bool RedisHandler::init(bool force)
 {
+    if (force)
+        m_ctx.reset();
+
     if (m_ctx == nullptr)
+    {
+        loadConfig();
         m_ctx.reset(redisConnect(m_host.c_str(), m_port));
+        LOG_TRACE("redis, init ctx, connect to {}:{}", m_host, m_port);
 
-    if (m_ctx == nullptr || m_ctx->err)
-    {
-        LOG_ERROR("connection to redis-server failed");
-        return false;
-    }
-
-    if (m_passwd != "")
-    {
-        void* ret = redisCommand(m_ctx.get(), "auth %s", m_passwd.c_str());
-        auto reply = makeReply(ret);
-        if (reply == nullptr || reply->type == REDIS_REPLY_ERROR)
+        if (m_ctx == nullptr || m_ctx->err)
         {
-            LOG_ERROR("redis authrized failed");
+            LOG_ERROR("connection to redis-server failed");
             return false;
+        }
+
+        if (m_passwd != "")
+        {
+            void* ret = redisCommand(m_ctx.get(), "auth %s", m_passwd.c_str());
+            auto reply = makeReply(ret);
+            if (reply == nullptr || reply->type == REDIS_REPLY_ERROR)
+            {
+                LOG_ERROR("redis authrized failed");
+                return false;
+            }
+            LOG_TRACE("redis, init ctx, auth with passwd ok!");
         }
     }
     return true;

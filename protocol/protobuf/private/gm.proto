@@ -5,35 +5,13 @@ package PrivateProto;
 message Ping
 {
     required string msg = 1;
-};
+}
 
 message Pong
 {
     required string msg = 2;
-};
-
-message AddMoney
-{
-    required uint64 tuid    = 1;
-    required uint64 cuid    = 2;
-    required int32  money1  = 3;
-    required int32  money2  = 4;
 }
 
-message RetAddMoney
+message LoadGameConfig
 {
-    required uint64 tuid = 1;
-    required uint64 cuid = 2;
-}
-
-message SetNotice
-{
-    required string notice1 = 1;
-    required string notice2 = 2;
-}
-
-message SetCustomerService
-{
-    required string wechat1 = 1;
-    required string wechat2 = 2;
 }
