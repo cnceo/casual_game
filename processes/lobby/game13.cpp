@@ -373,6 +373,8 @@ void Game13::proto_C_G13_CreateGame(ProtoMsgPtr proto, ClientConnectionId ccid)
 
     //最后进房间, 因为进房间要预扣款, 进入后再有什么原因失败需要回退
     if (!game->enterRoom(client))
+    {
+        LOG_TRACE("建立房间失败, enterRoom 失败, name={}, cuid={}, openid={}, roomid={}", client->name(), client->cuid(), client->openid(), rcv->room_id()); 
         return;
 
     saveToDB(game, "create room", client);
@@ -806,7 +808,7 @@ bool Game13::enterRoom(Client::Ptr client)
         switch (m_attr.payor)
         {
         case PAY_BANKER:
-            enoughMoney = (ownerCuid() == client->cuid()) ?  client->enoughMoney(totalPrice) : client->enoughMoney( m_attr.playerPrice);
+            enoughMoney = (ownerCuid() == client->cuid()) ?  client->enoughMoney(totalPrice) : true;
             break;
         case PAY_SHARE_EQU:
             enoughMoney = client->enoughMoney(m_attr.playerPrice);
@@ -835,10 +837,10 @@ bool Game13::enterRoom(Client::Ptr client)
     //反向索引, 记录房间号
     client->setRoomId(getId());
 
-    afterEnterRoom(client);
-
     LOG_TRACE("G13, {}房间成功, roomid={}, name={}, ccid={}, cuid={}, openid={}", (ownerCuid() != client->cuid()) ? "进入" : "创建",
               client->roomid(), client->name(), client->ccid(), client->cuid(), client->openid());
+
+    afterEnterRoom(client);
     return true;
 }
 
