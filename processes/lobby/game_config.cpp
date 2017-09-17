@@ -45,6 +45,7 @@ void GameConfig::load(const std::string& cfgDir)
     uint32_t version = root.getAttr<uint32_t>("version");
     if (version <= m_version)
     {
+        m_cfgDir = cfgDir;
         LOG_TRACE("load {}, ignored, version:{}->{}", configFile, m_version, version);
         return;
     }
