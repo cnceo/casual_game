@@ -59,6 +59,8 @@ public:
 
     const GameConfigData& data() const;
 
+    uint32_t version() const;
+
 private:
     GameConfig() = default;
 

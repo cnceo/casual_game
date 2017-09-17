@@ -15,6 +15,11 @@ GameConfig& GameConfig::me()
     return s_me;
 }
 
+uint32_t GameConfig::version() const
+{
+    return m_version;
+}
+
 void GameConfig::reload(const std::string& cfgDir /* = "" */)
 {
     const std::string dir = (cfgDir != "") ? cfgDir : m_cfgDir;

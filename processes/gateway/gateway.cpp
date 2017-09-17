@@ -186,6 +186,11 @@ HttpConnectionManager& Gateway::httpConnectionManager()
     return m_httpConns;
 }
 
+ClientManager::Ptr Gateway::clientManager() const
+{
+    return m_clientManager;
+}
+
 void Gateway::loadConfig()
 {
     ProtoManager::me().loadConfig(m_cfgDir);

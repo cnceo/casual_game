@@ -37,7 +37,15 @@ void gmcmdHandler()
                 PROTO_VAR_PRIVATE(LoadGameConfig, snd);
                 Gateway::me().sendToPrivate(ProcessId("lobby", 1), sndCode, snd);
 
+
+                auto oldGameCfgVersion = GameConfig::me().version();
                 GameConfig::me().reload();
+                if (oldGameCfgVersion  != GameConfig::me().version())
+                {
+                    auto clientManager = Gateway::me().clientManager();
+                    if (clientManager != nullptr)
+                        clientManager->sendSystemNoticeToAllClients();
+                }
                 break;
             }
             

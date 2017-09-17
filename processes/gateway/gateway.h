@@ -40,6 +40,8 @@ public:
 
     HttpConnectionManager& httpConnectionManager();
 
+    ClientManager::Ptr clientManager() const;
+
 private:
     Gateway(int32_t num, const std::string& configDir, const std::string& logDir);
 
