@@ -160,7 +160,7 @@ void ClientManager::sendServerVisionToClient(ClientConnectionId ccid) const
     snd.set_android_app_url(versionCfg.androidAppUrl);
     Gateway::me().sendToClient(ccid, sndCode, snd);
 
-    sendServerVisionToClient(ccid);
+    sendSystemNoticeToClient(ccid);
 }
 
 void ClientManager::sendSystemNoticeToClient(ClientConnectionId ccid) const
